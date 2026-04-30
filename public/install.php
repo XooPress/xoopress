@@ -7,20 +7,29 @@
 
 declare(strict_types=1);
 
-// Define root path
 define('XOO_PRESS_ROOT', dirname(__DIR__));
 define('XOO_PRESS_CONFIG', XOO_PRESS_ROOT . '/config');
 
-// Check if already installed
-$configFile = XOO_PRESS_CONFIG . '/app.php';
-$lockFile = XOO_PRESS_CONFIG . '/installed.lock';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-if (file_exists($lockFile)) {
+// Handle fresh start
+if (isset($_GET['restart'])) {
+    session_destroy();
+    session_start();
+    header('Location: install.php');
+    exit;
+}
+
+// Check if already installed
+$lockFile = XOO_PRESS_CONFIG . '/installed.lock';
+if (file_exists($lockFile) && !isset($_GET['step'])) {
     header('Location: /');
     exit;
 }
 
-// Load composer autoloader for Whoops
+// Load Whoops for error handling
 $autoload = XOO_PRESS_ROOT . '/vendor/autoload.php';
 if (file_exists($autoload)) {
     require_once $autoload;
@@ -31,46 +40,63 @@ if (file_exists($autoload)) {
     }
 }
 
-// Installer state
 $step = (int) ($_GET['step'] ?? 1);
 $errors = [];
-$success = false;
+$formData = [];
+
+// Reset session + form data when leaving step 2 back to step 1
+if ($step === 1 && isset($_SESSION['install_db_host'])) {
+    // Only clear DB-related session data, keep step flags
+    foreach ($_SESSION as $key => $val) {
+        if (str_starts_with($key, 'install_')) {
+            unset($_SESSION[$key]);
+        }
+    }
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $step = (int) ($_POST['step'] ?? $step);
+    $formData = $_POST;
     
     switch ($step) {
         case 1:
             $errors = validateRequirements();
-            if (empty($errors)) $step = 2;
-            break;
-        case 2:
-            $errors = validateDatabase($_POST);
             if (empty($errors)) {
-                $_SESSION['install_db_host'] = $_POST['db_host'];
-                $_SESSION['install_db_port'] = (int) ($_POST['db_port'] ?? 3306);
-                $_SESSION['install_db_name'] = $_POST['db_name'];
-                $_SESSION['install_db_user'] = $_POST['db_user'];
-                $_SESSION['install_db_pass'] = $_POST['db_pass'];
-                $_SESSION['install_db_prefix'] = $_POST['db_prefix'] ?? 'xp_';
+                $step = 2;
+            }
+            break;
+            
+        case 2:
+            $errors = validateDatabase($formData);
+            if (empty($errors)) {
+                // Store validated credentials in session ONLY after successful validation
+                $_SESSION['install_db_host']   = $formData['db_host'];
+                $_SESSION['install_db_port']   = (int) ($formData['db_port'] ?? 3306);
+                $_SESSION['install_db_name']   = $formData['db_name'];
+                $_SESSION['install_db_user']   = $formData['db_user'];
+                $_SESSION['install_db_pass']   = $formData['db_pass'];
+                $_SESSION['install_db_prefix'] = $formData['db_prefix'] ?? 'xp_';
                 $step = 3;
             }
             break;
+            
         case 3:
-            $errors = validateAdminAccount($_POST);
+            $errors = validateAdminAccount($formData);
             if (empty($errors)) {
-                $_SESSION['install_admin_user'] = $_POST['admin_user'];
-                $_SESSION['install_admin_email'] = $_POST['admin_email'];
-                $_SESSION['install_admin_pass'] = $_POST['admin_pass'];
+                $_SESSION['install_admin_user']  = $formData['admin_user'];
+                $_SESSION['install_admin_email'] = $formData['admin_email'];
+                $_SESSION['install_admin_pass']  = $formData['admin_pass'];
                 $step = 4;
             }
             break;
+            
         case 4:
-            $result = runInstallation($_POST, $errors);
+            // runInstallation now reads fresh POST data, NOT session
+            $errors = [];
+            $result = runInstallation($formData, $errors);
             if ($result) {
                 $step = 5;
-                $success = true;
             }
             break;
     }
@@ -85,12 +111,12 @@ function validateRequirements(): array
     }
     
     $required = [
-        'pdo' => 'PDO Extension',
-        'pdo_mysql' => 'PDO MySQL Driver',
-        'gettext' => 'gettext Extension',
-        'mbstring' => 'mbstring Extension',
-        'json' => 'JSON Extension',
-        'session' => 'Session Extension',
+        'pdo'         => 'PDO Extension',
+        'pdo_mysql'   => 'PDO MySQL Driver',
+        'gettext'     => 'gettext Extension',
+        'mbstring'    => 'mbstring Extension',
+        'json'        => 'JSON Extension',
+        'session'     => 'Session Extension',
     ];
     
     foreach ($required as $ext => $name) {
@@ -99,11 +125,10 @@ function validateRequirements(): array
         }
     }
     
-    // Check write permissions
     $checkPaths = [
-        XOO_PRESS_CONFIG => 'Config directory',
+        XOO_PRESS_CONFIG               => 'Config directory',
         XOO_PRESS_ROOT . '/storage/cache' => 'Cache directory',
-        XOO_PRESS_ROOT . '/storage/logs' => 'Logs directory',
+        XOO_PRESS_ROOT . '/storage/logs'  => 'Logs directory',
     ];
     
     foreach ($checkPaths as $path => $label) {
@@ -126,22 +151,69 @@ function validateDatabase(array $data): array
         }
     }
     
-    if (empty($errors)) {
+    if (!empty($errors)) {
+        return $errors;
+    }
+    
+    $host   = $data['db_host'];
+    $port   = (int) ($data['db_port'] ?? 3306);
+    $user   = $data['db_user'];
+    $pass   = $data['db_pass'] ?? '';
+    $dbName = $data['db_name'];
+    
+    // Try UNIX socket first (common for MySQL 8 with auth_socket), fallback to TCP
+    $dsns = [];
+    
+    // TCP connection
+    $dsns[] = "mysql:host={$host};port={$port};charset=utf8mb4";
+    
+    // UNIX socket (if host is localhost)
+    if ($host === 'localhost' || $host === '127.0.0.1') {
+        $socket = '/var/run/mysqld/mysqld.sock';
+        if (file_exists($socket)) {
+            $dsns[] = "mysql:unix_socket={$socket};charset=utf8mb4";
+        }
+        // Alternative socket location
+        $socketAlt = '/var/lib/mysql/mysql.sock';
+        if (file_exists($socketAlt)) {
+            $dsns[] = "mysql:unix_socket={$socketAlt};charset=utf8mb4";
+        }
+    }
+    
+    $connected = false;
+    $lastError = '';
+    
+    foreach ($dsns as $dsn) {
         try {
-            $dsn = "mysql:host={$data['db_host']};port=" . ((int)($data['db_port'] ?? 3306));
-            $pdo = new PDO($dsn, $data['db_user'], $data['db_pass'] ?? '', [
+            $pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_TIMEOUT => 5,
             ]);
             
-            // Test creating database if it doesn't exist
-            $dbName = $data['db_name'];
+            // Create database if it doesn't exist
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $pdo->exec("USE `{$dbName}`");
             
+            $connected = true;
+            break;
         } catch (\PDOException $e) {
-            $errors[] = 'Database connection failed: ' . $e->getMessage();
+            $lastError = $e->getMessage();
         }
+    }
+    
+    if (!$connected) {
+        $errorMsg = 'Database connection failed: ' . $lastError;
+        
+        // Add helpful hints for common MySQL 8 issues
+        if (str_contains($lastError, 'Access denied')) {
+            $errorMsg .= '<br><br><strong>Common solutions:</strong>';
+            $errorMsg .= '<br>• Create a dedicated MySQL user: <code>CREATE USER \'xoopress\'@\'localhost\' IDENTIFIED BY \'password\'; GRANT ALL PRIVILEGES ON *.* TO \'xoopress\'@\'localhost\'; FLUSH PRIVILEGES;</code>';
+            $errorMsg .= '<br>• Or change root auth method: <code>ALTER USER \'root\'@\'localhost\' IDENTIFIED WITH mysql_native_password BY \'your_password\'; FLUSH PRIVILEGES;</code>';
+        } elseif (str_contains($lastError, 'Connection refused')) {
+            $errorMsg .= '<br><br>MySQL server is not running or not accepting connections. Check that MySQL is running and the host:port are correct.';
+        }
+        
+        $errors[] = $errorMsg;
     }
     
     return $errors;
@@ -178,21 +250,53 @@ function validateAdminAccount(array $data): array
 
 function runInstallation(array $data, array &$errors): bool
 {
+    // Read credentials from POST data directly — NOT from session
+    // This guarantees fresh values from the form, not stale session data
+    $host     = $data['db_host']     ?? $_SESSION['install_db_host']   ?? 'localhost';
+    $port     = (int)($data['db_port'] ?? $_SESSION['install_db_port'] ?? 3306);
+    $dbName   = $data['db_name']     ?? $_SESSION['install_db_name']   ?? 'xoopress';
+    $dbUser   = $data['db_user']     ?? $_SESSION['install_db_user']   ?? 'root';
+    $dbPass   = $data['db_pass']     ?? $_SESSION['install_db_pass']   ?? '';
+    $dbPrefix = $data['db_prefix']   ?? $_SESSION['install_db_prefix'] ?? 'xp_';
+    
+    $adminUser  = $_SESSION['install_admin_user']  ?? 'admin';
+    $adminEmail = $_SESSION['install_admin_email'] ?? '';
+    $adminPass  = $_SESSION['install_admin_pass']  ?? '';
+    
     try {
-        $host = $_SESSION['install_db_host'] ?? 'localhost';
-        $port = $_SESSION['install_db_port'] ?? 3306;
-        $dbName = $_SESSION['install_db_name'] ?? 'xoopress';
-        $dbUser = $_SESSION['install_db_user'] ?? 'root';
-        $dbPass = $_SESSION['install_db_pass'] ?? '';
-        $dbPrefix = $_SESSION['install_db_prefix'] ?? 'xp_';
+        // Try TCP first, then socket (same logic as validateDatabase)
+        $dsns = [];
+        $dsns[] = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
         
-        // Connect to database
-        $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
-        $pdo = new PDO($dsn, $dbUser, $dbPass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
+        if ($host === 'localhost' || $host === '127.0.0.1') {
+            $socket = '/var/run/mysqld/mysqld.sock';
+            if (file_exists($socket)) {
+                $dsns[] = "mysql:unix_socket={$socket};dbname={$dbName};charset=utf8mb4";
+            }
+            $socketAlt = '/var/lib/mysql/mysql.sock';
+            if (file_exists($socketAlt)) {
+                $dsns[] = "mysql:unix_socket={$socketAlt};dbname={$dbName};charset=utf8mb4";
+            }
+        }
+        
+        $pdo = null;
+        foreach ($dsns as $dsn) {
+            try {
+                $pdo = new PDO($dsn, $dbUser, $dbPass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_TIMEOUT => 5,
+                ]);
+                break;
+            } catch (\PDOException $e) {
+                // Try next DSN
+            }
+        }
+        
+        if (!$pdo) {
+            throw new \Exception('Could not connect to database with any method. Check your credentials.');
+        }
         
         // Create tables
         $schema = getInstallSchema($dbPrefix);
@@ -201,22 +305,19 @@ function runInstallation(array $data, array &$errors): bool
         }
         
         // Create admin user
-        $adminUser = $_SESSION['install_admin_user'] ?? 'admin';
-        $adminEmail = $_SESSION['install_admin_email'] ?? 'admin@xoopress.local';
-        $adminPass = password_hash($_SESSION['install_admin_pass'] ?? 'admin123', PASSWORD_BCRYPT);
-        
+        $hashedPass = password_hash($adminPass, PASSWORD_BCRYPT);
         $stmt = $pdo->prepare(
             "INSERT INTO {$dbPrefix}users (username, email, password, display_name, role, status) 
              VALUES (?, ?, ?, ?, 'admin', 'active')"
         );
-        $stmt->execute([$adminUser, $adminEmail, $adminPass, $adminUser]);
+        $stmt->execute([$adminUser, $adminEmail, $hashedPass, $adminUser]);
         
         // Insert default settings
         $settings = [
-            'site_name' => 'XooPress',
+            'site_name'        => 'XooPress',
             'site_description' => 'A modular CMS combining XOOPS and WordPress concepts',
-            'site_url' => 'http://localhost',
-            'admin_email' => $adminEmail,
+            'site_url'         => 'http://localhost',
+            'admin_email'      => $adminEmail,
         ];
         
         $stmt = $pdo->prepare(
@@ -232,100 +333,61 @@ function runInstallation(array $data, array &$errors): bool
         )->execute(['Uncategorized', 'uncategorized', 'Default category']);
         
         // Write config file
-        $configContent = <<<PHP
-<?php
-/**
- * XooPress Application Configuration
- * 
- * @package XooPress
- */
-
-return [
-    'name' => 'XooPress',
-    'version' => '1.0.0',
-    'debug' => false,
-    'timezone' => 'UTC',
-    
-    'url' => [
-        'base' => 'http://localhost',
-        'assets' => '/assets',
-    ],
-    
-    'database' => [
-        'driver' => 'mysql',
-        'host' => '{$host}',
-        'port' => {$port},
-        'database' => '{$dbName}',
-        'username' => '{$dbUser}',
-        'password' => '{$dbPass}',
-        'charset' => 'utf8mb4',
-        'collation' => 'utf8mb4_unicode_ci',
-        'prefix' => '{$dbPrefix}',
-        'options' => [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ],
-    ],
-    
-    'session' => [
-        'enabled' => true,
-        'name' => 'xoopress_session',
-        'lifetime' => 7200,
-        'path' => '/',
-        'domain' => '',
-        'secure' => false,
-        'httponly' => true,
-        'options' => [],
-    ],
-    
-    'i18n' => [
-        'default_locale' => 'en_US',
-        'fallback_locale' => 'en_US',
-        'available_locales' => ['en_US', 'fr_FR', 'de_DE'],
-        'domain' => 'messages',
-        'encoding' => 'UTF-8',
-    ],
-    
-    'security' => [
-        'csrf' => [
-            'enabled' => true,
-            'token_name' => '_csrf_token',
-        ],
-        'xss_protection' => true,
-    ],
-    
-    'cache' => [
-        'driver' => 'file',
-        'path' => dirname(__DIR__) . '/storage/cache',
-        'ttl' => 3600,
-    ],
-    
-    'logging' => [
-        'enabled' => true,
-        'path' => dirname(__DIR__) . '/storage/logs',
-        'level' => 'debug',
-    ],
-    
-    'modules' => [
-        'path' => dirname(__DIR__) . '/modules',
-        'enabled' => ['System', 'Content'],
-        'autoload' => true,
-    ],
-];
-
-PHP;
+        $configContent = "<?php\n/**\n * XooPress Application Configuration\n * \n * @package XooPress\n */\n\nreturn [\n";
+        $configContent .= "    'name' => 'XooPress',\n    'version' => '1.0.0',\n";
+        $configContent .= "    'debug' => false,\n    'timezone' => 'UTC',\n\n";
+        $configContent .= "    'url' => [\n        'base' => 'http://localhost',\n        'assets' => '/assets',\n    ],\n\n";
+        $configContent .= "    'database' => [\n        'driver' => 'mysql',\n";
+        $configContent .= "        'host' => '" . addslashes($host) . "',\n";
+        $configContent .= "        'port' => {$port},\n";
+        $configContent .= "        'database' => '" . addslashes($dbName) . "',\n";
+        $configContent .= "        'username' => '" . addslashes($dbUser) . "',\n";
+        $configContent .= "        'password' => '" . addslashes($dbPass) . "',\n";
+        $configContent .= "        'charset' => 'utf8mb4',\n        'collation' => 'utf8mb4_unicode_ci',\n";
+        $configContent .= "        'prefix' => '" . addslashes($dbPrefix) . "',\n";
+        $configContent .= "        'options' => [\n";
+        $configContent .= "            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,\n";
+        $configContent .= "            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n";
+        $configContent .= "            PDO::ATTR_EMULATE_PREPARES => false,\n";
+        $configContent .= "        ],\n    ],\n\n";
+        $configContent .= "    'session' => [\n        'enabled' => true,\n";
+        $configContent .= "        'name' => 'xoopress_session',\n        'lifetime' => 7200,\n";
+        $configContent .= "        'path' => '/',\n        'domain' => '',\n";
+        $configContent .= "        'secure' => false,\n        'httponly' => true,\n";
+        $configContent .= "        'options' => [],\n    ],\n\n";
+        $configContent .= "    'i18n' => [\n        'default_locale' => 'en_US',\n";
+        $configContent .= "        'fallback_locale' => 'en_US',\n";
+        $configContent .= "        'available_locales' => ['en_US', 'fr_FR', 'de_DE'],\n";
+        $configContent .= "        'domain' => 'messages',\n        'encoding' => 'UTF-8',\n    ],\n\n";
+        $configContent .= "    'security' => [\n        'csrf' => ['enabled' => true, 'token_name' => '_csrf_token'],\n";
+        $configContent .= "        'xss_protection' => true,\n    ],\n\n";
+        $configContent .= "    'cache' => [\n        'driver' => 'file',\n";
+        $configContent .= "        'path' => dirname(__DIR__) . '/storage/cache',\n        'ttl' => 3600,\n    ],\n\n";
+        $configContent .= "    'logging' => [\n        'enabled' => true,\n";
+        $configContent .= "        'path' => dirname(__DIR__) . '/storage/logs',\n";
+        $configContent .= "        'level' => 'debug',\n    ],\n\n";
+        $configContent .= "    'modules' => [\n        'path' => dirname(__DIR__) . '/modules',\n";
+        $configContent .= "        'enabled' => ['System', 'Content'],\n";
+        $configContent .= "        'autoload' => true,\n    ],\n];\n";
         
         file_put_contents(XOO_PRESS_CONFIG . '/app.php', $configContent);
-        file_put_contents(XOO_PRESS_CONFIG . '/installed.lock', date('Y-m-d H:i:s') . "\nInstalled by XooPress Web Installer");
+        file_put_contents($lockFile = XOO_PRESS_CONFIG . '/installed.lock', 
+            date('Y-m-d H:i:s') . "\nInstalled by XooPress Web Installer\n");
         
-        // Clear session
         session_destroy();
-        
         return true;
         
     } catch (\Exception $e) {
-        $errors[] = 'Installation failed: ' . $e->getMessage();
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'Access denied')) {
+            $msg .= '<br><br>This usually means MySQL root uses auth_socket. ';
+            $msg .= 'Try creating a dedicated user in your database first, or use a non-root user.';
+            $msg .= '<br><br><strong>Quick fix:</strong> Run this in MySQL:<br>';
+            $msg .= '<code>CREATE USER \'xoopress\'@\'localhost\' IDENTIFIED BY \'your_password\';<br>';
+            $msg .= 'GRANT ALL PRIVILEGES ON *.* TO \'xoopress\'@\'localhost\';<br>';
+            $msg .= 'FLUSH PRIVILEGES;</code>';
+        }
+        $errors[] = 'Installation failed: ' . $msg;
         return false;
     }
 }
@@ -418,12 +480,6 @@ function getInstallSchema(string $prefix): array
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 }
-
-// Start session for multi-step installer
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -436,84 +492,43 @@ if (session_status() === PHP_SESSION_NONE) {
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #23282d 0%, #32373c 100%);
-            color: #333;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            color: #333; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 40px 20px;
         }
         .installer {
-            background: #fff;
-            border-radius: 8px;
+            background: #fff; border-radius: 8px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 680px;
-            overflow: hidden;
+            width: 100%; max-width: 680px; overflow: hidden;
         }
         .installer-header {
-            background: #0073aa;
-            color: #fff;
-            padding: 30px 40px;
-            text-align: center;
+            background: #0073aa; color: #fff; padding: 30px 40px; text-align: center;
         }
         .installer-header h1 { font-size: 1.8rem; margin-bottom: 5px; }
         .installer-header p { opacity: 0.9; font-size: 0.95rem; }
         .installer-body { padding: 30px 40px; }
         .installer-footer {
-            border-top: 1px solid #e0e0e0;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-top: 1px solid #e0e0e0; padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
             background: #f9f9f9;
         }
-        .steps {
-            display: flex;
-            justify-content: center;
-            gap: 4px;
-            margin-top: 15px;
-        }
-        .step-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            display: inline-block;
-        }
+        .steps { display: flex; justify-content: center; gap: 4px; margin-top: 15px; }
+        .step-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.3); display: inline-block; }
         .step-dot.active { background: #fff; }
         .step-dot.completed { background: #46b450; }
         h2 { font-size: 1.3rem; margin-bottom: 20px; color: #23282d; }
         .form-group { margin-bottom: 18px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #555;
-        }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: #555; }
         .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            transition: border-color 0.2s;
+            width: 100%; padding: 10px 14px; border: 1px solid #ddd;
+            border-radius: 4px; font-size: 0.95rem; font-family: inherit; transition: border-color 0.2s;
         }
         .form-group input:focus { outline: none; border-color: #0073aa; box-shadow: 0 0 0 2px rgba(0,115,170,0.15); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-hint { font-size: 0.8rem; color: #999; margin-top: 4px; }
         .btn {
-            display: inline-block;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
+            display: inline-block; padding: 12px 30px; border: none; border-radius: 4px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s;
         }
         .btn-primary { background: #0073aa; color: #fff; }
         .btn-primary:hover { background: #005a87; transform: translateY(-1px); }
@@ -521,42 +536,26 @@ if (session_status() === PHP_SESSION_NONE) {
         .btn-secondary:hover { background: #e0e0e0; }
         .btn-success { background: #46b450; color: #fff; }
         .btn-success:hover { background: #389e41; transform: translateY(-1px); }
+        .btn-danger { background: #dc3232; color: #fff; }
+        .btn-danger:hover { background: #b52626; }
         .error-list {
-            background: #fbeaea;
-            border: 1px solid #f5c6cb;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 20px;
+            background: #fbeaea; border: 1px solid #f5c6cb; border-radius: 4px; padding: 15px; margin-bottom: 20px;
         }
         .error-list li { color: #dc3232; margin-left: 18px; margin-bottom: 5px; font-size: 0.9rem; }
-        .success-box {
-            text-align: center;
-            padding: 30px;
-        }
-        .success-box .icon {
-            font-size: 4rem;
-            display: block;
-            margin-bottom: 15px;
-        }
+        .success-box { text-align: center; padding: 30px; }
+        .success-box .icon { font-size: 4rem; display: block; margin-bottom: 15px; }
         .success-box h2 { color: #46b450; }
         .success-box p { color: #666; margin-bottom: 8px; }
         .success-box .credentials {
-            background: #f5f5f5;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: left;
-            font-size: 0.9rem;
+            background: #f5f5f5; border-radius: 4px; padding: 15px; margin: 20px 0;
+            text-align: left; font-size: 0.9rem;
         }
         .credentials dt { font-weight: 600; color: #333; margin-top: 8px; }
         .credentials dd { color: #666; margin-left: 0; font-family: monospace; }
         .credentials dt:first-child { margin-top: 0; }
         .requirement-check {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid #f0f0f0;
         }
         .requirement-check:last-child { border-bottom: none; }
         .req-label { font-size: 0.95rem; }
@@ -564,23 +563,10 @@ if (session_status() === PHP_SESSION_NONE) {
         .req-pass { color: #46b450; }
         .req-fail { color: #dc3232; }
         .req-warn { color: #f0ad4e; }
-        .progress-bar {
-            background: #e0e0e0;
-            border-radius: 10px;
-            height: 6px;
-            margin-bottom: 25px;
-            overflow: hidden;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            background: linear-gradient(90deg, #0073aa, #46b450);
-            border-radius: 10px;
-            transition: width 0.5s ease;
-        }
-        @media (max-width: 600px) {
-            .installer-body, .installer-header, .installer-footer { padding: 20px; }
-            .form-row { grid-template-columns: 1fr; }
-        }
+        .progress-bar { background: #e0e0e0; border-radius: 10px; height: 6px; margin-bottom: 25px; overflow: hidden; }
+        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #0073aa, #46b450); border-radius: 10px; transition: width 0.5s ease; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.85rem; word-break: break-all; }
+        @media (max-width: 600px) { .installer-body,.installer-header,.installer-footer { padding: 20px; } .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -603,7 +589,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <?php if (!empty($errors)): ?>
             <ul class="error-list">
                 <?php foreach ($errors as $error): ?>
-                <li><?= htmlspecialchars($error) ?></li>
+                <li><?= $error ?></li>
                 <?php endforeach; ?>
             </ul>
             <?php endif; ?>
@@ -638,38 +624,44 @@ if (session_status() === PHP_SESSION_NONE) {
             <?php if ($allPass): ?>
             <p style="color:#46b450;font-weight:600;margin-top:20px;text-align:center;">✓ All requirements met!</p>
             <?php endif; ?>
-            
+
             <?php elseif ($step === 2): ?>
             <h2>🗄️ Database Configuration</h2>
-            <p style="color:#666;margin-bottom:20px;font-size:0.9rem;">Enter your MySQL database connection details.</p>
+            <p style="color:#666;margin-bottom:20px;font-size:0.9rem;">
+                Enter your MySQL connection details. 
+                <strong>Note:</strong> MySQL 8 root user may not work via TCP. 
+                <a href="?restart" style="color:#dc3232;font-size:0.85rem;">← Start Over</a>
+            </p>
             <form method="POST">
                 <input type="hidden" name="step" value="2">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="db_host">Host</label>
-                        <input type="text" id="db_host" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? 'localhost') ?>" required>
+                        <input type="text" id="db_host" name="db_host" value="<?= htmlspecialchars($formData['db_host'] ?? 'localhost') ?>" required>
+                        <div class="form-hint">Use <code>localhost</code> (TCP) or try <code>127.0.0.1</code> if socket issues.</div>
                     </div>
                     <div class="form-group">
                         <label for="db_port">Port</label>
-                        <input type="number" id="db_port" name="db_port" value="<?= htmlspecialchars($_POST['db_port'] ?? '3306') ?>">
+                        <input type="number" id="db_port" name="db_port" value="<?= htmlspecialchars($formData['db_port'] ?? '3306') ?>">
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="db_name">Database Name</label>
-                    <input type="text" id="db_name" name="db_name" value="<?= htmlspecialchars($_POST['db_name'] ?? 'xoopress') ?>" required>
-                    <div class="form-hint">Will be created if it doesn't exist.</div>
+                    <input type="text" id="db_name" name="db_name" value="<?= htmlspecialchars($formData['db_name'] ?? 'xoopress') ?>" required>
+                    <div class="form-hint">Will be created automatically if it doesn't exist.</div>
                 </div>
                 <div class="form-group">
-                    <label for="db_user">Username</label>
-                    <input type="text" id="db_user" name="db_user" value="<?= htmlspecialchars($_POST['db_user'] ?? 'root') ?>" required>
+                    <label for="db_user">Database Username</label>
+                    <input type="text" id="db_user" name="db_user" value="<?= htmlspecialchars($formData['db_user'] ?? 'root') ?>" required>
+                    <div class="form-hint">MySQL 8 root may not work. Create a dedicated user if needed.</div>
                 </div>
                 <div class="form-group">
                     <label for="db_pass">Password</label>
-                    <input type="password" id="db_pass" name="db_pass" value="<?= htmlspecialchars($_POST['db_pass'] ?? '') ?>">
+                    <input type="password" id="db_pass" name="db_pass" value="<?= htmlspecialchars($formData['db_pass'] ?? '') ?>">
                 </div>
                 <div class="form-group">
                     <label for="db_prefix">Table Prefix</label>
-                    <input type="text" id="db_prefix" name="db_prefix" value="<?= htmlspecialchars($_POST['db_prefix'] ?? 'xp_') ?>">
+                    <input type="text" id="db_prefix" name="db_prefix" value="<?= htmlspecialchars($formData['db_prefix'] ?? 'xp_') ?>">
                     <div class="form-hint">Recommended: keep the default prefix.</div>
                 </div>
                 <div class="installer-footer" style="padding:0;margin-top:25px;border:none;background:none;">
@@ -685,11 +677,11 @@ if (session_status() === PHP_SESSION_NONE) {
                 <input type="hidden" name="step" value="3">
                 <div class="form-group">
                     <label for="admin_user">Username</label>
-                    <input type="text" id="admin_user" name="admin_user" value="<?= htmlspecialchars($_POST['admin_user'] ?? 'admin') ?>" required minlength="3">
+                    <input type="text" id="admin_user" name="admin_user" value="<?= htmlspecialchars($formData['admin_user'] ?? 'admin') ?>" required minlength="3">
                 </div>
                 <div class="form-group">
                     <label for="admin_email">Email Address</label>
-                    <input type="email" id="admin_email" name="admin_email" value="<?= htmlspecialchars($_POST['admin_email'] ?? '') ?>" required>
+                    <input type="email" id="admin_email" name="admin_email" value="<?= htmlspecialchars($formData['admin_email'] ?? '') ?>" required placeholder="admin@example.com">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -713,12 +705,19 @@ if (session_status() === PHP_SESSION_NONE) {
             <p style="color:#666;margin-bottom:20px;">Please wait while XooPress is being installed...</p>
             <form method="POST" id="installForm">
                 <input type="hidden" name="step" value="4">
+                <!-- Pass fresh DB credentials along with the form submission -->
+                <input type="hidden" name="db_host" value="<?= htmlspecialchars($_SESSION['install_db_host'] ?? 'localhost') ?>">
+                <input type="hidden" name="db_port" value="<?= $_SESSION['install_db_port'] ?? 3306 ?>">
+                <input type="hidden" name="db_name" value="<?= htmlspecialchars($_SESSION['install_db_name'] ?? 'xoopress') ?>">
+                <input type="hidden" name="db_user" value="<?= htmlspecialchars($_SESSION['install_db_user'] ?? 'root') ?>">
+                <input type="hidden" name="db_pass" value="<?= htmlspecialchars($_SESSION['install_db_pass'] ?? '') ?>">
+                <input type="hidden" name="db_prefix" value="<?= htmlspecialchars($_SESSION['install_db_prefix'] ?? 'xp_') ?>">
                 <div style="text-align:center;padding:20px;">
-                    <div style="font-size:3rem;margin-bottom:15px;animation:pulse 1s infinite;">⏳</div>
+                    <div style="font-size:3rem;margin-bottom:15px;">⏳</div>
                     <p style="color:#999;">Creating database tables, setting up admin account, and writing configuration...</p>
                 </div>
             </form>
-            <script>setTimeout(() => document.getElementById('installForm').submit(), 500);</script>
+            <script>setTimeout(function(){ document.getElementById('installForm').submit(); }, 400);</script>
             
             <?php elseif ($step === 5): ?>
             <div class="success-box">
@@ -755,6 +754,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <span style="color:#999;font-size:0.85rem;">Step <?= $step ?> of 4</span>
             <?php if ($step === 1): ?>
             <a href="?step=2" class="btn btn-primary <?= !($allPass ?? false) ? 'disabled' : '' ?>" style="<?= !($allPass ?? false) ? 'opacity:0.5;pointer-events:none;' : '' ?>">Continue →</a>
+            <a href="?restart" class="btn btn-danger" style="font-size:0.85rem;">Reset</a>
             <?php endif; ?>
         </div>
         <?php endif; ?>
