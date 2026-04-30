@@ -161,22 +161,20 @@ function validateDatabase(array $data): array
     $pass   = $data['db_pass'] ?? '';
     $dbName = $data['db_name'];
     
-    // Try UNIX socket first (common for MySQL 8 with auth_socket), fallback to TCP
+    // Try TCP first, then fallback to UNIX socket connections
     $dsns = [];
-    
-    // TCP connection
     $dsns[] = "mysql:host={$host};port={$port};charset=utf8mb4";
     
-    // UNIX socket (if host is localhost)
+    // Try common socket paths (suppress file_exists due to open_basedir restrictions)
     if ($host === 'localhost' || $host === '127.0.0.1') {
-        $socket = '/var/run/mysqld/mysqld.sock';
-        if (file_exists($socket)) {
-            $dsns[] = "mysql:unix_socket={$socket};charset=utf8mb4";
-        }
-        // Alternative socket location
-        $socketAlt = '/var/lib/mysql/mysql.sock';
-        if (file_exists($socketAlt)) {
-            $dsns[] = "mysql:unix_socket={$socketAlt};charset=utf8mb4";
+        $socketPaths = [
+            '/var/run/mysqld/mysqld.sock',
+            '/var/lib/mysql/mysql.sock',
+            '/tmp/mysql.sock',
+            '/var/run/mysql/mysql.sock',
+        ];
+        foreach ($socketPaths as $socketPath) {
+            $dsns[] = "mysql:unix_socket={$socketPath};charset=utf8mb4";
         }
     }
     
@@ -197,6 +195,8 @@ function validateDatabase(array $data): array
             $connected = true;
             break;
         } catch (\PDOException $e) {
+            $lastError = $e->getMessage();
+        } catch (\Throwable $e) {
             $lastError = $e->getMessage();
         }
     }
@@ -264,18 +264,20 @@ function runInstallation(array $data, array &$errors): bool
     $adminPass  = $_SESSION['install_admin_pass']  ?? '';
     
     try {
-        // Try TCP first, then socket (same logic as validateDatabase)
+        // Try TCP first, then fallback to UNIX socket connections
         $dsns = [];
         $dsns[] = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
         
+        // Try common socket paths without file_exists (avoids open_basedir restrictions)
         if ($host === 'localhost' || $host === '127.0.0.1') {
-            $socket = '/var/run/mysqld/mysqld.sock';
-            if (file_exists($socket)) {
-                $dsns[] = "mysql:unix_socket={$socket};dbname={$dbName};charset=utf8mb4";
-            }
-            $socketAlt = '/var/lib/mysql/mysql.sock';
-            if (file_exists($socketAlt)) {
-                $dsns[] = "mysql:unix_socket={$socketAlt};dbname={$dbName};charset=utf8mb4";
+            $socketPaths = [
+                '/var/run/mysqld/mysqld.sock',
+                '/var/lib/mysql/mysql.sock',
+                '/tmp/mysql.sock',
+                '/var/run/mysql/mysql.sock',
+            ];
+            foreach ($socketPaths as $socketPath) {
+                $dsns[] = "mysql:unix_socket={$socketPath};dbname={$dbName};charset=utf8mb4";
             }
         }
         
@@ -290,6 +292,8 @@ function runInstallation(array $data, array &$errors): bool
                 ]);
                 break;
             } catch (\PDOException $e) {
+                // Try next DSN
+            } catch (\Throwable $e) {
                 // Try next DSN
             }
         }
