@@ -1,0 +1,10 @@
+/vendor/
+/composer.lock
+/storage/cache/*
+/storage/logs/*
+!storage/cache/.gitkeep
+!storage/logs/.gitkeep
+/config/installed.lock
+/config/app.local.php
+*.log
+.DS_Store
