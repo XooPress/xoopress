@@ -4,21 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $isNew ? 'Add New Post' : 'Edit Post' ?> - XooPress Admin</title>
+    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <link rel="stylesheet" href="/css/xoopress.css">
 </head>
 <body class="admin-page">
     <div class="admin-layout">
         <nav class="admin-sidebar">
-            <h2>XooPress Admin</h2>
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
             <ul class="admin-nav">
-                li><a href="/admin">Dashboard</a></li>
-                li><a href="/admin/posts" class="active">Posts</a></li>
-                li><a href="/admin/pages">Pages</a></li>
-                li><a href="/admin/categories">Categories</a></li>
-                li><a href="/admin/users">Users</a></li>
-                li><a href="/admin/settings">Settings</a></li>
-                li><a href="/">View Site</a></li>
-                li><a href="/logout">Logout</a></li>
+                <li><a href="/admin">Dashboard</a></li>
+                <li><a href="/admin/posts" class="active">Posts</a></li>
+                <li><a href="/admin/pages">Pages</a></li>
+                <li><a href="/admin/categories">Categories</a></li>
+                <li><a href="/admin/users">Users</a></li>
+                <li><a href="/admin/settings">Settings</a></li>
+                <li><a href="/">View Site</a></li>
+                <li><a href="/logout">Logout</a></li>
             </ul>
         </nav>
         <main class="admin-content">
@@ -30,6 +35,7 @@
                 <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?= $post['id'] ?? '' ?>">
                 <?php endif; ?>
+                <input type="hidden" name="type" value="<?= htmlspecialchars($type ?? 'post') ?>">
                 <div class="form-group">
                     <label for="title">Title</label>
                     <input type="text" id="title" name="title" value="<?= htmlspecialchars($post['title'] ?? '') ?>" required style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:4px;font-size:1.1rem;">

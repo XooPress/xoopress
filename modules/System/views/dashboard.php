@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($siteName) ?></title>
+    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <link rel="stylesheet" href="/css/xoopress.css">
 </head>
 <body>
     <div class="container">
         <header class="header">
+            <img src="/images/xp-logo.svg" alt="XooPress Logo" class="site-logo" style="height:48px;margin-bottom:10px;">
             <h1><?= htmlspecialchars($siteName) ?></h1>
             <p class="version">Version <?= htmlspecialchars($version) ?></p>
         </header>

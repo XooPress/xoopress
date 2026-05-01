@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - XooPress</title>
+    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <link rel="stylesheet" href="/css/xoopress.css">
 </head>
-<body class="login-page">
+<body>
     <div class="login-container">
         <div class="login-box">
+            <img src="/images/xp-logo.svg" alt="XooPress" style="height:48px;margin-bottom:10px;">
             <h1>XooPress</h1>
             <h2>Login</h2>
             <?php if (isset($error)): ?>

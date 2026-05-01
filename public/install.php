@@ -490,6 +490,8 @@ function getInstallSchema(string $prefix): array
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XooPress Installer</title>
+    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 16px; }
@@ -576,7 +578,8 @@ function getInstallSchema(string $prefix): array
 <body>
     <div class="installer">
         <div class="installer-header">
-            <h1>🔧 XooPress Installer</h1>
+            <img src="/images/xp-logo.svg" alt="XooPress" style="height:48px;margin-bottom:10px;filter:brightness(0) invert(1);">
+            <h1>XooPress Installer</h1>
             <p>Version 1.0.0</p>
             <div class="steps">
                 <?php for ($i = 1; $i <= 5; $i++): ?>
