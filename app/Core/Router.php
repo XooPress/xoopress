@@ -45,12 +45,33 @@ class Router
     protected string $uri;
     
     /**
-     * Constructor
+     * Application container
+     * 
+     * @var Container|null
      */
-    public function __construct()
+    protected ?Container $container = null;
+    
+    /**
+     * Constructor
+     * 
+     * @param Container|null $container
+     */
+    public function __construct(?Container $container = null)
     {
         $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $this->uri = $this->getCurrentUri();
+        $this->container = $container;
+    }
+    
+    /**
+     * Set the application container
+     * 
+     * @param Container $container
+     * @return void
+     */
+    public function setContainer(Container $container): void
+    {
+        $this->container = $container;
     }
     
     /**
@@ -219,7 +240,12 @@ class Router
             [$controller, $method] = $handler;
             
             if (is_string($controller) && class_exists($controller)) {
-                $controllerInstance = new $controller();
+                // Inject container if constructor accepts it
+                if ($this->container !== null) {
+                    $controllerInstance = new $controller($this->container);
+                } else {
+                    $controllerInstance = new $controller();
+                }
                 
                 if (method_exists($controllerInstance, $method)) {
                     return call_user_func_array([$controllerInstance, $method], $parameters);

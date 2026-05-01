@@ -69,7 +69,7 @@ class Application
         });
         
         $this->container->singleton('router', function ($container) {
-            return new Router();
+            return new Router($container);
         });
         
         $this->container->singleton('i18n', function ($container) {
