@@ -140,6 +140,10 @@ class Application
         // First, scan the filesystem so $this->modules is populated
         $modules->scanFilesystem();
         
+        // Debug: log what modules were found
+        $found = array_keys($modules->getModules());
+        error_log("XooPress bootModules: found modules: " . implode(', ', $found));
+        
         // Migrate old config-based modules to DB on first run:
         // If no modules are in DB yet, install the modules listed in config
         $installed = [];
@@ -147,17 +151,32 @@ class Application
             $db = $this->container->get('database');
             $prefix = $db->getPrefix();
             $installed = $db->select("SELECT * FROM {$prefix}modules");
-        } catch (\Throwable $e) {}
+            error_log("XooPress bootModules: installed in DB: " . count($installed));
+        } catch (\Throwable $e) {
+            error_log("XooPress bootModules: DB error checking installed: " . $e->getMessage());
+        }
         
         if (empty($installed)) {
             $legacyEnabled = $this->config['modules']['enabled'] ?? [];
+            error_log("XooPress bootModules: no modules in DB, installing from config: " . implode(', ', $legacyEnabled));
             foreach ($legacyEnabled as $moduleName) {
-                $modules->install($moduleName);
+                $result = $modules->install($moduleName);
+                error_log("XooPress bootModules: install {$moduleName}: " . ($result['success'] ? 'OK' : 'FAIL: ' . $result['message']));
             }
         }
         
         // Now load all active modules (registers routes, services, translations)
         $modules->loadModules();
+        
+        // Debug: log registered routes
+        if ($this->container->has('router')) {
+            $router = $this->container->get('router');
+            $routes = $router->getRoutes();
+            error_log("XooPress bootModules: registered " . count($routes) . " routes");
+            foreach ($routes as $r) {
+                error_log("XooPress route: {$r['method']} {$r['pattern']}");
+            }
+        }
     }
     
     /**
