@@ -29,6 +29,9 @@
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Login</button>
             </form>
+            <p class="login-footer">
+                Don't have an account? <a href="/register">Register</a>
+            </p>
             <p class="login-footer"><a href="/">Back to Home</a></p>
         </div>
     </div>

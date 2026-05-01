@@ -42,6 +42,16 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/register',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'registerForm'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/register',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'register'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/logout',
             'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'logout'],
         ],
