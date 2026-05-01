@@ -1,0 +1,321 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: XooPress 1.0.0\n"
+"POT-Creation-Date: 2026-01-05 12:00+0000\n"
+"PO-Revision-Date: 2026-01-05 12:00+0000\n"
+"Last-Translator: XooPress Team\n"
+"Language-Team: XooPress Team\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "XooPress"
+msgstr "XooPress"
+
+msgid "Posts"
+msgstr "Beiträge"
+
+msgid "Pages"
+msgstr "Seiten"
+
+msgid "Categories"
+msgstr "Kategorien"
+
+msgid "Users"
+msgstr "Benutzer"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Login"
+msgstr "Anmelden"
+
+msgid "Logout"
+msgstr "Abmelden"
+
+msgid "Register"
+msgstr "Registrieren"
+
+msgid "Create Account"
+msgstr "Konto erstellen"
+
+msgid "Back to Home"
+msgstr "Zurück zur Startseite"
+
+msgid "View Site"
+msgstr "Seite anzeigen"
+
+msgid "Username"
+msgstr "Benutzername"
+
+msgid "Password"
+msgstr "Passwort"
+
+msgid "Email"
+msgstr "E-Mail"
+
+msgid "Confirm Password"
+msgstr "Passwort bestätigen"
+
+msgid "Don't have an account? Register"
+msgstr "Noch kein Konto? Registrieren"
+
+msgid "Already have an account? Login"
+msgstr "Bereits ein Konto? Anmelden"
+
+msgid "Invalid username or password."
+msgstr "Ungültiger Benutzername oder Passwort."
+
+msgid "Username and password are required."
+msgstr "Benutzername und Passwort sind erforderlich."
+
+msgid "Username must be at least 3 characters."
+msgstr "Der Benutzername muss mindestens 3 Zeichen lang sein."
+
+msgid "A valid email address is required."
+msgstr "Eine gültige E-Mail-Adresse ist erforderlich."
+
+msgid "Password must be at least 8 characters."
+msgstr "Das Passwort muss mindestens 8 Zeichen lang sein."
+
+msgid "Passwords do not match."
+msgstr "Die Passwörter stimmen nicht überein."
+
+msgid "Username is already taken."
+msgstr "Der Benutzername ist bereits vergeben."
+
+msgid "An account with this email already exists."
+msgstr "Ein Konto mit dieser E-Mail existiert bereits."
+
+msgid "Registration failed. Please try again."
+msgstr "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut."
+
+msgid "Registration is currently unavailable."
+msgstr "Registrierung ist derzeit nicht verfügbar."
+
+msgid "Welcome to XooPress"
+msgstr "Willkommen bei XooPress"
+
+msgid "A modular CMS combining the best of XOOPS and WordPress."
+msgstr "Ein modulares CMS, das die besten Funktionen von XOOPS und WordPress vereint."
+
+msgid "Admin Dashboard"
+msgstr "Admin-Dashboard"
+
+msgid "No Posts Yet"
+msgstr "Noch keine Beiträge"
+
+msgid "There are no published posts at this time."
+msgstr "Es gibt derzeit keine veröffentlichten Beiträge."
+
+msgid "Post Not Found"
+msgstr "Beitrag nicht gefunden"
+
+msgid "The requested post could not be found."
+msgstr "Der angeforderte Beitrag konnte nicht gefunden werden."
+
+msgid "All Posts"
+msgstr "Alle Beiträge"
+
+msgid "Read More"
+msgstr "Weiterlesen"
+
+msgid "Latest Posts"
+msgstr "Neueste Beiträge"
+
+msgid "Installed Modules"
+msgstr "Installierte Module"
+
+msgid "Module"
+msgstr "Modul"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "No modules installed."
+msgstr "Keine Module installiert."
+
+msgid "Add New Post"
+msgstr "Neuen Beitrag hinzufügen"
+
+msgid "Add New Page"
+msgstr "Neue Seite hinzufügen"
+
+msgid "Add New User"
+msgstr "Neuen Benutzer hinzufügen"
+
+msgid "Add New Category"
+msgstr "Neue Kategorie hinzufügen"
+
+msgid "Select Language"
+msgstr "Sprache auswählen"
+
+msgid "Language"
+msgstr "Sprache"
+
+msgid "All Languages"
+msgstr "Alle Sprachen"
+
+msgid "Published on"
+msgstr "Veröffentlicht am"
+
+msgid "Published"
+msgstr "Veröffentlicht"
+
+msgid "Draft"
+msgstr "Entwurf"
+
+msgid "Pending"
+msgstr "Ausstehend"
+
+msgid "Trash"
+msgstr "Papierkorb"
+
+msgid "Title"
+msgstr "Titel"
+
+msgid "Slug"
+msgstr "Slug"
+
+msgid "Content"
+msgstr "Inhalt"
+
+msgid "Excerpt"
+msgstr "Auszug"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Category"
+msgstr "Kategorie"
+
+msgid "Uncategorized"
+msgstr "Ohne Kategorie"
+
+msgid "Actions"
+msgstr "Aktionen"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Save"
+msgstr "Speichern"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Create"
+msgstr "Erstellen"
+
+msgid "Update"
+msgstr "Aktualisieren"
+
+msgid "Publish"
+msgstr "Veröffentlichen"
+
+msgid "Site Name"
+msgstr "Seitenname"
+
+msgid "Site Description"
+msgstr "Seitenbeschreibung"
+
+msgid "Site URL"
+msgstr "Seiten-URL"
+
+msgid "Save Settings"
+msgstr "Einstellungen speichern"
+
+msgid "No users found."
+msgstr "Keine Benutzer gefunden."
+
+msgid "No posts found. Create one."
+msgstr "Keine Beiträge gefunden. Erstellen Sie einen."
+
+msgid "No pages found. Create one."
+msgstr "Keine Seiten gefunden. Erstellen Sie eine."
+
+msgid "No categories yet."
+msgstr "Noch keine Kategorien."
+
+msgid "Display Name"
+msgstr "Anzeigename"
+
+msgid "New Password"
+msgstr "Neues Passwort"
+
+msgid "Role"
+msgstr "Rolle"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Inactive"
+msgstr "Inaktiv"
+
+msgid "Banned"
+msgstr "Gesperrt"
+
+msgid "Subscriber"
+msgstr "Abonnent"
+
+msgid "Author"
+msgstr "Autor"
+
+msgid "Editor"
+msgstr "Redakteur"
+
+msgid "Admin"
+msgstr "Administrator"
+
+msgid "Create User"
+msgstr "Benutzer erstellen"
+
+msgid "Update User"
+msgstr "Benutzer aktualisieren"
+
+msgid "Edit User"
+msgstr "Benutzer bearbeiten"
+
+msgid "Back to Users"
+msgstr "Zurück zu Benutzern"
+
+msgid "Back to Posts"
+msgstr "Zurück zu Beiträgen"
+
+msgid "Back to Pages"
+msgstr "Zurück zu Seiten"
+
+msgid "Leave empty to use username."
+msgstr "Leer lassen, um den Benutzernamen zu verwenden."
+
+msgid "Leave empty to keep current password."
+msgstr "Leer lassen, um das aktuelle Passwort beizubehalten."
+
+msgid "Leave empty to auto-generate from title."
+msgstr "Leer lassen, um automatisch aus dem Titel zu generieren."
+
+msgid "At least 8 characters."
+msgstr "Mindestens 8 Zeichen."
+
+msgid "XooPress Admin"
+msgstr "XooPress Admin"
+
+msgid "Add New"
+msgstr "Neu hinzufügen"
+
+msgid "Published on %s by %s"
+msgstr "Veröffentlicht am %s von %s"
+
+msgid "All rights reserved."
+msgstr "Alle Rechte vorbehalten."

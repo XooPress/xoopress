@@ -55,7 +55,7 @@
                     <label for="excerpt">Excerpt</label>
                     <textarea id="excerpt" name="excerpt" rows="3" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;"><?= htmlspecialchars($post['excerpt'] ?? '') ?></textarea>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;">
                     <div class="form-group">
                         <label for="status">Status</label>
                         <select id="status" name="status" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;">
@@ -71,6 +71,14 @@
                             <?php foreach ($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= ($post['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>><?= htmlspecialchars($cat['name']) ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="language">Language</label>
+                        <select id="language" name="language" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;">
+                            <option value="en_US" <?= ($post['language'] ?? 'en_US') === 'en_US' ? 'selected' : '' ?>>English</option>
+                            <option value="de_DE" <?= ($post['language'] ?? '') === 'de_DE' ? 'selected' : '' ?>>Deutsch</option>
+                            <option value="fr_FR" <?= ($post['language'] ?? '') === 'fr_FR' ? 'selected' : '' ?>>Français</option>
                         </select>
                     </div>
                 </div>

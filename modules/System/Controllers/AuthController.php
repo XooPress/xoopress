@@ -162,6 +162,26 @@ class AuthController extends Controller
         ]);
     }
 
+    public function switchLocale(string $locale): void
+    {
+        $availableLocales = ['en_US', 'de_DE', 'fr_FR'];
+        $localeMap = [
+            'en' => 'en_US',
+            'de' => 'de_DE',
+            'fr' => 'fr_FR',
+        ];
+        
+        $mapped = $localeMap[$locale] ?? $locale;
+        
+        if (in_array($mapped, $availableLocales)) {
+            $_SESSION['locale'] = $mapped;
+            setcookie('locale', $mapped, time() + 86400 * 365, '/');
+        }
+        
+        $referer = $_SERVER['HTTP_REFERER'] ?? '/';
+        $this->redirect($referer);
+    }
+
     public function logout(): void
     {
         unset($_SESSION['user_id']);

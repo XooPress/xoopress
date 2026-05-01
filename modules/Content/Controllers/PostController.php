@@ -21,6 +21,21 @@ class PostController extends Controller
     public function index(): string
     {
         $posts = [];
+        try {
+            $postModel = $this->get('content.post');
+            $locale = 'en_US';
+            $i18n = $this->i18n();
+            if ($i18n) {
+                $locale = $i18n->getLocale();
+            }
+            $posts = $postModel->where([
+                'status' => 'published',
+                'type' => 'post',
+                'language' => $locale,
+            ]);
+        } catch (\Throwable $e) {
+            $posts = [];
+        }
         return $this->view('content::posts', ['posts' => $posts]);
     }
 

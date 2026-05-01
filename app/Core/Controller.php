@@ -246,6 +246,33 @@ abstract class Controller
     {
         return $this->container->get($id);
     }
+
+    /**
+     * Get the i18n translator instance
+     * 
+     * @return I18n|null
+     */
+    protected function i18n(): ?I18n
+    {
+        try {
+            if ($this->container->has('i18n')) {
+                return $this->container->get('i18n');
+            }
+        } catch (\Throwable $e) {}
+        return null;
+    }
+
+    /**
+     * Translate a string (shortcut)
+     * 
+     * @param string $message Message to translate
+     * @return string
+     */
+    protected function __(string $message): string
+    {
+        $i18n = $this->i18n();
+        return $i18n ? $i18n->translate($message) : $message;
+    }
     
     /**
      * Check if a service exists in the container

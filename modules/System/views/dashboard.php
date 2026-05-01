@@ -11,6 +11,13 @@
 <body>
     <div class="container">
         <header class="header">
+            <div style="float:right;">
+                <select onchange="window.location.href='/locale/'+this.value" style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;">
+                    <option value="en" <?= (isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'en') === 0) || !isset($_SESSION['locale']) ? 'selected' : '' ?>>English</option>
+                    <option value="de" <?= isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'de') === 0 ? 'selected' : '' ?>>Deutsch</option>
+                    <option value="fr" <?= isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'fr') === 0 ? 'selected' : '' ?>>Français</option>
+                </select>
+            </div>
             <img src="/images/xp-logo.svg" alt="XooPress Logo" class="site-logo" style="height:48px;margin-bottom:10px;">
             <h1><?= htmlspecialchars($siteName) ?></h1>
             <p class="version">Version <?= htmlspecialchars($version) ?></p>
@@ -21,6 +28,7 @@
                 <p>A modular CMS combining the best of XOOPS and WordPress.</p>
                 <div class="actions">
                     <a href="/login" class="btn btn-primary">Login</a>
+                    <a href="/register" class="btn btn-secondary">Register</a>
                     <a href="/admin" class="btn btn-secondary">Admin Dashboard</a>
                 </div>
             </div>

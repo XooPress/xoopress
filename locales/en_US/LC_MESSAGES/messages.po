@@ -1,0 +1,321 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: XooPress 1.0.0\n"
+"POT-Creation-Date: 2026-01-05 12:00+0000\n"
+"PO-Revision-Date: 2026-01-05 12:00+0000\n"
+"Last-Translator: XooPress Team\n"
+"Language-Team: XooPress Team\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "XooPress"
+msgstr "XooPress"
+
+msgid "Posts"
+msgstr "Posts"
+
+msgid "Pages"
+msgstr "Pages"
+
+msgid "Categories"
+msgstr "Categories"
+
+msgid "Users"
+msgstr "Users"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Login"
+msgstr "Login"
+
+msgid "Logout"
+msgstr "Logout"
+
+msgid "Register"
+msgstr "Register"
+
+msgid "Create Account"
+msgstr "Create Account"
+
+msgid "Back to Home"
+msgstr "Back to Home"
+
+msgid "View Site"
+msgstr "View Site"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Confirm Password"
+msgstr "Confirm Password"
+
+msgid "Don't have an account? Register"
+msgstr "Don't have an account? Register"
+
+msgid "Already have an account? Login"
+msgstr "Already have an account? Login"
+
+msgid "Invalid username or password."
+msgstr "Invalid username or password."
+
+msgid "Username and password are required."
+msgstr "Username and password are required."
+
+msgid "Username must be at least 3 characters."
+msgstr "Username must be at least 3 characters."
+
+msgid "A valid email address is required."
+msgstr "A valid email address is required."
+
+msgid "Password must be at least 8 characters."
+msgstr "Password must be at least 8 characters."
+
+msgid "Passwords do not match."
+msgstr "Passwords do not match."
+
+msgid "Username is already taken."
+msgstr "Username is already taken."
+
+msgid "An account with this email already exists."
+msgstr "An account with this email already exists."
+
+msgid "Registration failed. Please try again."
+msgstr "Registration failed. Please try again."
+
+msgid "Registration is currently unavailable."
+msgstr "Registration is currently unavailable."
+
+msgid "Welcome to XooPress"
+msgstr "Welcome to XooPress"
+
+msgid "A modular CMS combining the best of XOOPS and WordPress."
+msgstr "A modular CMS combining the best of XOOPS and WordPress."
+
+msgid "Admin Dashboard"
+msgstr "Admin Dashboard"
+
+msgid "No Posts Yet"
+msgstr "No Posts Yet"
+
+msgid "There are no published posts at this time."
+msgstr "There are no published posts at this time."
+
+msgid "Post Not Found"
+msgstr "Post Not Found"
+
+msgid "The requested post could not be found."
+msgstr "The requested post could not be found."
+
+msgid "All Posts"
+msgstr "All Posts"
+
+msgid "Read More"
+msgstr "Read More"
+
+msgid "Latest Posts"
+msgstr "Latest Posts"
+
+msgid "Installed Modules"
+msgstr "Installed Modules"
+
+msgid "Module"
+msgstr "Module"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "No modules installed."
+msgstr "No modules installed."
+
+msgid "Add New Post"
+msgstr "Add New Post"
+
+msgid "Add New Page"
+msgstr "Add New Page"
+
+msgid "Add New Category"
+msgstr "Add New Category"
+
+msgid "Select Language"
+msgstr "Select Language"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "All Languages"
+msgstr "All Languages"
+
+msgid "Published on"
+msgstr "Published on"
+
+msgid "Published"
+msgstr "Published"
+
+msgid "Draft"
+msgstr "Draft"
+
+msgid "Pending"
+msgstr "Pending"
+
+msgid "Trash"
+msgstr "Trash"
+
+msgid "Title"
+msgstr "Title"
+
+msgid "Slug"
+msgstr "Slug"
+
+msgid "Content"
+msgstr "Content"
+
+msgid "Excerpt"
+msgstr "Excerpt"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Category"
+msgstr "Category"
+
+msgid "Uncategorized"
+msgstr "Uncategorized"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Create"
+msgstr "Create"
+
+msgid "Update"
+msgstr "Update"
+
+msgid "Publish"
+msgstr "Publish"
+
+msgid "Site Name"
+msgstr "Site Name"
+
+msgid "Site Description"
+msgstr "Site Description"
+
+msgid "Site URL"
+msgstr "Site URL"
+
+msgid "Save Settings"
+msgstr "Save Settings"
+
+msgid "No users found."
+msgstr "No users found."
+
+msgid "No posts found. Create one."
+msgstr "No posts found. Create one."
+
+msgid "No pages found. Create one."
+msgstr "No pages found. Create one."
+
+msgid "No categories yet."
+msgstr "No categories yet."
+
+msgid "Display Name"
+msgstr "Display Name"
+
+msgid "New Password"
+msgstr "New Password"
+
+msgid "Role"
+msgstr "Role"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Inactive"
+msgstr "Inactive"
+
+msgid "Banned"
+msgstr "Banned"
+
+msgid "Subscriber"
+msgstr "Subscriber"
+
+msgid "Author"
+msgstr "Author"
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Create User"
+msgstr "Create User"
+
+msgid "Update User"
+msgstr "Update User"
+
+msgid "Edit User"
+msgstr "Edit User"
+
+msgid "Add New User"
+msgstr "Add New User"
+
+msgid "Back to Users"
+msgstr "Back to Users"
+
+msgid "Back to Posts"
+msgstr "Back to Posts"
+
+msgid "Back to Pages"
+msgstr "Back to Pages"
+
+msgid "Leave empty to use username."
+msgstr "Leave empty to use username."
+
+msgid "Leave empty to keep current password."
+msgstr "Leave empty to keep current password."
+
+msgid "Leave empty to auto-generate from title."
+msgstr "Leave empty to auto-generate from title."
+
+msgid "At least 8 characters."
+msgstr "At least 8 characters."
+
+msgid "XooPress Admin"
+msgstr "XooPress Admin"
+
+msgid "Add New"
+msgstr "Add New"
+
+msgid "Published on %s by %s"
+msgstr "Published on %s by %s"
+
+msgid "All rights reserved."
+msgstr "All rights reserved."

@@ -52,6 +52,11 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/locale/:alpha',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'switchLocale'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/logout',
             'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'logout'],
         ],
