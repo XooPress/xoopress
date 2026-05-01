@@ -317,5 +317,29 @@ msgstr "Ajouter"
 msgid "Published on %s by %s"
 msgstr "Publié le %s par %s"
 
+msgid "Modular Architecture"
+msgstr "Architecture modulaire"
+
+msgid "Extend functionality with plug-and-play modules."
+msgstr "Étendez les fonctionnalités avec des modules plug-and-play."
+
+msgid "MVC Pattern"
+msgstr "Modèle MVC"
+
+msgid "Clean separation of concerns with Model-View-Controller."
+msgstr "Séparation claire des préoccupations avec Model-View-Controller."
+
+msgid "i18n Ready"
+msgstr "i18n prêt"
+
+msgid "Full internationalization support with gettext."
+msgstr "Support complet d'internationalisation avec gettext."
+
+msgid "PDO Database"
+msgstr "Base de données PDO"
+
+msgid "Secure database access with prepared statements."
+msgstr "Accès sécurisé à la base de données avec des requêtes préparées."
+
 msgid "All rights reserved."
 msgstr "Tous droits réservés."

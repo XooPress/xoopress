@@ -190,7 +190,6 @@ class I18n
     protected function setPhpLocale(): void
     {
         // Try various locale name formats that Linux systems recognize
-        // Format: language_TERRITORY.encoding (e.g. en_US.utf8, de_DE.utf8)
         $localeLower = strtolower(str_replace('_', '-', $this->locale)) . '.' . strtolower($this->encoding);
         $localeUnderscore = $this->locale . '.utf8';
         $localeUnderscoreUpper = $this->locale . '.UTF-8';
@@ -207,12 +206,15 @@ class I18n
         setlocale(LC_ALL, $candidates);
         setlocale(LC_TIME, $candidates);
         setlocale(LC_MONETARY, $candidates);
-        // Keep numeric formatting consistent (use '.' as decimal)
         setlocale(LC_NUMERIC, $candidates);
         
-        // Set environment variables for gettext
+        // CRITICAL: Use LANGUAGE env var (GNU gettext extension) which works
+        // independently of installed system locales. This allows translations
+        // to work even when fr_FR.utf8 or other locales aren't installed.
+        // Format: language_TERRITORY:language (e.g. "fr_FR:fr" or "de_DE:de")
+        $langCode = substr($this->locale, 0, 2);
         putenv("LANG={$localeUnderscore}");
-        putenv("LANGUAGE={$localeUnderscore}");
+        putenv("LANGUAGE={$this->locale}:{$langCode}");
         putenv("LC_ALL={$localeUnderscore}");
         putenv("LC_MESSAGES={$localeUnderscore}");
     }
