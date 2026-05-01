@@ -189,17 +189,32 @@ class I18n
      */
     protected function setPhpLocale(): void
     {
-        // Set locale for categories
-        $locale = str_replace('_', '-', $this->locale) . '.' . $this->encoding;
+        // Try various locale name formats that Linux systems recognize
+        // Format: language_TERRITORY.encoding (e.g. en_US.utf8, de_DE.utf8)
+        $localeLower = strtolower(str_replace('_', '-', $this->locale)) . '.' . strtolower($this->encoding);
+        $localeUnderscore = $this->locale . '.utf8';
+        $localeUnderscoreUpper = $this->locale . '.UTF-8';
+        $localeHyphen = str_replace('_', '-', $this->locale) . '.UTF-8';
         
-        setlocale(LC_ALL, $locale);
-        setlocale(LC_TIME, $locale);
-        setlocale(LC_MONETARY, $locale);
-        setlocale(LC_NUMERIC, 'C'); // Keep numeric formatting consistent
+        $candidates = [
+            $localeUnderscore,
+            $localeUnderscoreUpper,
+            $localeHyphen,
+            $localeLower,
+            $this->locale,
+        ];
         
-        // Set environment variable
-        putenv("LANG={$locale}");
-        putenv("LANGUAGE={$locale}");
+        setlocale(LC_ALL, $candidates);
+        setlocale(LC_TIME, $candidates);
+        setlocale(LC_MONETARY, $candidates);
+        // Keep numeric formatting consistent (use '.' as decimal)
+        setlocale(LC_NUMERIC, $candidates);
+        
+        // Set environment variables for gettext
+        putenv("LANG={$localeUnderscore}");
+        putenv("LANGUAGE={$localeUnderscore}");
+        putenv("LC_ALL={$localeUnderscore}");
+        putenv("LC_MESSAGES={$localeUnderscore}");
     }
     
     /**
