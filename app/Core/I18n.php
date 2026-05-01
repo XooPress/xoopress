@@ -229,11 +229,19 @@ class I18n
             return $translations;
         }
         
-        // Parse .mo header
-        // Format: magic_number (4) + format_revision (4) + num_strings (4) +
-        //         orig_table_offset (4) + trans_table_offset (4) +
-        //         hashing_size (4) + hashing_primes (4)
-        $header = unpack('Vmagic/Vrevision/Vnum_strings/Vorig_offset/Vtrans_offset/Vhash_size/Vhash_prime', substr($content, 0, 24));
+        // Parse .mo header (24 bytes):
+        //   0-3: magic number (0x950412de)
+        //   4-7: format revision
+        //   8-11: number of strings
+        //  12-15: offset of original strings table
+        //  16-19: offset of translation strings table
+        //  20-23: size of hashing table (optional)
+        // Note: hashing table offset (24-27) is not read here (not needed)
+        $headerData = substr($content, 0, 24);
+        if (strlen($headerData) < 24) {
+            return $translations;
+        }
+        $header = unpack('Vmagic/Vrevision/Vnum_strings/Vorig_offset/Vtrans_offset/Vhash_size', $headerData);
         
         if (!$header || ($header['magic'] !== 0x950412de && $header['magic'] !== 0xde120495)) {
             return $translations;
