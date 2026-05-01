@@ -40,7 +40,18 @@ if (class_exists('Whoops\Run')) {
 }
 
 // Load configuration
-$config = require XOO_PRESS_CONFIG . '/app.php';
+// Priority: app.local.php (installer-generated) > app.php (git-tracked template) > app.example.php
+$configFile = XOO_PRESS_CONFIG . '/app.local.php';
+if (!file_exists($configFile)) {
+    $configFile = XOO_PRESS_CONFIG . '/app.php';
+}
+if (!file_exists($configFile)) {
+    $configFile = XOO_PRESS_CONFIG . '/app.example.php';
+}
+if (!file_exists($configFile)) {
+    die('Configuration file not found. Run the installer or copy config/app.example.php to config/app.php.');
+}
+$config = require $configFile;
 
 // Set timezone
 date_default_timezone_set($config['timezone'] ?? 'UTC');

@@ -336,7 +336,7 @@ function runInstallation(array $data, array &$errors): bool
             "INSERT INTO {$dbPrefix}categories (name, slug, description) VALUES (?, ?, ?)"
         )->execute(['Uncategorized', 'uncategorized', 'Default category']);
         
-        // Write config file
+        // Write config file (app.local.php is gitignored, won't be overwritten by git pull)
         $configContent = "<?php\n/**\n * XooPress Application Configuration\n * \n * @package XooPress\n */\n\nreturn [\n";
         $configContent .= "    'name' => 'XooPress',\n    'version' => '1.0.0',\n";
         $configContent .= "    'debug' => false,\n    'timezone' => 'UTC',\n\n";
@@ -374,7 +374,7 @@ function runInstallation(array $data, array &$errors): bool
         $configContent .= "        'enabled' => ['System', 'Content'],\n";
         $configContent .= "        'autoload' => true,\n    ],\n];\n";
         
-        file_put_contents(XOO_PRESS_CONFIG . '/app.php', $configContent);
+        file_put_contents(XOO_PRESS_CONFIG . '/app.local.php', $configContent);
         file_put_contents($lockFile = XOO_PRESS_CONFIG . '/installed.lock', 
             date('Y-m-d H:i:s') . "\nInstalled by XooPress Web Installer\n");
         
