@@ -1,6 +1,9 @@
 <?php
 /**
- * XooPress Module Manager
+ * XooPress Module Manager (XOOPS-style)
+ * 
+ * Provides module installation, uninstallation, activation, deactivation
+ * with database-backed state tracking.
  * 
  * @package XooPress
  * @subpackage Core
@@ -25,18 +28,16 @@ class ModuleManager
     protected Container $container;
     
     /**
-     * Loaded modules
+     * Loaded modules (keyed by name)
      * 
      * @var array
      */
     protected array $modules = [];
     
     /**
-     * Enabled modules
-     * 
-     * @var array
+     * Database table prefix for module tracking
      */
-    protected array $enabledModules = [];
+    protected string $table = '';
     
     /**
      * Constructor
@@ -48,11 +49,13 @@ class ModuleManager
     {
         $this->config = $config;
         $this->container = $container;
-        $this->enabledModules = $config['enabled'] ?? [];
+        if ($container->has('database')) {
+            $this->table = $container->get('database')->getPrefix() . 'modules';
+        }
     }
     
     /**
-     * Load all enabled modules
+     * Load all modules that are installed and active
      * 
      * @return void
      */
@@ -60,196 +63,130 @@ class ModuleManager
     {
         $modulesPath = $this->config['path'] ?? XOO_PRESS_MODULES;
         
-        foreach ($this->enabledModules as $moduleName) {
-            $this->loadModule($moduleName, $modulesPath);
-        }
-    }
-    
-    /**
-     * Load a specific module
-     * 
-     * @param string $moduleName Module name
-     * @param string $modulesPath Path to modules directory
-     * @return bool
-     */
-    public function loadModule(string $moduleName, string $modulesPath): bool
-    {
-        $modulePath = $modulesPath . '/' . $moduleName;
+        // Scan modules directory for available modules
+        $available = $this->scanModules($modulesPath);
         
-        // Check if module directory exists
-        if (!is_dir($modulePath)) {
-            error_log("Module directory not found: {$modulePath}");
-            return false;
+        // Get installed modules from database (XOOPS-style state tracking)
+        $installed = $this->getInstalledModules();
+        
+        foreach ($available as $moduleName) {
+            $this->modules[$moduleName] = [
+                'name' => $moduleName,
+                'path' => $modulesPath . '/' . $moduleName,
+                'definition' => null,
+                'loaded' => false,
+                'installed' => isset($installed[$moduleName]),
+                'active' => isset($installed[$moduleName]) && ($installed[$moduleName]['active'] ?? false),
+                'version_db' => $installed[$moduleName]['version'] ?? null,
+            ];
         }
         
-        // Check for module definition file
-        $definitionFile = $modulePath . '/module.php';
-        if (!file_exists($definitionFile)) {
-            error_log("Module definition file not found: {$definitionFile}");
-            return false;
-        }
-        
-        // Load module definition
-        $moduleDefinition = require $definitionFile;
-        
-        if (!is_array($moduleDefinition)) {
-            error_log("Invalid module definition in: {$definitionFile}");
-            return false;
-        }
-        
-        // Validate module definition
-        if (!$this->validateModuleDefinition($moduleDefinition, $moduleName)) {
-            return false;
-        }
-        
-        // Store module information
-        $this->modules[$moduleName] = [
-            'name' => $moduleName,
-            'path' => $modulePath,
-            'definition' => $moduleDefinition,
-            'loaded' => false,
-        ];
-        
-        // Initialize the module
-        $this->initializeModule($moduleName);
-        
-        return true;
-    }
-    
-    /**
-     * Validate module definition
-     * 
-     * @param array $definition Module definition
-     * @param string $moduleName Module name
-     * @return bool
-     */
-    protected function validateModuleDefinition(array $definition, string $moduleName): bool
-    {
-        $requiredFields = ['name', 'version', 'description'];
-        
-        foreach ($requiredFields as $field) {
-            if (!isset($definition[$field])) {
-                error_log("Module {$moduleName} missing required field: {$field}");
-                return false;
-            }
-        }
-        
-        // Validate version format
-        if (!preg_match('/^\d+\.\d+\.\d+$/', $definition['version'])) {
-            error_log("Module {$moduleName} has invalid version format: {$definition['version']}");
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Initialize a module
-     * 
-     * @param string $moduleName Module name
-     * @return bool
-     */
-    protected function initializeModule(string $moduleName): bool
-    {
-        if (!isset($this->modules[$moduleName])) {
-            return false;
-        }
-        
-        $module = &$this->modules[$moduleName];
-        
-        try {
-            // Load module bootstrap file if exists
-            $bootstrapFile = $module['path'] . '/bootstrap.php';
-            if (file_exists($bootstrapFile)) {
-                require_once $bootstrapFile;
-            }
-            
-            // Register module services
-            $this->registerModuleServices($moduleName);
-            
-            // Register module routes
-            $this->registerModuleRoutes($moduleName);
-            
-            // Load module translations
-            $this->loadModuleTranslations($moduleName);
-            
-            $module['loaded'] = true;
-            
-            // Call module init callback if defined
-            if (isset($module['definition']['init']) && is_callable($module['definition']['init'])) {
-                $module['definition']['init']($this->container);
-            }
-            
-            return true;
-        } catch (\Exception $e) {
-            error_log("Failed to initialize module {$moduleName}: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Register module services
-     * 
-     * @param string $moduleName Module name
-     * @return void
-     */
-    protected function registerModuleServices(string $moduleName): void
-    {
-        $module = $this->modules[$moduleName];
-        
-        if (isset($module['definition']['services']) && is_array($module['definition']['services'])) {
-            foreach ($module['definition']['services'] as $serviceName => $serviceDefinition) {
-                $this->container->bind($serviceName, $serviceDefinition);
-            }
-        }
-    }
-    
-    /**
-     * Register module routes
-     * 
-     * @param string $moduleName Module name
-     * @return void
-     */
-    protected function registerModuleRoutes(string $moduleName): void
-    {
-        $module = $this->modules[$moduleName];
-        
-        if (isset($module['definition']['routes']) && is_array($module['definition']['routes'])) {
-            $router = $this->container->get('router');
-            
-            foreach ($module['definition']['routes'] as $route) {
-                if (!isset($route['method'], $route['pattern'], $route['handler'])) {
-                    continue;
-                }
+        // Load definitions and initialize active modules
+        foreach ($this->modules as $name => &$module) {
+            $def = $this->loadDefinition($module['path']);
+            if ($def) {
+                $module['definition'] = $def;
                 
-                $router->addRoute($route['method'], $route['pattern'], $route['handler']);
+                // Initialize only if installed AND active
+                if ($module['installed'] && $module['active']) {
+                    $this->initializeModule($name);
+                }
             }
         }
-        
-        // Load routes from routes.php file if exists
-        $routesFile = $module['path'] . '/routes.php';
-        if (file_exists($routesFile)) {
-            $router = $this->container->get('router');
-            require $routesFile;
-        }
+        unset($module);
     }
     
     /**
-     * Load module translations
+     * Scan modules directory for available module directories
      * 
-     * @param string $moduleName Module name
-     * @return void
+     * @param string $path
+     * @return array
      */
-    protected function loadModuleTranslations(string $moduleName): void
+    protected function scanModules(string $path): array
     {
-        if ($this->container->has('i18n')) {
-            $i18n = $this->container->get('i18n');
-            $i18n->loadModuleTranslations($moduleName);
+        $modules = [];
+        if (!is_dir($path)) {
+            return $modules;
+        }
+        $items = scandir($path);
+        foreach ($items as $item) {
+            if ($item[0] === '.') continue;
+            $dir = $path . '/' . $item;
+            if (is_dir($dir) && file_exists($dir . '/module.php')) {
+                $modules[] = $item;
+            }
+        }
+        return $modules;
+    }
+    
+    /**
+     * Load a module definition file
+     * 
+     * @param string $modulePath
+     * @return array|null
+     */
+    protected function loadDefinition(string $modulePath): ?array
+    {
+        $file = $modulePath . '/module.php';
+        if (!file_exists($file)) return null;
+        $def = require $file;
+        return is_array($def) ? $def : null;
+    }
+    
+    /**
+     * Get installed modules from the database
+     * 
+     * @return array keyed by module name
+     */
+    protected function getInstalledModules(): array
+    {
+        try {
+            $db = $this->container->get('database');
+            if (!$db->tableExists($this->table)) {
+                return [];
+            }
+            $rows = $db->select("SELECT * FROM {$this->table}");
+            $result = [];
+            foreach ($rows as $row) {
+                $result[$row['name']] = $row;
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            return [];
         }
     }
     
     /**
-     * Get all loaded modules
+     * Create the modules tracking table
+     * 
+     * @return bool
+     */
+    public function createTable(): bool
+    {
+        try {
+            $db = $this->container->get('database');
+            $db->query("CREATE TABLE IF NOT EXISTS {$this->table} (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                version VARCHAR(20) NOT NULL DEFAULT '1.0.0',
+                description TEXT,
+                author VARCHAR(100) DEFAULT '',
+                license VARCHAR(50) DEFAULT '',
+                active TINYINT(1) DEFAULT 1,
+                installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_name (name),
+                INDEX idx_active (active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            return true;
+        } catch (\Throwable $e) {
+            error_log("Failed to create modules table: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get all available modules (scanned from filesystem)
      * 
      * @return array
      */
@@ -261,172 +198,458 @@ class ModuleManager
     /**
      * Get a specific module
      * 
-     * @param string $moduleName Module name
+     * @param string $name
      * @return array|null
      */
-    public function getModule(string $moduleName): ?array
+    public function getModule(string $name): ?array
     {
-        return $this->modules[$moduleName] ?? null;
+        return $this->modules[$name] ?? null;
     }
     
     /**
-     * Check if a module is loaded
+     * Check if a module is loaded (installed, active, initialized)
      * 
-     * @param string $moduleName Module name
+     * @param string $name
      * @return bool
      */
-    public function isModuleLoaded(string $moduleName): bool
+    public function isModuleLoaded(string $name): bool
     {
-        return isset($this->modules[$moduleName]) && $this->modules[$moduleName]['loaded'];
-    }
-    
-    /**
-     * Enable a module
-     * 
-     * @param string $moduleName Module name
-     * @return bool
-     */
-    public function enableModule(string $moduleName): bool
-    {
-        if (!in_array($moduleName, $this->enabledModules)) {
-            $this->enabledModules[] = $moduleName;
-            
-            // Load the module if not already loaded
-            if (!isset($this->modules[$moduleName])) {
-                $modulesPath = $this->config['path'] ?? XOO_PRESS_MODULES;
-                return $this->loadModule($moduleName, $modulesPath);
-            }
-            
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Disable a module
-     * 
-     * @param string $moduleName Module name
-     * @return bool
-     */
-    public function disableModule(string $moduleName): bool
-    {
-        $key = array_search($moduleName, $this->enabledModules);
-        
-        if ($key !== false) {
-            unset($this->enabledModules[$key]);
-            $this->enabledModules = array_values($this->enabledModules);
-            
-            // Note: We don't unload the module, just mark it as disabled
-            if (isset($this->modules[$moduleName])) {
-                $this->modules[$moduleName]['enabled'] = false;
-            }
-            
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Get enabled modules
-     * 
-     * @return array
-     */
-    public function getEnabledModules(): array
-    {
-        return $this->enabledModules;
+        return isset($this->modules[$name]) && $this->modules[$name]['loaded'];
     }
     
     /**
      * Install a module
      * 
-     * @param string $moduleName Module name
-     * @return bool
+     * @param string $name
+     * @return array ['success' => bool, 'message' => string]
      */
-    public function installModule(string $moduleName): bool
+    public function install(string $name): array
     {
-        $module = $this->getModule($moduleName);
-        
-        if (!$module) {
-            return false;
+        if (!isset($this->modules[$name])) {
+            return ['success' => false, 'message' => "Module '{$name}' not found in filesystem."];
         }
         
-        // Check for install callback
-        if (isset($module['definition']['install']) && is_callable($module['definition']['install'])) {
-            try {
-                $module['definition']['install']($this->container);
-                return true;
-            } catch (\Exception $e) {
-                error_log("Failed to install module {$moduleName}: " . $e->getMessage());
-                return false;
+        $module = &$this->modules[$name];
+        $def = $module['definition'];
+        
+        if (!$def) {
+            return ['success' => false, 'message' => "Module '{$name}' has invalid definition."];
+        }
+        
+        if ($module['installed']) {
+            return ['success' => false, 'message' => "Module '{$name}' is already installed."];
+        }
+        
+        // Check dependencies
+        $deps = $def['dependencies'] ?? [];
+        foreach ($deps as $dep) {
+            $depModule = $this->modules[$dep] ?? null;
+            if (!$depModule || !$depModule['installed']) {
+                return ['success' => false, 'message' => "Dependency '{$dep}' is not installed."];
             }
         }
         
-        return false;
+        // Run install callback (creates DB tables, inserts default data)
+        if (isset($def['install']) && is_callable($def['install'])) {
+            try {
+                $result = $def['install']($this->container);
+                if ($result === false) {
+                    return ['success' => false, 'message' => "Install callback returned false."];
+                }
+            } catch (\Throwable $e) {
+                error_log("Module install failed for {$name}: " . $e->getMessage());
+                return ['success' => false, 'message' => "Install error: " . $e->getMessage()];
+            }
+        }
+        
+        // Register in database
+        try {
+            $db = $this->container->get('database');
+            $db->insert($this->table, [
+                'name' => $name,
+                'version' => $def['version'] ?? '1.0.0',
+                'description' => $def['description'] ?? '',
+                'author' => $def['author'] ?? '',
+                'license' => $def['license'] ?? '',
+                'active' => 1,
+            ]);
+        } catch (\Throwable $e) {
+            error_log("Failed to register module {$name} in DB: " . $e->getMessage());
+            return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
+        }
+        
+        $module['installed'] = true;
+        $module['active'] = true;
+        $module['version_db'] = $def['version'] ?? '1.0.0';
+        
+        // Initialize now that it's installed
+        $this->initializeModule($name);
+        
+        return ['success' => true, 'message' => "Module '{$name}' installed and activated."];
     }
     
     /**
      * Uninstall a module
      * 
-     * @param string $moduleName Module name
-     * @return bool
+     * @param string $name
+     * @return array ['success' => bool, 'message' => string]
      */
-    public function uninstallModule(string $moduleName): bool
+    public function uninstall(string $name): array
     {
-        $module = $this->getModule($moduleName);
-        
-        if (!$module) {
-            return false;
+        if (!isset($this->modules[$name])) {
+            return ['success' => false, 'message' => "Module '{$name}' not found."];
         }
         
-        // Check for uninstall callback
-        if (isset($module['definition']['uninstall']) && is_callable($module['definition']['uninstall'])) {
-            try {
-                $module['definition']['uninstall']($this->container);
-                return true;
-            } catch (\Exception $e) {
-                error_log("Failed to uninstall module {$moduleName}: " . $e->getMessage());
-                return false;
+        $module = &$this->modules[$name];
+        $def = $module['definition'];
+        
+        if (!$module['installed']) {
+            return ['success' => false, 'message' => "Module '{$name}' is not installed."];
+        }
+        
+        // Check if other modules depend on this one
+        foreach ($this->modules as $otherName => $other) {
+            if ($otherName === $name) continue;
+            $otherDef = $other['definition'] ?? [];
+            $deps = $otherDef['dependencies'] ?? [];
+            if (in_array($name, $deps) && $other['installed']) {
+                return ['success' => false, 'message' => "Cannot uninstall: '{$otherName}' depends on '{$name}'."];
             }
         }
         
-        return false;
+        // Deactivate first
+        if ($module['active']) {
+            $this->deactivate($name);
+        }
+        
+        // Run uninstall callback (drops tables)
+        if (isset($def['uninstall']) && is_callable($def['uninstall'])) {
+            try {
+                $def['uninstall']($this->container);
+            } catch (\Throwable $e) {
+                error_log("Module uninstall callback failed for {$name}: " . $e->getMessage());
+            }
+        }
+        
+        // Remove from database
+        try {
+            $db = $this->container->get('database');
+            $db->delete($this->table, ['name' => $name]);
+        } catch (\Throwable $e) {
+            error_log("Failed to remove module {$name} from DB: " . $e->getMessage());
+        }
+        
+        $module['installed'] = false;
+        $module['active'] = false;
+        $module['loaded'] = false;
+        
+        return ['success' => true, 'message' => "Module '{$name}' uninstalled."];
+    }
+    
+    /**
+     * Activate a module
+     * 
+     * @param string $name
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function activate(string $name): array
+    {
+        if (!isset($this->modules[$name])) {
+            return ['success' => false, 'message' => "Module '{$name}' not found."];
+        }
+        
+        $module = &$this->modules[$name];
+        
+        if (!$module['installed']) {
+            return ['success' => false, 'message' => "Module '{$name}' is not installed. Install it first."];
+        }
+        
+        if ($module['active']) {
+            return ['success' => false, 'message' => "Module '{$name}' is already active."];
+        }
+        
+        // Update database
+        try {
+            $db = $this->container->get('database');
+            $db->update($this->table, ['active' => 1], ['name' => $name]);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
+        }
+        
+        $module['active'] = true;
+        $this->initializeModule($name);
+        
+        return ['success' => true, 'message' => "Module '{$name}' activated."];
+    }
+    
+    /**
+     * Deactivate a module
+     * 
+     * @param string $name
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function deactivate(string $name): array
+    {
+        if (!isset($this->modules[$name])) {
+            return ['success' => false, 'message' => "Module '{$name}' not found."];
+        }
+        
+        $module = &$this->modules[$name];
+        
+        if (!$module['active']) {
+            return ['success' => false, 'message' => "Module '{$name}' is not active."];
+        }
+        
+        // Update database
+        try {
+            $db = $this->container->get('database');
+            $db->update($this->table, ['active' => 0], ['name' => $name]);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
+        }
+        
+        $module['active'] = false;
+        $module['loaded'] = false;
+        
+        return ['success' => true, 'message' => "Module '{$name}' deactivated."];
+    }
+    
+    /**
+     * Initialize a module (register services, routes, translations)
+     * 
+     * @param string $name
+     * @return bool
+     */
+    protected function initializeModule(string $name): bool
+    {
+        if (!isset($this->modules[$name])) return false;
+        
+        $module = &$this->modules[$name];
+        $def = $module['definition'];
+        
+        if (!$def) return false;
+        
+        try {
+            // Load bootstrap file if exists
+            $bootstrap = $module['path'] . '/bootstrap.php';
+            if (file_exists($bootstrap)) {
+                require_once $bootstrap;
+            }
+            
+            // Register services
+            if (isset($def['services']) && is_array($def['services'])) {
+                foreach ($def['services'] as $serviceName => $serviceDef) {
+                    $this->container->bind($serviceName, $serviceDef);
+                }
+            }
+            
+            // Register routes
+            if (isset($def['routes']) && is_array($def['routes'])) {
+                $router = $this->container->get('router');
+                foreach ($def['routes'] as $route) {
+                    if (!isset($route['method'], $route['pattern'], $route['handler'])) continue;
+                    $router->addRoute($route['method'], $route['pattern'], $route['handler']);
+                }
+            }
+            
+            // Load routes file if exists
+            $routesFile = $module['path'] . '/routes.php';
+            if (file_exists($routesFile)) {
+                $router = $this->container->get('router');
+                require $routesFile;
+            }
+            
+            // Load translations
+            $this->loadModuleTranslations($name);
+            
+            // Run init callback
+            if (isset($def['init']) && is_callable($def['init'])) {
+                $def['init']($this->container);
+            }
+            
+            $module['loaded'] = true;
+            return true;
+        } catch (\Throwable $e) {
+            error_log("Failed to initialize module {$name}: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Load module translations
+     * 
+     * @param string $name
+     * @return void
+     */
+    protected function loadModuleTranslations(string $name): void
+    {
+        if ($this->container->has('i18n')) {
+            $i18n = $this->container->get('i18n');
+            $i18n->loadModuleTranslations($name);
+        }
+    }
+    
+    /**
+     * Upload a module zip file and extract it to the modules directory
+     * 
+     * @param string $zipPath Path to uploaded .zip file
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function upload(string $zipPath): array
+    {
+        if (!file_exists($zipPath)) {
+            return ['success' => false, 'message' => 'Upload file not found.'];
+        }
+        
+        if (!class_exists('ZipArchive')) {
+            return ['success' => false, 'message' => 'ZipArchive is required for module uploads.'];
+        }
+        
+        $zip = new \ZipArchive();
+        $res = $zip->open($zipPath);
+        if ($res !== true) {
+            return ['success' => false, 'message' => "Cannot open zip file (error code: {$res})."];
+        }
+        
+        // Check that the zip has a module.php at top level
+        $moduleName = null;
+        $hasModulePhp = false;
+        for ($i = 0; $i < $zip->numEntries; $i++) {
+            $name = $zip->getNameIndex($i);
+            $parts = explode('/', $name);
+            if (count($parts) === 2 && $parts[1] === 'module.php') {
+                $moduleName = $parts[0];
+                $hasModulePhp = true;
+                break;
+            }
+        }
+        
+        if (!$hasModulePhp || !$moduleName) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Zip must contain a module directory with module.php at its root.'];
+        }
+        
+        if (isset($this->modules[$moduleName])) {
+            $zip->close();
+            return ['success' => false, 'message' => "Module '{$moduleName}' already exists in filesystem. Remove it first."];
+        }
+        
+        $modulesPath = $this->config['path'] ?? XOO_PRESS_MODULES;
+        $targetDir = $modulesPath . '/' . $moduleName;
+        
+        if (is_dir($targetDir)) {
+            $zip->close();
+            return ['success' => false, 'message' => "Directory '{$moduleName}' already exists."];
+        }
+        
+        // Extract
+        if (!$zip->extractTo($modulesPath)) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Failed to extract zip file.'];
+        }
+        $zip->close();
+        
+        // Validate the extracted module
+        if (!file_exists($targetDir . '/module.php')) {
+            $this->rmDir($targetDir);
+            return ['success' => false, 'message' => 'Extracted module is missing module.php.'];
+        }
+        
+        $def = $this->loadDefinition($targetDir);
+        if (!$def) {
+            $this->rmDir($targetDir);
+            return ['success' => false, 'message' => 'Invalid module definition.'];
+        }
+        
+        // Add to modules list
+        $this->modules[$moduleName] = [
+            'name' => $moduleName,
+            'path' => $targetDir,
+            'definition' => $def,
+            'loaded' => false,
+            'installed' => false,
+            'active' => false,
+            'version_db' => null,
+        ];
+        
+        return [
+            'success' => true,
+            'message' => "Module '{$moduleName}' uploaded. Install it from the admin panel.",
+        ];
+    }
+    
+    /**
+     * Delete a module from the filesystem
+     * 
+     * @param string $name
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function delete(string $name): array
+    {
+        if (!isset($this->modules[$name])) {
+            return ['success' => false, 'message' => "Module '{$name}' not found."];
+        }
+        
+        if ($this->modules[$name]['installed']) {
+            return ['success' => false, 'message' => "Module '{$name}' is installed. Uninstall it first."];
+        }
+        
+        $path = $this->modules[$name]['path'];
+        if (is_dir($path)) {
+            $this->rmDir($path);
+        }
+        
+        unset($this->modules[$name]);
+        
+        return ['success' => true, 'message' => "Module '{$name}' deleted from filesystem."];
     }
     
     /**
      * Get module dependencies
      * 
-     * @param string $moduleName Module name
+     * @param string $name
      * @return array
      */
-    public function getModuleDependencies(string $moduleName): array
+    public function getModuleDependencies(string $name): array
     {
-        $module = $this->getModule($moduleName);
-        
-        if (!$module) {
-            return [];
-        }
-        
+        $module = $this->modules[$name] ?? null;
+        if (!$module || !$module['definition']) return [];
         return $module['definition']['dependencies'] ?? [];
     }
     
     /**
-     * Check if module dependencies are satisfied
+     * Check if all dependencies are satisfied
      * 
-     * @param string $moduleName Module name
+     * @param string $name
      * @return bool
      */
-    public function checkDependencies(string $moduleName): bool
+    public function checkDependencies(string $name): bool
     {
-        $dependencies = $this->getModuleDependencies($moduleName);
-        
-        foreach ($dependencies as $dependency) {
-            if (!$this->isModuleLoaded($dependency)) {
-                return false;
-            }
+        $deps = $this->getModuleDependencies($name);
+        foreach ($deps as $dep) {
+            $m = $this->modules[$dep] ?? null;
+            if (!$m || !$m['installed']) return false;
         }
-        
         return true;
+    }
+    
+    /**
+     * Recursively remove a directory
+     * 
+     * @param string $path
+     * @return void
+     */
+    protected function rmDir(string $path): void
+    {
+        if (!is_dir($path)) {
+            if (file_exists($path)) unlink($path);
+            return;
+        }
+        $items = scandir($path);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            $this->rmDir($path . '/' . $item);
+        }
+        rmdir($path);
     }
 }

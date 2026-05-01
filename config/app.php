@@ -81,9 +81,11 @@ return [
     ],
     
     // Modules
+    // Note: Module installation is now managed via the admin panel (DB-backed).
+    // The 'enabled' list below is only used for the initial migration when
+    // there are no modules registered in the database yet.
     'modules' => [
         'path' => dirname(__DIR__) . '/modules',
         'enabled' => ['System', 'Content'],
-        'autoload' => true,
     ],
 ];

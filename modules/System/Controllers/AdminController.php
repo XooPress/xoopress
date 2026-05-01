@@ -261,6 +261,103 @@ class AdminController extends Controller
         $this->redirect('/admin/users');
     }
 
+    // ── Modules ────────────────────────────────────────────
+
+    public function modules(): string
+    {
+        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
+        $message = $_SESSION['modules_message'] ?? null;
+        $messageType = $_SESSION['modules_message_type'] ?? null;
+        unset($_SESSION['modules_message'], $_SESSION['modules_message_type']);
+        return $this->view('system::admin_modules', [
+            'modules' => $modules,
+            'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
+        ]);
+    }
+
+    public function moduleInstall(string $name): void
+    {
+        $redirect = '/admin/modules';
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->install($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function moduleUninstall(string $name): void
+    {
+        $redirect = '/admin/modules';
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->uninstall($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function moduleActivate(string $name): void
+    {
+        $redirect = '/admin/modules';
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->activate($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function moduleDeactivate(string $name): void
+    {
+        $redirect = '/admin/modules';
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->deactivate($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function moduleDelete(string $name): void
+    {
+        $redirect = '/admin/modules';
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->delete($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function moduleUpload(): void
+    {
+        $redirect = '/admin/modules';
+        
+        if (!isset($_FILES['module_zip']) || $_FILES['module_zip']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['modules_message'] = __('Upload failed.') . ' ' . ($_FILES['module_zip']['error'] ?? '');
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect($redirect);
+            return;
+        }
+        
+        if ($this->container->has('modules')) {
+            $manager = $this->container->get('modules');
+            $result = $manager->upload($_FILES['module_zip']['tmp_name']);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect($redirect);
+    }
+
     // ── Misc ──────────────────────────────────────────────
 
     public function settings(): string

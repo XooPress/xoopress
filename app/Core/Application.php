@@ -100,10 +100,42 @@ class Application
         // Initialize internationalization
         $this->container->get('i18n')->initialize();
         
-        // Load modules
-        $this->container->get('modules')->loadModules();
+        // Initialize module system
+        $this->bootModules();
         
         $this->booted = true;
+    }
+    
+    /**
+     * Initialize the module system
+     * 
+     * @return void
+     */
+    protected function bootModules(): void
+    {
+        $modules = $this->container->get('modules');
+        
+        // Ensure the modules tracking table exists
+        $modules->createTable();
+        
+        // Migrate old config-based modules to DB on first run:
+        // If no modules are in DB yet, install the modules listed in config
+        $installed = [];
+        try {
+            $db = $this->container->get('database');
+            $prefix = $db->getPrefix();
+            $installed = $db->select("SELECT * FROM {$prefix}modules");
+        } catch (\Throwable $e) {}
+        
+        if (empty($installed)) {
+            $legacyEnabled = $this->config['modules']['enabled'] ?? [];
+            foreach ($legacyEnabled as $moduleName) {
+                $modules->install($moduleName);
+            }
+        }
+        
+        // Now load all modules (scans filesystem, checks DB state, initializes active ones)
+        $modules->loadModules();
     }
     
     /**

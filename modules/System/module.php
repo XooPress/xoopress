@@ -137,6 +137,42 @@ return [
             'pattern' => '/admin/pages/edit/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pageEdit'],
         ],
+        // Modules
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'modules'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/install/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleInstall'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/uninstall/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUninstall'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/activate/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleActivate'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/deactivate/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleDeactivate'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/delete/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleDelete'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/modules/upload',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUpload'],
+        ],
         // Categories
         [
             'method' => 'GET',
