@@ -9,6 +9,7 @@ A modular open-source Content Management System combining the modular architectu
 |-------|---------|
 | `Application.php` | Bootstrap, service registration, boot sequence |
 | `Container.php` | Dependency injection container (singleton/bind/instance) |
+| `ContentRenderer.php` | Multi-format content rendering: HTML, Markdown (Parsedown), PHP eval, WYSIWYG |
 | `Controller.php` | Base controller: view rendering, JSON, redirect, validation, CSRF |
 | `Database.php` | PDO abstraction: query builder, insert/update/delete, table prefix |
 | `I18n.php` | Internationalization: .mo file parsing, gettext fallback, locale detection |
@@ -115,6 +116,61 @@ return [
 - **Not Installed**: module files exist in `modules/` but not registered in DB
 - **Installed (Active)**: DB record exists `active=1`, routes/services/translations loaded
 - **Installed (Inactive)**: DB record exists `active=0`, not loaded but data preserved
+
+## Content Renderer & Multi-Input Editor
+
+### ContentRenderer (`app/Core/ContentRenderer.php`)
+
+A server-side content rendering engine that processes post/page content based on its `content_type` field. Supports 4 formats:
+
+| Format | `content_type` | Rendering |
+|--------|---------------|-----------|
+| **Visual Editor** | `wysiwyg` | HTML output as-is (contenteditable-based WYSIWYG) |
+| **HTML** | `html` | Direct HTML output |
+| **Markdown** | `markdown` | Parsedown library converts Markdown to HTML; built-in fallback for basic syntax |
+| **PHP** | `php` | Safe `eval()` with error handling; strips `<?php` tags automatically |
+
+**Key methods:**
+```php
+$renderer = new ContentRenderer();
+$html = $renderer->render($content, $contentType);  // Returns rendered HTML
+ContentRenderer::getTypes();                         // Returns ['wysiwyg' => 'Visual Editor', ...]
+ContentRenderer::getTypeIcon($type);                 // Returns emoji icon for type
+```
+
+### Admin Post Editor (`modules/System/views/admin_post_edit.php`)
+
+The post/page editor features a tabbed interface with 4 editor modes:
+
+- **🎨 Visual** — Contenteditable WYSIWYG with formatting toolbar (B, I, U, H2, H3, blockquote, code, lists, links, images)
+- **🔤 HTML** — Code editor with HTML tag insertion helpers
+- **📝 Markdown** — Editor with Markdown formatting toolbar (bold, italic, headers, blockquotes, code, links, images, lists)
+- **⚡ PHP** — Code editor with PHP snippet helpers (echo, if, foreach, for, function, return)
+
+**Features:**
+- **Live Preview** toggle — renders HTML/WYSIWYG inline, client-side Markdown preview, shows PHP source
+- **Auto-sync** — switching tabs syncs content between editors via a hidden textarea
+- **Auto-slug** — URL slug auto-generated from title on blur
+- **Persistent mode** — the selected editor mode is saved as `content_type` per post
+
+### Database Schema
+
+The `xp_posts` table includes a `content_type` column:
+```sql
+content_type VARCHAR(20) DEFAULT 'html'
+```
+
+### Rendering Pipeline
+
+1. Admin creates/edits a post in any of the 4 editor modes
+2. `content_type` is saved alongside the raw content
+3. On front-end display, `PostController` passes content through `ContentRenderer::render()`
+4. The rendered HTML is available as `$post['rendered_content']` in templates
+5. Themes use `$post['rendered_content'] ?? $post['content']` for backward compatibility
+
+### Dependencies
+
+- `erusev/parsedown` (^1.8) — Markdown-to-HTML conversion library
 
 ## Suggested Roadmap for Core
 
