@@ -137,6 +137,9 @@ class Application
         // Ensure the modules tracking table exists
         $modules->createTable();
         
+        // First, scan the filesystem so $this->modules is populated
+        $modules->scanFilesystem();
+        
         // Migrate old config-based modules to DB on first run:
         // If no modules are in DB yet, install the modules listed in config
         $installed = [];
@@ -153,7 +156,7 @@ class Application
             }
         }
         
-        // Now load all modules (scans filesystem, checks DB state, initializes active ones)
+        // Now load all active modules (registers routes, services, translations)
         $modules->loadModules();
     }
     

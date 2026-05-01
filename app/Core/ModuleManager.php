@@ -55,42 +55,55 @@ class ModuleManager
     }
     
     /**
-     * Load all modules that are installed and active
+     * Scan the filesystem for available modules and populate $this->modules
+     * without initializing them. Used before install to ensure modules are known.
      * 
      * @return void
      */
-    public function loadModules(): void
+    public function scanFilesystem(): void
     {
         $modulesPath = $this->config['path'] ?? XOO_PRESS_MODULES;
         
         // Scan modules directory for available modules
         $available = $this->scanModules($modulesPath);
         
-        // Get installed modules from database (XOOPS-style state tracking)
+        // Get installed modules from database
         $installed = $this->getInstalledModules();
         
         foreach ($available as $moduleName) {
+            if (isset($this->modules[$moduleName])) continue;
+            
+            $path = $modulesPath . '/' . $moduleName;
+            $def = $this->loadDefinition($path);
+            
             $this->modules[$moduleName] = [
                 'name' => $moduleName,
-                'path' => $modulesPath . '/' . $moduleName,
-                'definition' => null,
+                'path' => $path,
+                'definition' => $def,
                 'loaded' => false,
                 'installed' => isset($installed[$moduleName]),
                 'active' => isset($installed[$moduleName]) && ($installed[$moduleName]['active'] ?? false),
                 'version_db' => $installed[$moduleName]['version'] ?? null,
             ];
         }
+    }
+    
+    /**
+     * Load all modules that are installed and active
+     * 
+     * @return void
+     */
+    public function loadModules(): void
+    {
+        // Ensure filesystem is scanned first
+        if (empty($this->modules)) {
+            $this->scanFilesystem();
+        }
         
-        // Load definitions and initialize active modules
+        // Initialize active modules
         foreach ($this->modules as $name => &$module) {
-            $def = $this->loadDefinition($module['path']);
-            if ($def) {
-                $module['definition'] = $def;
-                
-                // Initialize only if installed AND active
-                if ($module['installed'] && $module['active']) {
-                    $this->initializeModule($name);
-                }
+            if ($module['installed'] && $module['active'] && !$module['loaded']) {
+                $this->initializeModule($name);
             }
         }
         unset($module);
