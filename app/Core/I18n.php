@@ -46,11 +46,18 @@ class I18n
     protected string $encoding = 'UTF-8';
     
     /**
-     * Translation cache
+     * Translation cache (msgid => msgstr)
      * 
      * @var array
      */
-    protected array $cache = [];
+    protected array $translations = [];
+    
+    /**
+     * Whether translations have been loaded
+     * 
+     * @var bool
+     */
+    protected bool $loaded = false;
     
     /**
      * Constructor
@@ -73,14 +80,14 @@ class I18n
      */
     public function initialize(): void
     {
-        // Set locale from configuration or detect from browser
+        // Detect locale from session/cookie/browser
         $this->setLocale($this->detectLocale());
         
-        // Set PHP locale
-        $this->setPhpLocale();
+        // Load translations from .mo file
+        $this->loadTranslations();
         
-        // Bind text domain
-        $this->bindTextDomain();
+        // Also try to set up gettext as a fallback
+        $this->setupGettext();
     }
     
     /**
@@ -172,66 +179,153 @@ class I18n
         }
         
         $this->locale = $locale;
-        
-        // Update PHP locale
-        $this->setPhpLocale();
-        
-        // Update text domain binding
-        $this->bindTextDomain();
+        $this->loaded = false; // Force reload on next translate()
         
         return true;
     }
     
     /**
-     * Set PHP locale settings
+     * Load translations from .mo file
      * 
-     * @return void
+     * @return bool
      */
-    protected function setPhpLocale(): void
+    protected function loadTranslations(): bool
     {
-        // Try various locale name formats that Linux systems recognize
-        $localeLower = strtolower(str_replace('_', '-', $this->locale)) . '.' . strtolower($this->encoding);
-        $localeUnderscore = $this->locale . '.utf8';
-        $localeUnderscoreUpper = $this->locale . '.UTF-8';
-        $localeHyphen = str_replace('_', '-', $this->locale) . '.UTF-8';
+        if ($this->loaded) {
+            return true;
+        }
         
-        $candidates = [
-            $localeUnderscore,
-            $localeUnderscoreUpper,
-            $localeHyphen,
-            $localeLower,
-            $this->locale,
-        ];
+        $this->translations = [];
+        $this->loaded = true;
         
-        setlocale(LC_ALL, $candidates);
-        setlocale(LC_TIME, $candidates);
-        setlocale(LC_MONETARY, $candidates);
-        setlocale(LC_NUMERIC, $candidates);
+        // For default locale (en_US), no translation needed
+        if ($this->locale === 'en_US') {
+            return true;
+        }
         
-        // CRITICAL: Use LANGUAGE env var (GNU gettext extension) which works
-        // independently of installed system locales. This allows translations
-        // to work even when fr_FR.utf8 or other locales aren't installed.
-        // Format: language_TERRITORY:language (e.g. "fr_FR:fr" or "de_DE:de")
-        $langCode = substr($this->locale, 0, 2);
-        putenv("LANG={$localeUnderscore}");
-        putenv("LANGUAGE={$this->locale}:{$langCode}");
-        putenv("LC_ALL={$localeUnderscore}");
-        putenv("LC_MESSAGES={$localeUnderscore}");
+        $moPath = dirname(__DIR__, 2) . "/locales/{$this->locale}/LC_MESSAGES/{$this->domain}.mo";
+        
+        if (!file_exists($moPath)) {
+            return false;
+        }
+        
+        $this->translations = $this->parseMoFile($moPath);
+        return !empty($this->translations);
     }
     
     /**
-     * Bind text domain for gettext
+     * Parse a .mo binary file and extract translations
+     * 
+     * @param string $path Path to .mo file
+     * @return array Associative array of msgid => msgstr
+     */
+    protected function parseMoFile(string $path): array
+    {
+        $translations = [];
+        
+        $content = file_get_contents($path);
+        if ($content === false || strlen($content) < 24) {
+            return $translations;
+        }
+        
+        // Parse .mo header
+        // Format: magic_number (4) + format_revision (4) + num_strings (4) +
+        //         orig_table_offset (4) + trans_table_offset (4) +
+        //         hashing_size (4) + hashing_primes (4)
+        $header = unpack('Vmagic/Vrevision/Vnum_strings/Vorig_offset/Vtrans_offset/Vhash_size/Vhash_prime', substr($content, 0, 24));
+        
+        if (!$header || ($header['magic'] !== 0x950412de && $header['magic'] !== 0xde120495)) {
+            return $translations;
+        }
+        
+        $isSwapped = ($header['magic'] === 0xde120495);
+        $numStrings = $header['num_strings'];
+        $origOffset = $header['orig_offset'];
+        $transOffset = $header['trans_offset'];
+        
+        // Read original strings table
+        $origTable = $this->readTable($content, $origOffset, $numStrings, $isSwapped);
+        $transTable = $this->readTable($content, $transOffset, $numStrings, $isSwapped);
+        
+        // Build translation map (skip header entry at index 0)
+        for ($i = 1; $i < $numStrings; $i++) {
+            $msgid = $origTable[$i] ?? '';
+            $msgstr = $transTable[$i] ?? '';
+            
+            if ($msgid !== '' && $msgstr !== '') {
+                $translations[$msgid] = $msgstr;
+            }
+        }
+        
+        return $translations;
+    }
+    
+    /**
+     * Read a string table from .mo file
+     * 
+     * @param string $content File content
+     * @param int $offset Offset to table
+     * @param int $count Number of entries
+     * @param bool $isSwapped Whether byte order is swapped
+     * @return array Array of strings
+     */
+    protected function readTable(string $content, int $offset, int $count, bool $isSwapped): array
+    {
+        $strings = [];
+        $format = $isSwapped ? 'V2' : 'V2';
+        
+        for ($i = 0; $i < $count; $i++) {
+            $entryOffset = $offset + ($i * 8);
+            if ($entryOffset + 8 > strlen($content)) {
+                break;
+            }
+            
+            $entry = unpack($format, substr($content, $entryOffset, 8));
+            if (!$entry) {
+                break;
+            }
+            
+            $length = $entry[1];
+            $strOffset = $entry[2];
+            
+            if ($strOffset + $length > strlen($content)) {
+                break;
+            }
+            
+            $strings[] = substr($content, $strOffset, $length);
+        }
+        
+        return $strings;
+    }
+    
+    /**
+     * Try to set up gettext as a fallback translation mechanism
      * 
      * @return void
      */
-    protected function bindTextDomain(): void
+    protected function setupGettext(): void
     {
-        if (function_exists('bindtextdomain')) {
-            $localesPath = dirname(__DIR__, 2) . '/locales';
-            bindtextdomain($this->domain, $localesPath);
-            bind_textdomain_codeset($this->domain, $this->encoding);
-            textdomain($this->domain);
+        if (!function_exists('bindtextdomain')) {
+            return;
         }
+        
+        // Try to set a valid system locale for LC_ALL
+        $validLocales = ['de_DE.utf8', 'C.utf8', 'C', 'POSIX'];
+        foreach ($validLocales as $candidate) {
+            if (setlocale(LC_ALL, $candidate) !== false) {
+                break;
+            }
+        }
+        
+        // Set LANGUAGE env var for GNU gettext
+        $langCode = substr($this->locale, 0, 2);
+        putenv("LANGUAGE={$this->locale}:{$langCode}");
+        
+        // Bind text domain
+        $localesPath = dirname(__DIR__, 2) . '/locales';
+        bindtextdomain($this->domain, $localesPath);
+        bind_textdomain_codeset($this->domain, $this->encoding);
+        textdomain($this->domain);
     }
     
     /**
@@ -255,18 +349,32 @@ class I18n
     }
     
     /**
-     * Translate a string (gettext wrapper)
+     * Translate a string
      * 
      * @param string $message Message to translate
      * @return string
      */
     public function translate(string $message): string
     {
-        if (function_exists('gettext')) {
-            return gettext($message);
+        // Reload translations if needed
+        if (!$this->loaded) {
+            $this->loadTranslations();
         }
         
-        // Fallback: return original message
+        // Check our custom translation cache first
+        if (isset($this->translations[$message])) {
+            return $this->translations[$message];
+        }
+        
+        // Fallback to gettext if available
+        if (function_exists('gettext')) {
+            $translated = gettext($message);
+            if ($translated !== $message) {
+                return $translated;
+            }
+        }
+        
+        // Return original message
         return $message;
     }
     
@@ -280,11 +388,16 @@ class I18n
      */
     public function translatePlural(string $singular, string $plural, int $number): string
     {
+        // Check our custom translation cache
+        if (isset($this->translations[$singular])) {
+            return $this->translations[$singular];
+        }
+        
+        // Fallback to gettext
         if (function_exists('ngettext')) {
             return ngettext($singular, $plural, $number);
         }
         
-        // Fallback: return singular or plural based on number
         return $number == 1 ? $singular : $plural;
     }
     
@@ -325,12 +438,10 @@ class I18n
             $timestamp = time();
         }
         
-        // Use strftime for locale-aware formatting
         if (function_exists('strftime')) {
             return strftime($format, $timestamp);
         }
         
-        // Fallback to date()
         return date($format, $timestamp);
     }
     
@@ -355,12 +466,6 @@ class I18n
      */
     public function formatCurrency(float $amount, string $currency = 'USD'): string
     {
-        if (function_exists('money_format')) {
-            setlocale(LC_MONETARY, $this->locale);
-            return money_format('%.2n', $amount);
-        }
-        
-        // Fallback formatting
         $symbols = [
             'USD' => '$',
             'EUR' => '€',
@@ -385,12 +490,53 @@ class I18n
         $modulesPath = dirname(__DIR__, 2) . '/modules';
         $path = "{$modulesPath}/{$module}/locales/{$locale}/LC_MESSAGES/{$module}.mo";
         
-        if (file_exists($path) && function_exists('bindtextdomain')) {
-            bindtextdomain($module, "{$modulesPath}/{$module}/locales");
-            bind_textdomain_codeset($module, $this->encoding);
+        if (file_exists($path)) {
+            $moduleTranslations = $this->parseMoFile($path);
+            $this->translations = array_merge($this->translations, $moduleTranslations);
             return true;
         }
         
         return false;
     }
+    
+    /**
+     * Get the translations array (for debugging)
+     * 
+     * @return array
+     */
+    public function getTranslations(): array
+    {
+        return $this->translations;
+    }
+}
+
+/**
+ * Global translation function for use in views.
+ * Uses the I18n instance registered in the application container.
+ * Falls back to gettext's _() if no container is available.
+ * 
+ * @param string $message Message to translate
+ * @return string
+ */
+function __(string $message): string
+{
+    static $i18n = null;
+    
+    if ($i18n === null) {
+        // Try to get I18n from the global container
+        if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('i18n')) {
+            $i18n = $GLOBALS['xoopress_container']->get('i18n');
+        }
+    }
+    
+    if ($i18n !== null) {
+        return $i18n->translate($message);
+    }
+    
+    // Fallback to gettext
+    if (function_exists('gettext')) {
+        return gettext($message);
+    }
+    
+    return $message;
 }

@@ -20,7 +20,7 @@
         <div class="login-box">
             <img src="/images/xp-logo.svg" alt="XooPress" style="height:48px;margin-bottom:10px;">
             <h1>XooPress</h1>
-            <h2><?= _('Create Account') ?></h2>
+            <h2><?= __('Create Account') ?></h2>
             <?php if (!empty($errors)): ?>
                 <?php foreach ($errors as $error): ?>
                     <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
@@ -29,27 +29,27 @@
             <form method="POST" action="/register">
                 <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                 <div class="form-group">
-                    <label for="username"><?= _('Username') ?></label>
+                    <label for="username"><?= __('Username') ?></label>
                     <input type="text" id="username" name="username" value="<?= htmlspecialchars($username ?? '') ?>" required minlength="3" autofocus>
                 </div>
                 <div class="form-group">
-                    <label for="email"><?= _('Email') ?></label>
+                    <label for="email"><?= __('Email') ?></label>
                     <input type="email" id="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" required>
                 </div>
                 <div class="form-group">
-                    <label for="password"><?= _('Password') ?></label>
+                    <label for="password"><?= __('Password') ?></label>
                     <input type="password" id="password" name="password" required minlength="8">
                 </div>
                 <div class="form-group">
-                    <label for="password_confirm"><?= _('Confirm Password') ?></label>
+                    <label for="password_confirm"><?= __('Confirm Password') ?></label>
                     <input type="password" id="password_confirm" name="password_confirm" required minlength="8">
                 </div>
-                <button type="submit" class="btn btn-primary btn-block"><?= _('Register') ?></button>
+                <button type="submit" class="btn btn-primary btn-block"><?= __('Register') ?></button>
             </form>
             <p class="login-footer">
-                <?= _('Already have an account? Login') ?> <a href="/login"><?= _('Login') ?></a>
+                <?= __('Already have an account? Login') ?> <a href="/login"><?= __('Login') ?></a>
             </p>
-            <p class="login-footer"><a href="/"><?= _('Back to Home') ?></a></p>
+            <p class="login-footer"><a href="/"><?= __('Back to Home') ?></a></p>
         </div>
     </div>
 </body>

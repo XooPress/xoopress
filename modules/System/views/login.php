@@ -20,26 +20,26 @@
         <div class="login-box">
             <img src="/images/xp-logo.svg" alt="XooPress" style="height:48px;margin-bottom:10px;">
             <h1>XooPress</h1>
-            <h2><?= _('Login') ?></h2>
+            <h2><?= __('Login') ?></h2>
             <?php if (isset($error)): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
             <form method="POST" action="/login">
                 <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                 <div class="form-group">
-                    <label for="username"><?= _('Username') ?></label>
+                    <label for="username"><?= __('Username') ?></label>
                     <input type="text" id="username" name="username" required autofocus>
                 </div>
                 <div class="form-group">
-                    <label for="password"><?= _('Password') ?></label>
+                    <label for="password"><?= __('Password') ?></label>
                     <input type="password" id="password" name="password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block"><?= _('Login') ?></button>
+                <button type="submit" class="btn btn-primary btn-block"><?= __('Login') ?></button>
             </form>
             <p class="login-footer">
-                <?= _("Don't have an account? Register") ?> <a href="/register"><?= _('Register') ?></a>
+                <?= __("Don't have an account? Register") ?> <a href="/register"><?= __('Register') ?></a>
             </p>
-            <p class="login-footer"><a href="/"><?= _('Back to Home') ?></a></p>
+            <p class="login-footer"><a href="/"><?= __('Back to Home') ?></a></p>
         </div>
     </div>
 </body>

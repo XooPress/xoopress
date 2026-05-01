@@ -94,6 +94,9 @@ class Application
             return;
         }
         
+        // Register container globally so the __() function in views can access i18n
+        $GLOBALS['xoopress_container'] = $this->container;
+        
         // Initialize internationalization
         $this->container->get('i18n')->initialize();
         

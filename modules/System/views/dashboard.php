@@ -20,41 +20,41 @@
             </div>
             <img src="/images/xp-logo.svg" alt="XooPress Logo" class="site-logo" style="height:48px;margin-bottom:10px;">
             <h1><?= htmlspecialchars($siteName) ?></h1>
-            <p class="version"><?= _('Version') ?> <?= htmlspecialchars($version) ?></p>
+            <p class="version"><?= __('Version') ?> <?= htmlspecialchars($version) ?></p>
         </header>
         <main class="main">
             <div class="hero">
-                <h2><?= _('Welcome to XooPress') ?></h2>
-                <p><?= _('A modular CMS combining the best of XOOPS and WordPress.') ?></p>
+                <h2><?= __('Welcome to XooPress') ?></h2>
+                <p><?= __('A modular CMS combining the best of XOOPS and WordPress.') ?></p>
                 <div class="actions">
-                    <a href="/login" class="btn btn-primary"><?= _('Login') ?></a>
-                    <a href="/register" class="btn btn-secondary"><?= _('Register') ?></a>
-                    <a href="/admin" class="btn btn-secondary"><?= _('Admin Dashboard') ?></a>
+                    <a href="/login" class="btn btn-primary"><?= __('Login') ?></a>
+                    <a href="/register" class="btn btn-secondary"><?= __('Register') ?></a>
+                    <a href="/admin" class="btn btn-secondary"><?= __('Admin Dashboard') ?></a>
                 </div>
             </div>
 
             <div class="features">
                 <div class="feature-card">
-                    <h3><?= _('Modular Architecture') ?></h3>
-                    <p><?= _('Extend functionality with plug-and-play modules.') ?></p>
+                    <h3><?= __('Modular Architecture') ?></h3>
+                    <p><?= __('Extend functionality with plug-and-play modules.') ?></p>
                 </div>
                 <div class="feature-card">
-                    <h3><?= _('MVC Pattern') ?></h3>
-                    <p><?= _('Clean separation of concerns with Model-View-Controller.') ?></p>
+                    <h3><?= __('MVC Pattern') ?></h3>
+                    <p><?= __('Clean separation of concerns with Model-View-Controller.') ?></p>
                 </div>
                 <div class="feature-card">
-                    <h3><?= _('i18n Ready') ?></h3>
-                    <p><?= _('Full internationalization support with gettext.') ?></p>
+                    <h3><?= __('i18n Ready') ?></h3>
+                    <p><?= __('Full internationalization support with gettext.') ?></p>
                 </div>
                 <div class="feature-card">
-                    <h3><?= _('PDO Database') ?></h3>
-                    <p><?= _('Secure database access with prepared statements.') ?></p>
+                    <h3><?= __('PDO Database') ?></h3>
+                    <p><?= __('Secure database access with prepared statements.') ?></p>
                 </div>
             </div>
 
             <?php if (!empty($posts)): ?>
             <div class="posts-section" style="margin-top:30px;">
-                <h2 style="margin-bottom:20px;font-size:1.5rem;"><?= _('Latest Posts') ?></h2>
+                <h2 style="margin-bottom:20px;font-size:1.5rem;"><?= __('Latest Posts') ?></h2>
                 <?php foreach ($posts as $post): ?>
                 <article class="post-card" style="margin-bottom:20px;padding:20px;border:1px solid #e0e0e0;border-radius:6px;">
                     <h3 style="margin-bottom:8px;">
@@ -78,7 +78,7 @@
                         <?php endif; ?>
                     </p>
                     <a href="/posts/<?= htmlspecialchars($post['id']) ?>" class="read-more" style="color:#0073aa;font-size:0.9rem;">
-                        <?= _('Read More') ?> →
+                        <?= __('Read More') ?> →
                     </a>
                 </article>
                 <?php endforeach; ?>
@@ -86,7 +86,7 @@
             <?php endif; ?>
         </main>
         <footer class="footer">
-            <p>&copy; <?= date('Y') ?> XooPress. <?= _('All rights reserved.') ?></p>
+            <p>&copy; <?= date('Y') ?> XooPress. <?= __('All rights reserved.') ?></p>
         </footer>
     </div>
 </body>

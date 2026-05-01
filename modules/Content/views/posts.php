@@ -9,21 +9,21 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1><?= _('Posts') ?></h1>
-            <a href="/" class="btn btn-secondary"><?= _('Back to Home') ?></a>
+            <h1><?= __('Posts') ?></h1>
+            <a href="/" class="btn btn-secondary"><?= __('Back to Home') ?></a>
         </header>
         <main class="main">
             <?php if (empty($posts)): ?>
             <div class="hero">
-                <h2><?= _('No Posts Yet') ?></h2>
-                <p><?= _('There are no published posts at this time.') ?></p>
+                <h2><?= __('No Posts Yet') ?></h2>
+                <p><?= __('There are no published posts at this time.') ?></p>
             </div>
             <?php else: ?>
             <div class="posts-list">
                 <?php foreach ($posts as $post): ?>
                 <article class="post-card">
                     <h2><a href="/posts/<?= $post['id'] ?>"><?= htmlspecialchars($post['title']) ?></a></h2>
-                    <p class="post-meta"><?= _('Published on') ?> <?= htmlspecialchars($post['published_at']) ?></p>
+                    <p class="post-meta"><?= __('Published on') ?> <?= htmlspecialchars($post['published_at']) ?></p>
                     <p class="post-excerpt"><?= htmlspecialchars($post['excerpt'] ?? '') ?></p>
                 </article>
                 <?php endforeach; ?>
