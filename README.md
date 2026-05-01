@@ -1,3 +1,10 @@
+<img src="/public/images/xp-logo.svg" alt="Official OOPress Logo" width="220" height="220">
+
+
+[![PHP Version](https://img.shields.io/badge/php-8.2%2B-blue.svg)](https://php.net)
+[![License](https://img.shields.io/badge/license-GPL--v3-green.svg)](LICENSE)
+[![Composer](https://img.shields.io/badge/composer-2.0%2B-orange.svg)](https://getcomposer.org)
+
 # XooPress
 
 A modular CMS combining the best of XOOPS and WordPress concepts — built from scratch with PHP 8.2+, PDO, i18n, MVC & OOP.
