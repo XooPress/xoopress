@@ -63,6 +63,52 @@ return [
             'pattern' => '/admin/settings',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'settings'],
         ],
+        // Content management routes
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'posts'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postNew'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/posts/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postDelete'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/pages',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pages'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/categories',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'categories'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/categories',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'categorySave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/categories/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'categoryDelete'],
+        ],
     ],
     
     // Install callback

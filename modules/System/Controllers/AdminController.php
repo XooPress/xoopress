@@ -13,24 +13,192 @@ use XooPress\Core\Container;
 
 class AdminController extends Controller
 {
+    private ?\XooPress\Modules\Content\Models\Post $postModel = null;
+    private ?\XooPress\Modules\Content\Models\Category $categoryModel = null;
+
     public function __construct(Container $container)
     {
         parent::__construct($container);
+        
+        // Try to load content models if Content module is available
+        try {
+            if ($container->has('database')) {
+                $db = $container->get('database');
+                if (class_exists('XooPress\Modules\Content\Models\Post')) {
+                    $this->postModel = new \XooPress\Modules\Content\Models\Post($db);
+                }
+                if (class_exists('XooPress\Modules\Content\Models\Category')) {
+                    $this->categoryModel = new \XooPress\Modules\Content\Models\Category($db);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Content module not available
+        }
     }
 
     public function dashboard(): string
     {
+        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
+        
+        $moduleList = [];
+        foreach ($modules as $name => $module) {
+            $def = $module['definition'] ?? [];
+            $moduleList[] = [
+                'name' => $def['name'] ?? $name,
+                'version' => $def['version'] ?? '1.0.0',
+                'description' => $def['description'] ?? '',
+                'author' => $def['author'] ?? '',
+            ];
+        }
+
         return $this->view('system::admin_dashboard', [
             'siteName' => 'XooPress',
-            'version' => XOO_PRESS_VERSION,
+            'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',
+            'modules' => $moduleList,
         ]);
+    }
+
+    public function posts(): string
+    {
+        $posts = [];
+        if ($this->postModel) {
+            try {
+                $posts = $this->postModel->all();
+            } catch (\Throwable $e) {
+                $posts = [];
+            }
+        }
+        return $this->view('system::admin_posts', ['posts' => $posts]);
+    }
+
+    public function postNew(): string
+    {
+        $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        return $this->view('system::admin_post_edit', [
+            'isNew' => true,
+            'post' => [],
+            'categories' => $categories,
+        ]);
+    }
+
+    public function postEdit(int $id): string
+    {
+        $post = $this->postModel ? $this->postModel->find($id) : null;
+        $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        return $this->view('system::admin_post_edit', [
+            'isNew' => false,
+            'post' => $post ?? [],
+            'categories' => $categories,
+        ]);
+    }
+
+    public function postSave(): void
+    {
+        $data = $this->all();
+        
+        if (empty($data['title'])) {
+            $this->redirect('/admin/posts/new');
+            return;
+        }
+
+        $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['title']);
+        $isNew = empty($data['id']);
+
+        if ($this->postModel) {
+            try {
+                $postData = [
+                    'title' => $data['title'],
+                    'slug' => $slug,
+                    'content' => $data['content'] ?? '',
+                    'excerpt' => $data['excerpt'] ?? '',
+                    'status' => $data['status'] ?? 'draft',
+                    'category_id' => !empty($data['category_id']) ? (int)$data['category_id'] : null,
+                    'author_id' => 1,
+                    'type' => 'post',
+                ];
+
+                if ($data['status'] === 'published' && empty($data['published_at'])) {
+                    $postData['published_at'] = date('Y-m-d H:i:s');
+                }
+
+                if ($isNew) {
+                    $this->postModel->create($postData);
+                } else {
+                    $this->postModel->update((int)$data['id'], $postData);
+                }
+            } catch (\Throwable $e) {
+                // Log error
+            }
+        }
+
+        $this->redirect('/admin/posts');
+    }
+
+    public function postDelete(int $id): void
+    {
+        if ($this->postModel) {
+            try {
+                $this->postModel->delete($id);
+            } catch (\Throwable $e) {
+                // Log error
+            }
+        }
+        $this->redirect('/admin/posts');
+    }
+
+    public function pages(): string
+    {
+        $pages = [];
+        if ($this->postModel) {
+            try {
+                $all = $this->postModel->all();
+                $pages = array_filter($all, fn($p) => ($p['type'] ?? 'post') === 'page');
+            } catch (\Throwable $e) {
+                $pages = [];
+            }
+        }
+        return $this->view('system::admin_pages', ['pages' => $pages]);
+    }
+
+    public function categories(): string
+    {
+        $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        return $this->view('system::admin_categories', ['categories' => $categories]);
+    }
+
+    public function categorySave(): void
+    {
+        $data = $this->all();
+        if (!empty($data['name']) && $this->categoryModel) {
+            $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['name']);
+            try {
+                $this->categoryModel->create([
+                    'name' => $data['name'],
+                    'slug' => $slug,
+                    'description' => $data['description'] ?? '',
+                ]);
+            } catch (\Throwable $e) {
+                // Log error
+            }
+        }
+        $this->redirect('/admin/categories');
+    }
+
+    public function categoryDelete(int $id): void
+    {
+        if ($this->categoryModel) {
+            try {
+                $this->categoryModel->delete($id);
+            } catch (\Throwable $e) {
+                // Log error
+            }
+        }
+        $this->redirect('/admin/categories');
     }
 
     public function users(): string
     {
-        return $this->view('system::admin_users', [
-            'users' => [],
-        ]);
+        return $this->view('system::admin_users', ['users' => []]);
     }
 
     public function settings(): string
@@ -39,5 +207,14 @@ class AdminController extends Controller
             'settings' => [],
             'csrfToken' => $this->csrfToken(),
         ]);
+    }
+
+    private function createSlug(string $text): string
+    {
+        $text = mb_strtolower($text, 'UTF-8');
+        $text = preg_replace('/[^\w\s-]/u', '', $text);
+        $text = preg_replace('/[\s_]+/', '-', $text);
+        $text = trim($text, '-');
+        return $text ?: 'untitled';
     }
 }

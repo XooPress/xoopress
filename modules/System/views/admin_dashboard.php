@@ -12,6 +12,9 @@
             <h2>XooPress Admin</h2>
             <ul class="admin-nav">
                 <li><a href="/admin" class="active">Dashboard</a></li>
+                <li><a href="/admin/posts">Posts</a></li>
+                <li><a href="/admin/pages">Pages</a></li>
+                <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
                 <li><a href="/">View Site</a></li>
@@ -29,13 +32,39 @@
                 </div>
                 <div class="stat-card">
                     <h3>Modules</h3>
-                    <p class="stat-number">2</p>
+                    <p class="stat-number"><?= count($modules) ?></p>
                 </div>
                 <div class="stat-card">
                     <h3>Version</h3>
                     <p class="stat-number"><?= htmlspecialchars($version) ?></p>
                 </div>
             </div>
+
+            <h2 style="margin-top:30px;font-size:1.2rem;">Installed Modules</h2>
+            <table class="admin-table" style="margin-top:10px;">
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Version</th>
+                        <th>Description</th>
+                        <th>Author</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($modules)): ?>
+                    <tr><td colspan="4" style="text-align:center;color:#999;">No modules installed.</td></tr>
+                    <?php else: ?>
+                    <?php foreach ($modules as $mod): ?>
+                    <tr>
+                        <td><strong><?= htmlspecialchars($mod['name']) ?></strong></td>
+                        <td><?= htmlspecialchars($mod['version']) ?></td>
+                        <td><?= htmlspecialchars($mod['description']) ?></td>
+                        <td><?= htmlspecialchars($mod['author']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </main>
     </div>
 </body>
