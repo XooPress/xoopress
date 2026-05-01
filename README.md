@@ -21,6 +21,9 @@ A modular CMS combining the best of XOOPS and WordPress concepts — built from 
 - **Routing** — Simple yet powerful pattern-based HTTP router
 - **Validation** — Built-in validator with 20+ rules
 - **Error Handling** — Whoops error handling for beautiful debug pages
+- **Multi-Format Content Editor** — Write posts in Visual (WYSIWYG), HTML, Markdown, or PHP
+- **Theme System** — WordPress-style themes with child theme support
+- **Documentation** — Comprehensive user & developer docs in `docs/`
 
 ## Requirements
 
@@ -51,6 +54,24 @@ Edit `config/app.php` to set your database credentials and other settings:
 ],
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+| Section | Description |
+|---------|-------------|
+| [📖 User Documentation](docs/README.md) | Installation, configuration, admin guides, user guides |
+| [🛠 Developer Documentation](docs/README.md) | Architecture, module/theme development, API reference, contributing |
+| [📋 Project Summary](docs/project-summary.md) | Full architecture overview, design decisions, roadmap |
+
+### Quick Links
+
+- [Installation Guide](docs/en/installation.md) — System requirements, setup, first run
+- [Admin Dashboard](docs/en/admin-dashboard.md) — Navigating the admin panel
+- [Module System](docs/en/dev-modules.md) — Creating and managing modules
+- [Theme System](docs/en/dev-themes.md) — Creating and managing themes
+- [Contributing](CONTRIBUTING.md) — How to contribute to XooPress
+
 ## Directory Structure
 
 ```
@@ -59,6 +80,7 @@ xoopress/
 │   └── Core/                # Core framework classes
 │       ├── Application.php  # Application bootstrap
 │       ├── Container.php    # DI container
+│       ├── ContentRenderer.php # Multi-format content rendering
 │       ├── Controller.php   # Base controller
 │       ├── Database.php     # PDO abstraction
 │       ├── I18n.php         # Internationalization
@@ -68,6 +90,12 @@ xoopress/
 │       └── Validator.php    # Input validation
 ├── config/
 │   └── app.php              # Application configuration
+├── docs/                    # Documentation
+│   ├── README.md            # Documentation table of contents
+│   ├── project-summary.md   # Architecture overview & roadmap
+│   ├── en/                  # English documentation
+│   ├── de/                  # German documentation (in progress)
+│   └── fr/                  # French documentation (in progress)
 ├── modules/
 │   ├── System/              # Core system module
 │   │   ├── Controllers/     # Dashboard, Auth, Admin

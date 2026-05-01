@@ -34,7 +34,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
    ```
 3. **Follow coding standards** (see below)
 4. **Write tests** for new functionality
-5. **Update documentation** as needed
+5. **Update documentation** as needed (see [Documentation](#documentation) below)
 6. **Run syntax checks**:
    ```bash
    find . -path "./vendor" -prune -o -name "*.php" -print -exec php -l {} \; 2>&1 | grep -E "Parse error|Fatal error"
@@ -115,6 +115,40 @@ modules/YourModule/
 - Validate and sanitize all user input
 - Use CSRF tokens for form submissions
 - Hash passwords with `PASSWORD_BCRYPT`
+
+## Documentation
+
+XooPress documentation lives in the [`docs/`](docs/) directory:
+
+```
+docs/
+├── README.md              # Table of contents
+├── project-summary.md     # Architecture overview & roadmap
+├── en/                    # English documentation
+├── de/                    # German (in progress)
+└── fr/                    # French (in progress)
+```
+
+### Documentation Structure
+
+- **User Documentation** — Installation, configuration, admin guides, user guides
+- **Developer Documentation** — Architecture, module/theme development, API reference, contributing
+- **Translations** — Each language has its own subdirectory (`en/`, `de/`, `fr/`)
+
+### Contributing to Documentation
+
+1. **Fix existing docs** — Improve clarity, fix typos, update outdated information
+2. **Add new docs** — Follow the existing structure in the appropriate language directory
+3. **Translate** — Help translate docs into German (`docs/de/`) or French (`docs/fr/`)
+4. **Update the TOC** — If you add new files, update `docs/README.md` to include them
+
+### Documentation Style
+
+- Use clear, concise language
+- Include code examples where relevant
+- Use tables for structured information
+- Link to related documentation pages
+- Keep line lengths reasonable for readability
 
 ## Module Development Guidelines
 
