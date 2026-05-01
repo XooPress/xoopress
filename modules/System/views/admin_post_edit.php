@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $isNew ? 'Add New Post' : 'Edit Post' ?> - XooPress Admin</title>
+    <?php $contentType = ($type ?? 'post') === 'page' ? 'Page' : 'Post'; ?>
+    <?php $listUrl = ($type ?? 'post') === 'page' ? '/admin/pages' : '/admin/posts'; ?>
+    <title><?= $isNew ? 'Add New ' . $contentType : 'Edit ' . $contentType ?> - XooPress Admin</title>
     <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
     <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <link rel="stylesheet" href="/css/xoopress.css">
@@ -17,8 +19,8 @@
             </div>
             <ul class="admin-nav">
                 <li><a href="/admin">Dashboard</a></li>
-                <li><a href="/admin/posts" class="active">Posts</a></li>
-                <li><a href="/admin/pages">Pages</a></li>
+                <li><a href="/admin/posts" <?= ($type ?? 'post') !== 'page' ? 'class="active"' : '' ?>>Posts</a></li>
+                <li><a href="/admin/pages" <?= ($type ?? 'post') === 'page' ? 'class="active"' : '' ?>>Pages</a></li>
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
@@ -28,8 +30,8 @@
         </nav>
         <main class="admin-content">
             <header class="admin-header">
-                <h1><?= $isNew ? 'Add New Post' : 'Edit Post' ?></h1>
-                <a href="/admin/posts" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px;">← Back to Posts</a>
+                <h1><?= $isNew ? 'Add New ' . $contentType : 'Edit ' . $contentType ?></h1>
+                <a href="<?= $listUrl ?>" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px;">← Back to <?= $contentType ?>s</a>
             </header>
             <form method="POST" action="/admin/posts/save" style="max-width:800px;">
                 <?php if (!$isNew): ?>
@@ -74,7 +76,7 @@
                 </div>
                 <div style="margin-top:20px;">
                     <button type="submit" class="btn btn-primary" style="padding:12px 30px;"><?= $isNew ? 'Publish' : 'Update' ?></button>
-                    <a href="/admin/posts" class="btn btn-secondary" style="padding:12px 30px;">Cancel</a>
+                    <a href="<?= $listUrl ?>" class="btn btn-secondary" style="padding:12px 30px;">Cancel</a>
                 </div>
             </form>
         </main>
