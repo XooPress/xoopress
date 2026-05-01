@@ -41,6 +41,7 @@ class DashboardController extends Controller
 
         // Get site name from settings
         $siteName = 'XooPress';
+        $siteDescription = '';
         try {
             if ($this->container->has('database')) {
                 $db = $this->container->get('database');
@@ -52,10 +53,28 @@ class DashboardController extends Controller
                 if ($setting) {
                     $siteName = $setting['value'];
                 }
+                $desc = $db->selectOne(
+                    "SELECT `value` FROM {$prefix}settings WHERE `key` = ?",
+                    ['site_description']
+                );
+                if ($desc) {
+                    $siteDescription = $desc['value'];
+                }
             }
         } catch (\Throwable $e) {
         }
 
+        // Use theme system to render the front page
+        if ($this->container->has('theme')) {
+            $theme = $this->container->get('theme');
+            return $theme->render('index', [
+                'posts' => $posts,
+                'siteName' => $siteName,
+                'siteDescription' => $siteDescription,
+            ]);
+        }
+
+        // Fallback to old module view if no theme system
         return $this->view('system::dashboard', [
             'siteName' => $siteName,
             'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',

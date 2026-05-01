@@ -261,6 +261,73 @@ class AdminController extends Controller
         $this->redirect('/admin/users');
     }
 
+    // ── Themes ────────────────────────────────────────────
+
+    public function themes(): string
+    {
+        $themeManager = $this->container->has('theme') ? $this->container->get('theme') : null;
+        $themes = $themeManager ? $themeManager->getThemes() : [];
+        $active = $themeManager ? $themeManager->getActiveTheme() : null;
+        $child = $themeManager ? $themeManager->getChildTheme() : null;
+        $message = $_SESSION['themes_message'] ?? null;
+        $messageType = $_SESSION['themes_message_type'] ?? null;
+        unset($_SESSION['themes_message'], $_SESSION['themes_message_type']);
+        
+        return $this->view('system::admin_themes', [
+            'themes' => $themes,
+            'activeTheme' => $active['dir_name'] ?? '',
+            'childTheme' => $child['dir_name'] ?? null,
+            'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
+        ]);
+    }
+
+    public function themeActivate(string $name): void
+    {
+        $redirect = '/admin/themes';
+        if ($this->container->has('theme')) {
+            $themeManager = $this->container->get('theme');
+            $result = $themeManager->setActiveTheme($name);
+            $_SESSION['themes_message'] = $result['message'];
+            $_SESSION['themes_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function themeDelete(string $name): void
+    {
+        $redirect = '/admin/themes';
+        if ($this->container->has('theme')) {
+            $themeManager = $this->container->get('theme');
+            $result = $themeManager->delete($name);
+            $_SESSION['themes_message'] = $result['message'];
+            $_SESSION['themes_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect($redirect);
+    }
+
+    public function themeUpload(): void
+    {
+        $redirect = '/admin/themes';
+        
+        if (!isset($_FILES['theme_zip']) || $_FILES['theme_zip']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['themes_message'] = __('Upload failed.') . ' ' . ($_FILES['theme_zip']['error'] ?? '');
+            $_SESSION['themes_message_type'] = 'error';
+            $this->redirect($redirect);
+            return;
+        }
+        
+        if ($this->container->has('theme')) {
+            $themeManager = $this->container->get('theme');
+            $result = $themeManager->upload($_FILES['theme_zip']['tmp_name']);
+            $_SESSION['themes_message'] = $result['message'];
+            $_SESSION['themes_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect($redirect);
+    }
+
     // ── Modules ────────────────────────────────────────────
 
     public function modules(): string

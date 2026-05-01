@@ -36,6 +36,13 @@ class PostController extends Controller
         } catch (\Throwable $e) {
             $posts = [];
         }
+
+        // Try theme rendering first
+        if ($this->container->has('theme')) {
+            $theme = $this->container->get('theme');
+            return $theme->render('archive', ['posts' => $posts], ['posts']);
+        }
+
         return $this->view('content::posts', ['posts' => $posts]);
     }
 
@@ -43,6 +50,13 @@ class PostController extends Controller
     {
         $postModel = $this->get('content.post');
         $post = $postModel->find($id);
+
+        // Try theme rendering first
+        if ($this->container->has('theme') && $post) {
+            $theme = $this->container->get('theme');
+            return $theme->render('singular', ['post' => $post], ['single']);
+        }
+
         return $this->view('content::post', ['post' => $post]);
     }
 }

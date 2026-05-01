@@ -81,6 +81,10 @@ class Application
             $config = $container->get('config')['modules'] ?? [];
             return new ModuleManager($config, $container);
         });
+        
+        $this->container->singleton('theme', function ($container) {
+            return new ThemeManager($container);
+        });
     }
     
     /**
@@ -103,7 +107,22 @@ class Application
         // Initialize module system
         $this->bootModules();
         
+        // Initialize theme system
+        $this->bootThemes();
+        
         $this->booted = true;
+    }
+    
+    /**
+     * Initialize the theme system
+     * 
+     * @return void
+     */
+    protected function bootThemes(): void
+    {
+        $theme = $this->container->get('theme');
+        $theme->createTable();
+        $theme->initialize();
     }
     
     /**

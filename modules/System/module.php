@@ -137,6 +137,27 @@ return [
             'pattern' => '/admin/pages/edit/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pageEdit'],
         ],
+        // Themes
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themes'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes/activate/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeActivate'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes/delete/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeDelete'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/themes/upload',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeUpload'],
+        ],
         // Modules
         [
             'method' => 'GET',
