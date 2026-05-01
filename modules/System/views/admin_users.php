@@ -9,9 +9,15 @@
 <body class="admin-page">
     <div class="admin-layout">
         <nav class="admin-sidebar">
-            <h2>XooPress Admin</h2>
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
             <ul class="admin-nav">
                 <li><a href="/admin">Dashboard</a></li>
+                <li><a href="/admin/posts">Posts</a></li>
+                <li><a href="/admin/pages">Pages</a></li>
+                <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users" class="active">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
                 <li><a href="/">View Site</a></li>
@@ -21,6 +27,7 @@
         <main class="admin-content">
             <header class="admin-header">
                 <h1>Users</h1>
+                <a href="/admin/users/new" class="btn btn-primary" style="font-size:0.85rem;padding:8px 16px;">Add New User</a>
             </header>
             <div class="admin-table-container">
                 <table class="admin-table">

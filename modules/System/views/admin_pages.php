@@ -17,13 +17,13 @@
             </div>
             <ul class="admin-nav">
                 <li><a href="/admin">Dashboard</a></li>
-                li><a href="/admin/posts">Posts</a></li>
-                li><a href="/admin/pages" class="active">Pages</a></li>
+                <li><a href="/admin/posts">Posts</a></li>
+                <li><a href="/admin/pages" class="active">Pages</a></li>
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
                 <li><a href="/">View Site</a></li>
-                li><a href="/logout">Logout</a></li>
+                <li><a href="/logout">Logout</a></li>
             </ul>
         </nav>
         <main class="admin-content">
@@ -43,12 +43,12 @@
                 </thead>
                 <tbody>
                     <?php if (empty($pages)): ?>
-                    tr><td colspan="5" style="text-align:center;color:#999;">No pages found. <a href="/admin/pages/new">Create one</a>.</td></tr>
+                    <tr><td colspan="5" style="text-align:center;color:#999;">No pages found. <a href="/admin/pages/new">Create one</a>.</td></tr>
                     <?php else: ?>
                     <?php foreach ($pages as $page): ?>
                     <tr>
                         <td><strong><?= htmlspecialchars($page['title'] ?? '') ?></strong></td>
-                        td><span class="status-badge status-<?= htmlspecialchars($page['status'] ?? 'draft') ?>"><?= htmlspecialchars($page['status'] ?? 'draft') ?></span></td>
+                        <td><span class="status-badge status-<?= htmlspecialchars($page['status'] ?? 'draft') ?>"><?= htmlspecialchars($page['status'] ?? 'draft') ?></span></td>
                         <td><?= htmlspecialchars($page['author_name'] ?? '') ?></td>
                         <td><?= htmlspecialchars($page['published_at'] ?? $page['created_at'] ?? '') ?></td>
                         <td>

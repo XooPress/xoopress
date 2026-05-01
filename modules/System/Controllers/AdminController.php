@@ -15,6 +15,7 @@ class AdminController extends Controller
 {
     private ?\XooPress\Modules\Content\Models\Post $postModel = null;
     private ?\XooPress\Modules\Content\Models\Category $categoryModel = null;
+    private ?\XooPress\Modules\System\Models\User $userModel = null;
 
     public function __construct(Container $container)
     {
@@ -28,6 +29,9 @@ class AdminController extends Controller
                 }
                 if (class_exists('XooPress\Modules\Content\Models\Category')) {
                     $this->categoryModel = new \XooPress\Modules\Content\Models\Category($db);
+                }
+                if (class_exists('XooPress\Modules\System\Models\User')) {
+                    $this->userModel = new \XooPress\Modules\System\Models\User($db);
                 }
             }
         } catch (\Throwable $e) {
@@ -47,10 +51,15 @@ class AdminController extends Controller
                 'author' => $def['author'] ?? '',
             ];
         }
+        $userCount = 0;
+        if ($this->userModel) {
+            try { $userCount = count($this->userModel->all()); } catch (\Throwable $e) {}
+        }
         return $this->view('system::admin_dashboard', [
             'siteName' => 'XooPress',
             'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',
             'modules' => $moduleList,
+            'userCount' => $userCount,
         ]);
     }
 
@@ -180,12 +189,78 @@ class AdminController extends Controller
         $this->redirect('/admin/categories');
     }
 
-    // ── Misc ──────────────────────────────────────────────
+    // ── Users ─────────────────────────────────────────────
 
     public function users(): string
     {
-        return $this->view('system::admin_users', ['users' => []]);
+        $users = [];
+        if ($this->userModel) {
+            try { $users = $this->userModel->all(); } catch (\Throwable $e) {}
+        }
+        return $this->view('system::admin_users', ['users' => $users]);
     }
+
+    public function userNew(): string
+    {
+        return $this->view('system::admin_user_edit', [
+            'isNew' => true, 'user' => [],
+        ]);
+    }
+
+    public function userEdit(int $id): string
+    {
+        $user = $this->userModel ? $this->userModel->find($id) : null;
+        return $this->view('system::admin_user_edit', [
+            'isNew' => false, 'user' => $user ?? [],
+        ]);
+    }
+
+    public function userSave(): void
+    {
+        $data = $this->all();
+        if (empty($data['username']) || empty($data['email'])) {
+            $this->redirect('/admin/users');
+            return;
+        }
+        $isNew = empty($data['id']);
+        if ($this->userModel) {
+            try {
+                $userData = [
+                    'username' => $data['username'],
+                    'email' => $data['email'],
+                    'display_name' => $data['display_name'] ?? $data['username'],
+                    'role' => $data['role'] ?? 'subscriber',
+                    'status' => $data['status'] ?? 'active',
+                ];
+                if (!empty($data['password'])) {
+                    $userData['password'] = $data['password'];
+                }
+                if ($isNew) {
+                    if (empty($data['password'])) {
+                        $this->redirect('/admin/users');
+                        return;
+                    }
+                    $this->userModel->createUser($userData);
+                } else {
+                    if (!empty($data['password'])) {
+                        $this->userModel->updatePassword((int)$data['id'], $data['password']);
+                    }
+                    $this->userModel->update((int)$data['id'], $userData);
+                }
+            } catch (\Throwable $e) {}
+        }
+        $this->redirect('/admin/users');
+    }
+
+    public function userDelete(int $id): void
+    {
+        if ($this->userModel) {
+            try { $this->userModel->delete($id); } catch (\Throwable $e) {}
+        }
+        $this->redirect('/admin/users');
+    }
+
+    // ── Misc ──────────────────────────────────────────────
 
     public function settings(): string
     {

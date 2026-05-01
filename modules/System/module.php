@@ -57,6 +57,26 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/admin/users/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'userNew'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/users/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'userEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/users/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'userSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/users/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'userDelete'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/admin/settings',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'settings'],
         ],

@@ -19,11 +19,11 @@
                 <li><a href="/admin" class="active">Dashboard</a></li>
                 <li><a href="/admin/posts">Posts</a></li>
                 <li><a href="/admin/pages">Pages</a></li>
-                li><a href="/admin/categories">Categories</a></li>
+                <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
                 <li><a href="/">View Site</a></li>
-                li><a href="/logout">Logout</a></li>
+                <li><a href="/logout">Logout</a></li>
             </ul>
         </nav>
         <main class="admin-content">
@@ -33,7 +33,7 @@
             <div class="admin-stats">
                 <div class="stat-card">
                     <h3>Users</h3>
-                    <p class="stat-number">0</p>
+                    <p class="stat-number"><?= (int)($userCount ?? 0) ?></p>
                 </div>
                 <div class="stat-card">
                     <h3>Modules</h3>

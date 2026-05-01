@@ -26,7 +26,8 @@ class PostController extends Controller
 
     public function show(int $id): string
     {
-        $post = null;
+        $postModel = $this->get('content.post');
+        $post = $postModel->find($id);
         return $this->view('content::post', ['post' => $post]);
     }
 }

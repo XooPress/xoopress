@@ -17,13 +17,13 @@
             </div>
             <ul class="admin-nav">
                 <li><a href="/admin">Dashboard</a></li>
-                li><a href="/admin/posts" class="active">Posts</a></li>
+                <li><a href="/admin/posts" class="active">Posts</a></li>
                 <li><a href="/admin/pages">Pages</a></li>
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
-                li><a href="/">View Site</a></li>
-                li><a href="/logout">Logout</a></li>
+                <li><a href="/">View Site</a></li>
+                <li><a href="/logout">Logout</a></li>
             </ul>
         </nav>
         <main class="admin-content">
@@ -44,12 +44,12 @@
                 </thead>
                 <tbody>
                     <?php if (empty($posts)): ?>
-                    tr><td colspan="6" style="text-align:center;color:#999;">No posts found. <a href="/admin/posts/new">Create one</a>.</td></tr>
+                    <tr><td colspan="6" style="text-align:center;color:#999;">No posts found. <a href="/admin/posts/new">Create one</a>.</td></tr>
                     <?php else: ?>
                     <?php foreach ($posts as $post): ?>
                     <tr>
-                        td><strong><?= htmlspecialchars($post['title'] ?? '') ?></strong></td>
-                        td><span class="status-badge status-<?= htmlspecialchars($post['status'] ?? 'draft') ?>"><?= htmlspecialchars($post['status'] ?? 'draft') ?></span></td>
+                        <td><strong><?= htmlspecialchars($post['title'] ?? '') ?></strong></td>
+                        <td><span class="status-badge status-<?= htmlspecialchars($post['status'] ?? 'draft') ?>"><?= htmlspecialchars($post['status'] ?? 'draft') ?></span></td>
                         <td><?= htmlspecialchars($post['category_name'] ?? 'Uncategorized') ?></td>
                         <td><?= htmlspecialchars($post['author_name'] ?? '') ?></td>
                         <td><?= htmlspecialchars($post['published_at'] ?? $post['created_at'] ?? '') ?></td>
