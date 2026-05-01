@@ -25,6 +25,25 @@
                 </div>
             </div>
 
+            <div class="features">
+                <div class="feature-card">
+                    <h3>Modular Architecture</h3>
+                    <p>Extend functionality with plug-and-play modules.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>MVC Pattern</h3>
+                    <p>Clean separation of concerns with Model-View-Controller.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>i18n Ready</h3>
+                    <p>Full internationalization support with gettext.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>PDO Database</h3>
+                    <p>Secure database access with prepared statements.</p>
+                </div>
+            </div>
+
             <?php if (!empty($posts)): ?>
             <div class="posts-section" style="margin-top:30px;">
                 <h2 style="margin-bottom:20px;font-size:1.5rem;">Latest Posts</h2>
@@ -57,25 +76,6 @@
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
-
-            <div class="features">
-                <div class="feature-card">
-                    <h3>Modular Architecture</h3>
-                    <p>Extend functionality with plug-and-play modules.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>MVC Pattern</h3>
-                    <p>Clean separation of concerns with Model-View-Controller.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>i18n Ready</h3>
-                    <p>Full internationalization support with gettext.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>PDO Database</h3>
-                    <p>Secure database access with prepared statements.</p>
-                </div>
-            </div>
         </main>
         <footer class="footer">
             <p>&copy; <?= date('Y') ?> XooPress. Licensed under GPLv3.</p>
