@@ -20,7 +20,6 @@ class AdminController extends Controller
     {
         parent::__construct($container);
         
-        // Try to load content models if Content module is available
         try {
             if ($container->has('database')) {
                 $db = $container->get('database');
@@ -32,14 +31,12 @@ class AdminController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            // Content module not available
         }
     }
 
     public function dashboard(): string
     {
         $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
-        
         $moduleList = [];
         foreach ($modules as $name => $module) {
             $def = $module['definition'] ?? [];
@@ -50,7 +47,6 @@ class AdminController extends Controller
                 'author' => $def['author'] ?? '',
             ];
         }
-
         return $this->view('system::admin_dashboard', [
             'siteName' => 'XooPress',
             'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',
@@ -58,15 +54,13 @@ class AdminController extends Controller
         ]);
     }
 
+    // ── Posts ─────────────────────────────────────────────
+
     public function posts(): string
     {
         $posts = [];
         if ($this->postModel) {
-            try {
-                $posts = $this->postModel->all();
-            } catch (\Throwable $e) {
-                $posts = [];
-            }
+            try { $posts = $this->postModel->all(); } catch (\Throwable $e) {}
         }
         return $this->view('system::admin_posts', ['posts' => $posts]);
     }
@@ -75,9 +69,7 @@ class AdminController extends Controller
     {
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
-            'isNew' => true,
-            'post' => [],
-            'categories' => $categories,
+            'isNew' => true, 'post' => [], 'categories' => $categories, 'type' => 'post',
         ]);
     }
 
@@ -86,65 +78,49 @@ class AdminController extends Controller
         $post = $this->postModel ? $this->postModel->find($id) : null;
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
-            'isNew' => false,
-            'post' => $post ?? [],
-            'categories' => $categories,
+            'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $post['type'] ?? 'post',
         ]);
     }
 
     public function postSave(): void
     {
         $data = $this->all();
-        
-        if (empty($data['title'])) {
-            $this->redirect('/admin/posts/new');
-            return;
-        }
-
+        if (empty($data['title'])) { $this->redirect('/admin/posts/new'); return; }
         $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['title']);
         $isNew = empty($data['id']);
-
+        $type = $data['type'] ?? 'post';
         if ($this->postModel) {
             try {
                 $postData = [
-                    'title' => $data['title'],
-                    'slug' => $slug,
-                    'content' => $data['content'] ?? '',
-                    'excerpt' => $data['excerpt'] ?? '',
+                    'title' => $data['title'], 'slug' => $slug,
+                    'content' => $data['content'] ?? '', 'excerpt' => $data['excerpt'] ?? '',
                     'status' => $data['status'] ?? 'draft',
                     'category_id' => !empty($data['category_id']) ? (int)$data['category_id'] : null,
-                    'author_id' => 1,
-                    'type' => 'post',
+                    'author_id' => 1, 'type' => $type,
+                    'comment_status' => 'open',
                 ];
-
                 if ($data['status'] === 'published' && empty($data['published_at'])) {
                     $postData['published_at'] = date('Y-m-d H:i:s');
                 }
-
-                if ($isNew) {
-                    $this->postModel->create($postData);
-                } else {
-                    $this->postModel->update((int)$data['id'], $postData);
-                }
-            } catch (\Throwable $e) {
-                // Log error
-            }
+                if ($isNew) { $this->postModel->create($postData); }
+                else { $this->postModel->update((int)$data['id'], $postData); }
+            } catch (\Throwable $e) {}
         }
-
-        $this->redirect('/admin/posts');
+        $redirect = ($type === 'page') ? '/admin/pages' : '/admin/posts';
+        $this->redirect($redirect);
     }
 
     public function postDelete(int $id): void
     {
         if ($this->postModel) {
-            try {
-                $this->postModel->delete($id);
-            } catch (\Throwable $e) {
-                // Log error
-            }
+            try { $this->postModel->delete($id); } catch (\Throwable $e) {}
         }
-        $this->redirect('/admin/posts');
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        $redirect = str_contains($referer, '/admin/pages') ? '/admin/pages' : '/admin/posts';
+        $this->redirect($redirect);
     }
+
+    // ── Pages ─────────────────────────────────────────────
 
     public function pages(): string
     {
@@ -153,12 +129,28 @@ class AdminController extends Controller
             try {
                 $all = $this->postModel->all();
                 $pages = array_filter($all, fn($p) => ($p['type'] ?? 'post') === 'page');
-            } catch (\Throwable $e) {
-                $pages = [];
-            }
+            } catch (\Throwable $e) {}
         }
         return $this->view('system::admin_pages', ['pages' => $pages]);
     }
+
+    public function pageNew(): string
+    {
+        return $this->view('system::admin_post_edit', [
+            'isNew' => true, 'post' => [], 'categories' => [], 'type' => 'page',
+        ]);
+    }
+
+    public function pageEdit(int $id): string
+    {
+        $post = $this->postModel ? $this->postModel->find($id) : null;
+        $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        return $this->view('system::admin_post_edit', [
+            'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => 'page',
+        ]);
+    }
+
+    // ── Categories ────────────────────────────────────────
 
     public function categories(): string
     {
@@ -173,13 +165,9 @@ class AdminController extends Controller
             $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['name']);
             try {
                 $this->categoryModel->create([
-                    'name' => $data['name'],
-                    'slug' => $slug,
-                    'description' => $data['description'] ?? '',
+                    'name' => $data['name'], 'slug' => $slug, 'description' => $data['description'] ?? '',
                 ]);
-            } catch (\Throwable $e) {
-                // Log error
-            }
+            } catch (\Throwable $e) {}
         }
         $this->redirect('/admin/categories');
     }
@@ -187,14 +175,12 @@ class AdminController extends Controller
     public function categoryDelete(int $id): void
     {
         if ($this->categoryModel) {
-            try {
-                $this->categoryModel->delete($id);
-            } catch (\Throwable $e) {
-                // Log error
-            }
+            try { $this->categoryModel->delete($id); } catch (\Throwable $e) {}
         }
         $this->redirect('/admin/categories');
     }
+
+    // ── Misc ──────────────────────────────────────────────
 
     public function users(): string
     {

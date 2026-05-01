@@ -20,9 +20,46 @@ class DashboardController extends Controller
 
     public function index(): string
     {
+        // Fetch published posts if Content module is available
+        $posts = [];
+        try {
+            if ($this->container->has('database')) {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                $posts = $db->select(
+                    "SELECT p.*, c.name AS category_name 
+                     FROM {$prefix}posts p 
+                     LEFT JOIN {$prefix}categories c ON p.category_id = c.id 
+                     WHERE p.status = 'published' AND p.type = 'post'
+                     ORDER BY p.published_at DESC 
+                     LIMIT 10"
+                );
+            }
+        } catch (\Throwable $e) {
+            $posts = [];
+        }
+
+        // Get site name from settings
+        $siteName = 'XooPress';
+        try {
+            if ($this->container->has('database')) {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                $setting = $db->selectOne(
+                    "SELECT `value` FROM {$prefix}settings WHERE `key` = ?",
+                    ['site_name']
+                );
+                if ($setting) {
+                    $siteName = $setting['value'];
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
         return $this->view('system::dashboard', [
-            'siteName' => 'XooPress',
-            'version' => XOO_PRESS_VERSION,
+            'siteName' => $siteName,
+            'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',
+            'posts' => $posts,
         ]);
     }
 }

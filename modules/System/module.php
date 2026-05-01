@@ -13,10 +13,8 @@ return [
     'author' => 'XooPress Team',
     'license' => 'GPL-3.0-or-later',
     
-    // Module dependencies
     'dependencies' => [],
     
-    // Module services to register in the container
     'services' => [
         'system.user' => function ($container) {
             return new XooPress\Modules\System\Models\User($container->get('database'));
@@ -26,7 +24,6 @@ return [
         },
     ],
     
-    // Module routes
     'routes' => [
         [
             'method' => 'GET',
@@ -63,7 +60,7 @@ return [
             'pattern' => '/admin/settings',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'settings'],
         ],
-        // Content management routes
+        // Posts
         [
             'method' => 'GET',
             'pattern' => '/admin/posts',
@@ -89,11 +86,23 @@ return [
             'pattern' => '/admin/posts/delete/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postDelete'],
         ],
+        // Pages
         [
             'method' => 'GET',
             'pattern' => '/admin/pages',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pages'],
         ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/pages/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pageNew'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/pages/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'pageEdit'],
+        ],
+        // Categories
         [
             'method' => 'GET',
             'pattern' => '/admin/categories',
@@ -111,12 +120,10 @@ return [
         ],
     ],
     
-    // Install callback
     'install' => function ($container) {
         $db = $container->get('database');
         $prefix = $db->getPrefix();
         
-        // Create users table
         $db->query("CREATE TABLE IF NOT EXISTS {$prefix}users (
             id INT AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(50) NOT NULL UNIQUE,
@@ -132,7 +139,6 @@ return [
             INDEX idx_username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
-        // Create settings table
         $db->query("CREATE TABLE IF NOT EXISTS {$prefix}settings (
             id INT AUTO_INCREMENT PRIMARY KEY,
             `key` VARCHAR(100) NOT NULL UNIQUE,
@@ -143,7 +149,6 @@ return [
             INDEX idx_key (`key`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
-        // Create sessions table
         $db->query("CREATE TABLE IF NOT EXISTS {$prefix}sessions (
             id VARCHAR(128) PRIMARY KEY,
             user_id INT NULL,
@@ -157,7 +162,6 @@ return [
             INDEX idx_expires (expires_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
-        // Insert default settings
         $db->insert($prefix . 'settings', [
             'key' => 'site_name',
             'value' => 'XooPress',
@@ -179,20 +183,15 @@ return [
         return true;
     },
     
-    // Uninstall callback
     'uninstall' => function ($container) {
         $db = $container->get('database');
         $prefix = $db->getPrefix();
-        
         $db->query("DROP TABLE IF EXISTS {$prefix}users");
         $db->query("DROP TABLE IF EXISTS {$prefix}settings");
         $db->query("DROP TABLE IF EXISTS {$prefix}sessions");
-        
         return true;
     },
     
-    // Init callback (called on every request)
     'init' => function ($container) {
-        // Initialize system module
     },
 ];

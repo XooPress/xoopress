@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($siteName) ?> - Dashboard</title>
+    <title><?= htmlspecialchars($siteName) ?></title>
     <link rel="stylesheet" href="/css/xoopress.css">
 </head>
 <body>
@@ -21,6 +21,40 @@
                     <a href="/admin" class="btn btn-secondary">Admin Dashboard</a>
                 </div>
             </div>
+
+            <?php if (!empty($posts)): ?>
+            <div class="posts-section" style="margin-top:30px;">
+                <h2 style="margin-bottom:20px;font-size:1.5rem;">Latest Posts</h2>
+                <?php foreach ($posts as $post): ?>
+                <article class="post-card" style="margin-bottom:20px;padding:20px;border:1px solid #e0e0e0;border-radius:6px;">
+                    <h3 style="margin-bottom:8px;">
+                        <a href="/posts/<?= htmlspecialchars($post['id']) ?>" style="color:#0073aa;text-decoration:none;">
+                            <?= htmlspecialchars($post['title']) ?>
+                        </a>
+                    </h3>
+                    <div class="post-meta" style="font-size:0.85rem;color:#888;margin-bottom:10px;">
+                        <?php if (!empty($post['category_name'])): ?>
+                        <span class="category" style="background:#f0f0f0;padding:2px 8px;border-radius:3px;">
+                            <?= htmlspecialchars($post['category_name']) ?>
+                        </span> &middot;
+                        <?php endif; ?>
+                        <span class="date"><?= htmlspecialchars($post['published_at'] ?? $post['created_at']) ?></span>
+                    </div>
+                    <p class="excerpt" style="color:#555;line-height:1.6;">
+                        <?php if (!empty($post['excerpt'])): ?>
+                        <?= htmlspecialchars($post['excerpt']) ?>
+                        <?php else: ?>
+                        <?= htmlspecialchars(mb_substr(strip_tags($post['content'] ?? ''), 0, 200)) ?>...
+                        <?php endif; ?>
+                    </p>
+                    <a href="/posts/<?= htmlspecialchars($post['id']) ?>" class="read-more" style="color:#0073aa;font-size:0.9rem;">
+                        Read More →
+                    </a>
+                </article>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
             <div class="features">
                 <div class="feature-card">
                     <h3>Modular Architecture</h3>
