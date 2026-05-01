@@ -79,6 +79,12 @@ abstract class Model
         if (empty($this->table)) {
             $this->table = $this->guessTableName();
         }
+        
+        // Always prepend the database prefix to the table name
+        $prefix = $this->db->getPrefix();
+        if (!empty($prefix) && !str_starts_with($this->table, $prefix)) {
+            $this->table = $prefix . $this->table;
+        }
     }
     
     /**
