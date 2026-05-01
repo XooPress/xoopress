@@ -119,8 +119,27 @@ abstract class Controller
         if (str_contains($view, '::')) {
             // Module view: system::dashboard -> modules/System/views/dashboard.php
             [$module, $viewName] = explode('::', $view, 2);
-            $modulesPath = dirname(__DIR__, 2) . '/modules';
-            $viewPath = "{$modulesPath}/{$module}/views/{$viewName}.php";
+            
+            // Try to get the actual module path from ModuleManager (preserves correct case)
+            $modulePath = null;
+            if ($this->container->has('modules')) {
+                $modules = $this->container->get('modules');
+                $loadedModules = $modules->getModules();
+                foreach ($loadedModules as $loadedName => $loadedModule) {
+                    if (strtolower($loadedName) === strtolower($module)) {
+                        $modulePath = $loadedModule['path'] ?? null;
+                        break;
+                    }
+                }
+            }
+            
+            if ($modulePath !== null) {
+                $viewPath = $modulePath . '/views/' . $viewName . '.php';
+            } else {
+                // Fallback: try direct path with case-insensitive directory scan
+                $modulesPath = dirname(__DIR__, 2) . '/modules';
+                $viewPath = $this->findModuleView($modulesPath, $module, $viewName);
+            }
         } else {
             // App view: dashboard -> app/views/dashboard.php
             $viewPath = dirname(__DIR__) . "/views/{$view}.php";
@@ -141,6 +160,42 @@ abstract class Controller
         
         // Get the buffered content
         return ob_get_clean();
+    }
+    
+    /**
+     * Find a module view with case-insensitive module directory lookup
+     * 
+     * @param string $modulesPath Path to modules directory
+     * @param string $module Module name (case-insensitive)
+     * @param string $viewName View file name
+     * @return string
+     */
+    private function findModuleView(string $modulesPath, string $module, string $viewName): string
+    {
+        // Try exact match first
+        $exactPath = "{$modulesPath}/{$module}/views/{$viewName}.php";
+        if (file_exists($exactPath)) {
+            return $exactPath;
+        }
+        
+        // Case-insensitive directory scan
+        if (is_dir($modulesPath)) {
+            $dh = opendir($modulesPath);
+            if ($dh) {
+                while (($entry = readdir($dh)) !== false) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+                    if (is_dir("{$modulesPath}/{$entry}") && strtolower($entry) === strtolower($module)) {
+                        closedir($dh);
+                        return "{$modulesPath}/{$entry}/views/{$viewName}.php";
+                    }
+                }
+                closedir($dh);
+            }
+        }
+        
+        return "{$modulesPath}/{$module}/views/{$viewName}.php";
     }
     
     /**
