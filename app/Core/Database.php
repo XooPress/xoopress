@@ -76,13 +76,39 @@ class Database
         $password = $this->config['password'] ?? '';
         $charset = $this->config['charset'] ?? 'utf8mb4';
         $options = $this->config['options'] ?? [];
+        $prefix = $this->config['prefix'] ?? '';
         
-        $dsn = "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
+        // Build DSN list - try TCP first, then socket fallbacks
+        $dsns = [];
+        $dsns[] = "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
         
-        try {
-            $this->connection = new PDO($dsn, $username, $password, $options);
-        } catch (PDOException $e) {
-            throw new PDOException("Database connection failed: " . $e->getMessage());
+        // Add socket DSNs for localhost connections (MySQL 8 auth_socket support)
+        if ($host === 'localhost' || $host === '127.0.0.1') {
+            $socketPaths = [
+                '/var/run/mysqld/mysqld.sock',
+                '/var/lib/mysql/mysql.sock',
+                '/tmp/mysql.sock',
+                '/var/run/mysql/mysql.sock',
+            ];
+            foreach ($socketPaths as $socket) {
+                $dsns[] = "{$driver}:unix_socket={$socket};dbname={$database};charset={$charset}";
+            }
+        }
+        
+        $lastException = null;
+        foreach ($dsns as $dsn) {
+            try {
+                $this->connection = new PDO($dsn, $username, $password, $options);
+                return; // Connected successfully
+            } catch (PDOException $e) {
+                $lastException = $e;
+            } catch (\Throwable $e) {
+                $lastException = new PDOException($e->getMessage(), (int)$e->getCode());
+            }
+        }
+        
+        if ($lastException) {
+            throw new PDOException("Database connection failed: " . $lastException->getMessage());
         }
     }
     
