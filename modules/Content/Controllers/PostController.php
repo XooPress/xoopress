@@ -10,12 +10,16 @@ namespace XooPress\Modules\Content\Controllers;
 
 use XooPress\Core\Controller;
 use XooPress\Core\Container;
+use XooPress\Core\ContentRenderer;
 
 class PostController extends Controller
 {
+    private ?ContentRenderer $renderer = null;
+
     public function __construct(Container $container)
     {
         parent::__construct($container);
+        $this->renderer = new ContentRenderer();
     }
 
     public function index(): string
@@ -37,6 +41,15 @@ class PostController extends Controller
             $posts = [];
         }
 
+        // Render content for each post
+        foreach ($posts as &$post) {
+            $post['rendered_content'] = $this->renderer->render(
+                $post['content'] ?? '',
+                $post['content_type'] ?? 'html'
+            );
+        }
+        unset($post);
+
         // Try theme rendering first
         if ($this->container->has('theme')) {
             $theme = $this->container->get('theme');
@@ -50,6 +63,13 @@ class PostController extends Controller
     {
         $postModel = $this->get('content.post');
         $post = $postModel->find($id);
+
+        if ($post) {
+            $post['rendered_content'] = $this->renderer->render(
+                $post['content'] ?? '',
+                $post['content_type'] ?? 'html'
+            );
+        }
 
         // Try theme rendering first
         if ($this->container->has('theme') && $post) {

@@ -107,6 +107,7 @@ class AdminController extends Controller
                     'category_id' => !empty($data['category_id']) ? (int)$data['category_id'] : null,
                     'author_id' => 1, 'type' => $type,
                     'language' => $data['language'] ?? 'en_US',
+                    'content_type' => $data['content_type'] ?? 'html',
                     'comment_status' => 'open',
                 ];
                 if ($data['status'] === 'published' && empty($data['published_at'])) {

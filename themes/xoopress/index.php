@@ -37,7 +37,7 @@
                 </div>
             </header>
             <div class="entry-content">
-                <?= $post['content'] ?>
+                <?= $post['rendered_content'] ?? $post['content'] ?>
             </div>
         </article>
     <?php else: ?>

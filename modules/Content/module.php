@@ -114,13 +114,20 @@ return [
     },
     
     'init' => function ($container) {
-        // Add language column to posts table if it doesn't exist
         try {
             $db = $container->get('database');
             $prefix = $db->getPrefix();
+            
+            // Add language column if it doesn't exist
             $result = $db->selectOne("SHOW COLUMNS FROM {$prefix}posts WHERE Field = 'language'");
             if (!$result) {
                 $db->query("ALTER TABLE {$prefix}posts ADD COLUMN language VARCHAR(10) DEFAULT 'en_US' AFTER type, ADD INDEX idx_language (language)");
+            }
+            
+            // Add content_type column if it doesn't exist
+            $result = $db->selectOne("SHOW COLUMNS FROM {$prefix}posts WHERE Field = 'content_type'");
+            if (!$result) {
+                $db->query("ALTER TABLE {$prefix}posts ADD COLUMN content_type VARCHAR(20) DEFAULT 'html' AFTER language");
             }
         } catch (\Throwable $e) {
             // Table may not exist yet

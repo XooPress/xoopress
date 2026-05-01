@@ -19,6 +19,7 @@ class Post extends Model
         'title', 'slug', 'content', 'excerpt', 'status',
         'author_id', 'category_id', 'type', 'featured_image',
         'comment_status', 'view_count', 'published_at',
+        'language', 'content_type',
     ];
 
     public function __construct(Database $db)

@@ -18,7 +18,7 @@
                 <h2><?= htmlspecialchars($post['title']) ?></h2>
                 <p class="post-meta"><?= __('Published on') ?> <?= htmlspecialchars($post['published_at']) ?></p>
                 <div class="post-content">
-                    <?= $post['content'] ?>
+                    <?= $post['rendered_content'] ?? $post['content'] ?>
                 </div>
             </article>
             <?php else: ?>
