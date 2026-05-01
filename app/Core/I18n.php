@@ -224,7 +224,8 @@ class I18n
         $translations = [];
         
         $content = file_get_contents($path);
-        if ($content === false || strlen($content) < 24) {
+        $contentLen = strlen($content);
+        if ($content === false || $contentLen < 24) {
             return $translations;
         }
         
@@ -243,9 +244,14 @@ class I18n
         $origOffset = $header['orig_offset'];
         $transOffset = $header['trans_offset'];
         
+        // Validate offsets before reading tables
+        if ($origOffset + ($numStrings * 8) > $contentLen || $transOffset + ($numStrings * 8) > $contentLen) {
+            return $translations;
+        }
+        
         // Read original strings table
-        $origTable = $this->readTable($content, $origOffset, $numStrings, $isSwapped);
-        $transTable = $this->readTable($content, $transOffset, $numStrings, $isSwapped);
+        $origTable = $this->readTable($content, $contentLen, $origOffset, $numStrings, $isSwapped);
+        $transTable = $this->readTable($content, $contentLen, $transOffset, $numStrings, $isSwapped);
         
         // Build translation map (skip header entry at index 0)
         for ($i = 1; $i < $numStrings; $i++) {
@@ -264,23 +270,28 @@ class I18n
      * Read a string table from .mo file
      * 
      * @param string $content File content
+     * @param int $contentLen Total content length for bounds checking
      * @param int $offset Offset to table
      * @param int $count Number of entries
      * @param bool $isSwapped Whether byte order is swapped
      * @return array Array of strings
      */
-    protected function readTable(string $content, int $offset, int $count, bool $isSwapped): array
+    protected function readTable(string $content, int $contentLen, int $offset, int $count, bool $isSwapped): array
     {
         $strings = [];
-        $format = $isSwapped ? 'V2' : 'V2';
         
         for ($i = 0; $i < $count; $i++) {
             $entryOffset = $offset + ($i * 8);
-            if ($entryOffset + 8 > strlen($content)) {
+            if ($entryOffset + 8 > $contentLen) {
                 break;
             }
             
-            $entry = unpack($format, substr($content, $entryOffset, 8));
+            $entryData = substr($content, $entryOffset, 8);
+            if (strlen($entryData) < 8) {
+                break;
+            }
+            
+            $entry = unpack('V2', $entryData);
             if (!$entry) {
                 break;
             }
@@ -288,7 +299,8 @@ class I18n
             $length = $entry[1];
             $strOffset = $entry[2];
             
-            if ($strOffset + $length > strlen($content)) {
+            // Bounds check: ensure the string is within the file
+            if ($strOffset < 0 || $length < 0 || $strOffset + $length > $contentLen) {
                 break;
             }
             
