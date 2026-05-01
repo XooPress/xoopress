@@ -26,6 +26,9 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
 // Load Composer autoloader
 require_once XOO_PRESS_ROOT . '/vendor/autoload.php';
 
+// Load global helper functions
+require_once XOO_PRESS_APP . '/helpers.php';
+
 // Error handling setup
 if (class_exists('Whoops\Run')) {
     $whoops = new Whoops\Run;
