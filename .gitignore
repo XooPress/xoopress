@@ -1,5 +1,6 @@
 /vendor/
 /composer.lock
+/composer.phar
 /storage/cache/*
 /storage/logs/*
 !storage/cache/.gitkeep
@@ -8,3 +9,17 @@
 /config/app.local.php
 *.log
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.swn
+*~
+.env
+.phpunit.result.cache
+/.php_cs
+/.php_cs.cache
+/node_modules/
+npm-debug.log
+yarn-error.log
+/build/
+/dist/
