@@ -106,16 +106,28 @@ abstract class Controller
     /**
      * Render a view
      * 
-     * @param string $view View name
+     * Supports module::view syntax (e.g., 'system::dashboard' resolves to modules/System/views/dashboard.php)
+     * and plain view names (e.g., 'dashboard' resolves to app/views/dashboard.php).
+     * 
+     * @param string $view View name (module::view or plain view name)
      * @param array $data Data to pass to the view
      * @return string
      */
     protected function view(string $view, array $data = []): string
     {
-        $viewPath = XOO_PRESS_APP . "/views/{$view}.php";
+        // Resolve view path
+        if (str_contains($view, '::')) {
+            // Module view: system::dashboard -> modules/System/views/dashboard.php
+            [$module, $viewName] = explode('::', $view, 2);
+            $modulesPath = dirname(__DIR__, 2) . '/modules';
+            $viewPath = "{$modulesPath}/{$module}/views/{$viewName}.php";
+        } else {
+            // App view: dashboard -> app/views/dashboard.php
+            $viewPath = dirname(__DIR__) . "/views/{$view}.php";
+        }
         
         if (!file_exists($viewPath)) {
-            throw new \Exception("View not found: {$view}");
+            throw new \Exception("View not found: {$view} (resolved to {$viewPath})");
         }
         
         // Extract data to variables
