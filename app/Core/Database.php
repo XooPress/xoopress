@@ -86,6 +86,7 @@ class Database
         if ($host === 'localhost' || $host === '127.0.0.1') {
             $socketPaths = [
                 '/var/run/mysqld/mysqld.sock',
+                '/run/mysqld/mysqld.sock',
                 '/var/lib/mysql/mysql.sock',
                 '/tmp/mysql.sock',
                 '/var/run/mysql/mysql.sock',
