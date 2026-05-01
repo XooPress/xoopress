@@ -78,9 +78,17 @@ class Database
         $options = $this->config['options'] ?? [];
         $prefix = $this->config['prefix'] ?? '';
         
-        // Build DSN list - try TCP first, then socket fallbacks
+        // Build DSN list - try TCP on 127.0.0.1 first (avoids PDO socket override for localhost),
+        // then the configured host/port, then socket fallbacks
         $dsns = [];
-        $dsns[] = "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
+        
+        // Always try 127.0.0.1 TCP explicitly (PDO's 'localhost' uses socket, which may fail in chroot)
+        $dsns[] = "{$driver}:host=127.0.0.1;port={$port};dbname={$database};charset={$charset}";
+        
+        // Try the configured host (may be localhost, IP, or hostname)
+        if ($host !== '127.0.0.1') {
+            $dsns[] = "{$driver}:host={$host};port={$port};dbname={$database};charset={$charset}";
+        }
         
         // Add socket DSNs for localhost connections (MySQL 8 auth_socket support)
         if ($host === 'localhost' || $host === '127.0.0.1') {
