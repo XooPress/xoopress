@@ -32,7 +32,7 @@
                 </div>
                 <div class="stat-card">
                     <h3>Modules</h3>
-                    <p class="stat-number"><?= count($modules) ?></p>
+                    <p class="stat-number"><?= is_countable($modules) ? count($modules) : 0 ?></p>
                 </div>
                 <div class="stat-card">
                     <h3>Version</h3>
@@ -51,15 +51,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($modules)): ?>
+                    <?php if (!is_array($modules) || empty($modules)): ?>
                     <tr><td colspan="4" style="text-align:center;color:#999;">No modules installed.</td></tr>
                     <?php else: ?>
                     <?php foreach ($modules as $mod): ?>
                     <tr>
-                        <td><strong><?= htmlspecialchars($mod['name']) ?></strong></td>
-                        <td><?= htmlspecialchars($mod['version']) ?></td>
-                        <td><?= htmlspecialchars($mod['description']) ?></td>
-                        <td><?= htmlspecialchars($mod['author']) ?></td>
+                        <td><strong><?= htmlspecialchars($mod['name'] ?? '') ?></strong></td>
+                        <td><?= htmlspecialchars($mod['version'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($mod['description'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($mod['author'] ?? '') ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
