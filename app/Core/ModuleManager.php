@@ -37,7 +37,7 @@ class ModuleManager
     /**
      * Database table prefix for module tracking
      */
-    protected string $table = '';
+    protected ?string $table = null;
     
     /**
      * Constructor
@@ -49,9 +49,24 @@ class ModuleManager
     {
         $this->config = $config;
         $this->container = $container;
-        if ($container->has('database')) {
-            $this->table = $container->get('database')->getPrefix() . 'modules';
+    }
+    
+    /**
+     * Get the modules tracking table name (lazy-resolved)
+     * 
+     * @return string
+     */
+    protected function getTable(): string
+    {
+        if ($this->table === null) {
+            try {
+                $db = $this->container->get('database');
+                $this->table = $db->getPrefix() . 'modules';
+            } catch (\Throwable $e) {
+                $this->table = '';
+            }
         }
+        return $this->table;
     }
     
     /**
@@ -155,10 +170,11 @@ class ModuleManager
     {
         try {
             $db = $this->container->get('database');
-            if (!$db->tableExists($this->table)) {
+            $table = $this->getTable();
+            if (!$db->tableExists($table)) {
                 return [];
             }
-            $rows = $db->select("SELECT * FROM {$this->table}");
+            $rows = $db->select("SELECT * FROM {$table}");
             $result = [];
             foreach ($rows as $row) {
                 $result[$row['name']] = $row;
@@ -178,7 +194,8 @@ class ModuleManager
     {
         try {
             $db = $this->container->get('database');
-            $db->query("CREATE TABLE IF NOT EXISTS {$this->table} (
+            $table = $this->getTable();
+            $db->query("CREATE TABLE IF NOT EXISTS {$table} (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL UNIQUE,
                 version VARCHAR(20) NOT NULL DEFAULT '1.0.0',
@@ -278,7 +295,8 @@ class ModuleManager
         // Register in database
         try {
             $db = $this->container->get('database');
-            $db->insert($this->table, [
+            $table = $this->getTable();
+            $db->insert($table, [
                 'name' => $name,
                 'version' => $def['version'] ?? '1.0.0',
                 'description' => $def['description'] ?? '',
@@ -347,7 +365,8 @@ class ModuleManager
         // Remove from database
         try {
             $db = $this->container->get('database');
-            $db->delete($this->table, ['name' => $name]);
+            $table = $this->getTable();
+            $db->delete($table, ['name' => $name]);
         } catch (\Throwable $e) {
             error_log("Failed to remove module {$name} from DB: " . $e->getMessage());
         }
@@ -384,7 +403,8 @@ class ModuleManager
         // Update database
         try {
             $db = $this->container->get('database');
-            $db->update($this->table, ['active' => 1], ['name' => $name]);
+            $table = $this->getTable();
+            $db->update($table, ['active' => 1], ['name' => $name]);
         } catch (\Throwable $e) {
             return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
         }
@@ -416,7 +436,8 @@ class ModuleManager
         // Update database
         try {
             $db = $this->container->get('database');
-            $db->update($this->table, ['active' => 0], ['name' => $name]);
+            $table = $this->getTable();
+            $db->update($table, ['active' => 0], ['name' => $name]);
         } catch (\Throwable $e) {
             return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
         }
