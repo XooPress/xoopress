@@ -336,6 +336,27 @@ function runInstallation(array $data, array &$errors): bool
             "INSERT INTO {$dbPrefix}categories (name, slug, description) VALUES (?, ?, ?)"
         )->execute(['Uncategorized', 'uncategorized', 'Default category']);
         
+        // Register modules in xp_modules so the app knows they're installed
+        // (prevents bootModules() from re-running install callbacks that would
+        //  fail with duplicate key errors on settings/categories)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS {$dbPrefix}modules (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE,
+            version VARCHAR(20) NOT NULL DEFAULT '1.0.0',
+            description TEXT,
+            author VARCHAR(100) DEFAULT '',
+            license VARCHAR(50) DEFAULT '',
+            active TINYINT(1) DEFAULT 1,
+            installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_name (name),
+            INDEX idx_active (active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        $stmt = $pdo->prepare("INSERT IGNORE INTO {$dbPrefix}modules (name, version, description, author, license, active) VALUES (?, ?, ?, ?, ?, 1)");
+        $stmt->execute(['System', '1.0.0', 'Core system module providing user management, settings, and dashboard.', 'XooPress Team', 'GPL-3.0-or-later']);
+        $stmt->execute(['Content', '1.0.0', 'Content management module for pages, posts, and custom content types.', 'XooPress Team', 'GPL-3.0-or-later']);
+        
         // Write config file (app.local.php is gitignored, won't be overwritten by git pull)
         $configContent = "<?php\n/**\n * XooPress Application Configuration\n * \n * @package XooPress\n */\n\nreturn [\n";
         $configContent .= "    'name' => 'XooPress',\n    'version' => '1.0.0',\n";
