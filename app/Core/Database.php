@@ -284,8 +284,8 @@ class Database
      */
     public function tableExists(string $table): bool
     {
-        $sql = "SHOW TABLES LIKE ?";
-        $result = $this->selectOne($sql, [$table]);
+        $sql = "SHOW TABLES LIKE " . $this->getConnection()->quote($table);
+        $result = $this->selectOne($sql);
         return !empty($result);
     }
     
