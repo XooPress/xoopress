@@ -1,4 +1,4 @@
-<?php $theme->getHeader(); ?>
+<?= $theme->getHeader() ?>
 
 <div class="content-area">
     <?php if (!empty($posts)): ?>
@@ -54,4 +54,4 @@
     <?php endif; ?>
 </div>
 
-<?php $theme->getFooter(); ?>
+<?= $theme->getFooter() ?>
