@@ -6,7 +6,7 @@
     <title><?= !empty($title) ? htmlspecialchars($title) . ' - ' : '' ?><?= htmlspecialchars($siteName ?? 'XooPress') ?></title>
     <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
     <link rel="shortcut icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
+    <link rel="stylesheet" href="<?= $theme->getStylesheetUrl() ?>">
     <?php if (!empty($head)) echo $head; ?>
 </head>
 <body>

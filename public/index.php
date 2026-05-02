@@ -23,6 +23,50 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
     die('XooPress requires PHP 8.2.0 or higher. Your current version is ' . PHP_VERSION);
 }
 
+// Serve static assets from outside the web root
+// ---------------------------------------------------------
+// Themes live in /themes/ (outside public/) but need to serve
+// CSS, JS, and images to the browser. This handler maps
+// /themes/* requests to the actual themes directory.
+// ---------------------------------------------------------
+if (preg_match('#^/themes/([^/]+)/(.+)$#', $_SERVER['REQUEST_URI'] ?? '', $m)) {
+    $themeDir = $m[1];
+    $filePath = $m[2];
+    $fullPath = XOO_PRESS_ROOT . '/themes/' . $themeDir . '/' . $filePath;
+    
+    // Security: prevent path traversal
+    $realPath = realpath($fullPath);
+    $themesReal = realpath(XOO_PRESS_ROOT . '/themes');
+    if ($realPath !== false && str_starts_with($realPath, $themesReal) && file_exists($realPath) && !is_dir($realPath)) {
+        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+        $mimeTypes = [
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'svg' => 'image/svg+xml',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'ico' => 'image/x-icon',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'eot' => 'application/vnd.ms-fontobject',
+            'otf' => 'font/otf',
+            'json' => 'application/json',
+            'xml' => 'application/xml',
+            'map' => 'application/json',
+        ];
+        if (isset($mimeTypes[$ext])) {
+            header('Content-Type: ' . $mimeTypes[$ext]);
+        }
+        header('Cache-Control: public, max-age=86400');
+        readfile($realPath);
+        exit;
+    }
+}
+
 // Load Composer autoloader
 require_once XOO_PRESS_ROOT . '/vendor/autoload.php';
 
