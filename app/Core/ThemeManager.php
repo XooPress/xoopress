@@ -487,6 +487,11 @@ class ThemeManager
             return '';
         }
         
+        // Provide theme helpers to the template (same as render())
+        $theme = $this;
+        $activeTheme = $this->activeTheme;
+        $childTheme = $this->childTheme;
+        
         ob_start();
         include $path;
         return ob_get_clean();
