@@ -3,9 +3,11 @@
 <head>
     <meta charset="<?= $charset ?? 'UTF-8' ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    
     <title><?= !empty($title) ? htmlspecialchars($title) . ' - ' : '' ?><?= htmlspecialchars($siteName ?? 'XooPress') ?></title>
+    
     <link rel="icon" type="image/x-icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-favicon.ico">
-    <link rel="shortcut icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-favicon.ico">
     <link rel="stylesheet" href="<?= $theme->getStylesheetUrl() ?>">
     <?php if (!empty($head)) echo $head; ?>
 </head>
@@ -13,20 +15,33 @@
     <header class="site-header">
         <div class="container">
             <div class="site-branding">
-                <h1><a href="<?= $homeUrl ?? '/' ?>"><?= htmlspecialchars($siteName ?? 'XooPress') ?></a></h1>
-                <?php if (!empty($siteDescription)): ?>
-                <p class="site-description"><?= htmlspecialchars($siteDescription) ?></p>
-                <?php endif; ?>
+                <img src="<?= $theme->getThemeUri() ?>/assets/images/xp-logo.svg" 
+                     alt="XooPress Logo" 
+                     class="site-logo">
+                <h1 class="site-title">
+                    <a href="<?= $homeUrl ?? '/' ?>"><?= htmlspecialchars($siteName ?? 'XooPress') ?></a>
+                </h1>
             </div>
+            
+            <button class="mobile-menu-toggle" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
             <nav class="main-navigation">
                 <ul>
                     <li><a href="/"><?= __('Home') ?></a></li>
                     <li><a href="/posts"><?= __('Posts') ?></a></li>
                     <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="/admin"><?= __('Admin') ?></a></li>
-                    <li><a href="/logout"><?= __('Logout') ?></a></li>
+                        <li><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
+                        <li><a href="/user/themes"><?= __('My Theme') ?></a></li>
+                        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                            <li><a href="/admin"><?= __('Admin') ?></a></li>
+                        <?php endif; ?>
+                        <li><a href="/logout"><?= __('Logout') ?></a></li>
                     <?php else: ?>
-                    <li><a href="/login"><?= __('Login') ?></a></li>
+                        <li><a href="/login"><?= __('Login') ?></a></li>
                     <?php endif; ?>
                     <li class="language-switcher">
                         <select onchange="window.location.href='/locale/'+this.value">
@@ -39,5 +54,6 @@
             </nav>
         </div>
     </header>
+    
     <main class="site-content">
         <div class="container">

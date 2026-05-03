@@ -188,7 +188,7 @@
                 </form>
 
                 <div style="text-align:center;">
-                    <a href="/" class="back-link">← <?= __('Back to Site') ?></a>
+                    <a href="/user/dashboard" class="back-link">← <?= __('Back to My Dashboard') ?></a>
                 </div>
             </div>
         </main>

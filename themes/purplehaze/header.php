@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html <?= $htmlAttrs ?? 'lang="en"' ?>>
+<head>
+    <meta charset="<?= $charset ?? 'UTF-8' ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#9333ea">
+    <meta name="description" content="<?= htmlspecialchars($siteDescription ?? 'A powerful modular CMS') ?>">
+    
+    <title><?= !empty($title) ? htmlspecialchars($title) . ' - ' : '' ?><?= htmlspecialchars($siteName ?? 'XooPress') ?></title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-favicon.ico">
+    <link rel="apple-touch-icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-logo.svg">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="<?= $theme->getStylesheetUrl() ?>">
+    
+    <!-- Additional Head Content -->
+    <?php if (!empty($head)) echo $head; ?>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="site-branding">
+                <h1>
+                    <a href="<?= $homeUrl ?? '/' ?>">
+                        ✨ <?= htmlspecialchars($siteName ?? 'XooPress') ?>
+                    </a>
+                </h1>
+                <?php if (!empty($siteDescription)): ?>
+                    <p class="site-description"><?= htmlspecialchars($siteDescription) ?></p>
+                <?php endif; ?>
+            </div>
+            
+            <nav class="main-navigation" aria-label="Main Navigation">
+                <ul>
+                    <li><a href="/"><?= __('Home') ?></a></li>
+                    <li><a href="/posts"><?= __('Posts') ?></a></li>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <li><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
+                        <li><a href="/user/themes"><?= __('My Theme') ?></a></li>
+                        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                            <li><a href="/admin"><?= __('Admin') ?></a></li>
+                        <?php endif; ?>
+                        <li><a href="/logout"><?= __('Logout') ?></a></li>
+                    <?php else: ?>
+                        <li><a href="/login"><?= __('Login') ?></a></li>
+                        <li><a href="/register"><?= __('Register') ?></a></li>
+                    <?php endif; ?>
+                    <li class="language-switcher">
+                        <select onchange="window.location.href='/locale/'+this.value" aria-label="<?= __('Select Language') ?>">
+                            <option value="en" <?= (!isset($_SESSION['locale']) || strpos($_SESSION['locale'] ?? '', 'en') === 0) ? 'selected' : '' ?>>🇬🇧 English</option>
+                            <option value="de" <?= isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'de') === 0 ? 'selected' : '' ?>>🇩🇪 Deutsch</option>
+                            <option value="fr" <?= isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'fr') === 0 ? 'selected' : '' ?>>🇫🇷 Français</option>
+                        </select>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="site-content">
+        <div class="container">

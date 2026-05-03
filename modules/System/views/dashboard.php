@@ -27,9 +27,18 @@
                 <h2><?= __('Welcome to XooPress') ?></h2>
                 <p><?= __('A modular CMS combining the best of XOOPS and WordPress.') ?></p>
                 <div class="actions">
-                    <a href="/login" class="btn btn-primary"><?= __('Login') ?></a>
-                    <a href="/register" class="btn btn-secondary"><?= __('Register') ?></a>
-                    <a href="/admin" class="btn btn-secondary"><?= __('Admin Dashboard') ?></a>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <a href="/user/dashboard" class="btn btn-primary"><?= __('My Dashboard') ?></a>
+                        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                            <a href="/admin" class="btn btn-secondary"><?= __('Admin Dashboard') ?></a>
+                        <?php endif; ?>
+                        <a href="/user/themes" class="btn btn-secondary"><?= __('My Theme') ?></a>
+                        <a href="/logout" class="btn btn-secondary"><?= __('Logout') ?></a>
+                    <?php else: ?>
+                        <a href="/login" class="btn btn-primary"><?= __('Login') ?></a>
+                        <a href="/register" class="btn btn-secondary"><?= __('Register') ?></a>
+                        <a href="/admin" class="btn btn-secondary"><?= __('Admin Dashboard') ?></a>
+                    <?php endif; ?>
                 </div>
             </div>
 

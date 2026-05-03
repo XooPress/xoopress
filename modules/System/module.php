@@ -57,6 +57,11 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/user/dashboard',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'userDashboard'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/user/themes',
             'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'userThemes'],
         ],

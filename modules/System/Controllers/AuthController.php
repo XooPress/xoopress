@@ -60,7 +60,9 @@ class AuthController extends Controller
                 if (!empty($user['user_theme'])) {
                     $_SESSION['user_theme'] = $user['user_theme'];
                 }
-                $this->redirect('/admin');
+                // Redirect users to their dashboard, admins to admin panel
+                $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
+                $this->redirect($redirect);
                 return '';
             }
         }
@@ -148,7 +150,9 @@ class AuthController extends Controller
                     $_SESSION['user_role'] = $user['role'];
                 }
 
-                $this->redirect('/admin');
+                // Redirect users to their dashboard, admins to admin panel
+                $redirect = ($user && $user['role'] === 'admin') ? '/admin' : '/user/dashboard';
+                $this->redirect($redirect);
                 return '';
             } catch (\Throwable $e) {
                 return $this->view('system::register', [
@@ -275,6 +279,77 @@ class AuthController extends Controller
         }
 
         $this->redirect('/user/themes');
+    }
+
+    public function userDashboard(): string
+    {
+        // Require authentication
+        if (empty($_SESSION['user_id'])) {
+            $this->redirect('/login');
+            return '';
+        }
+
+        $siteName = 'XooPress';
+        $username = $_SESSION['username'] ?? '';
+        $displayName = $username;
+        $email = '';
+        $role = $_SESSION['user_role'] ?? 'subscriber';
+        $userTheme = '';
+        $userThemeName = '';
+
+        try {
+            if ($this->container->has('database')) {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+
+                // Get site name
+                $setting = $db->selectOne("SELECT `value` FROM {$prefix}settings WHERE `key` = ?", ['site_name']);
+                if ($setting) {
+                    $siteName = $setting['value'];
+                }
+
+                // Get full user data
+                $user = $db->selectOne("SELECT * FROM {$prefix}users WHERE id = ?", [$_SESSION['user_id']]);
+                if ($user) {
+                    $username = $user['username'];
+                    $displayName = $user['display_name'] ?? $user['username'];
+                    $email = $user['email'] ?? '';
+                    $role = $user['role'] ?? 'subscriber';
+                    $userTheme = $user['user_theme'] ?? '';
+                }
+            }
+
+            if ($this->container->has('theme')) {
+                $themeManager = $this->container->get('theme');
+                $themes = $themeManager->getThemes();
+
+                // Resolve user's theme name for display
+                if (!empty($userTheme) && isset($themes[$userTheme])) {
+                    $userThemeName = $themes[$userTheme]['name'];
+                } elseif (!empty($_SESSION['user_theme']) && isset($themes[$_SESSION['user_theme']])) {
+                    $userTheme = $_SESSION['user_theme'];
+                    $userThemeName = $themes[$userTheme]['name'];
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Failed to load user dashboard: " . $e->getMessage());
+        }
+
+        $message = $_SESSION['user_dashboard_message'] ?? null;
+        $messageType = $_SESSION['user_dashboard_message_type'] ?? null;
+        unset($_SESSION['user_dashboard_message'], $_SESSION['user_dashboard_message_type']);
+
+        return $this->view('system::user_dashboard', [
+            'siteName' => $siteName,
+            'username' => $username,
+            'displayName' => $displayName,
+            'email' => $email,
+            'role' => $role,
+            'userTheme' => $userTheme,
+            'userThemeName' => $userThemeName,
+            'message' => $message,
+            'messageType' => $messageType,
+        ]);
     }
 
     public function logout(): void
