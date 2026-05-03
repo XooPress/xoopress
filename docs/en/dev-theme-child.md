@@ -28,7 +28,7 @@ Author URI: https://example.com/
 Description: A child theme of XooPress.
 Version: 1.0.0
 License: GPL-3.0-or-later
-Template: xoopress
+Template: xoopress-lite
 Text Domain: my-child
 */
 ```
@@ -46,7 +46,7 @@ The `Template:` header must match the **directory name** of the parent theme (ca
 Any file in the child theme with the same name as a parent theme file will override it:
 
 ```
-themes/xoopress/          # Parent theme
+themes/xoopress-lite/     # Parent theme
 ├── header.php            # Default header
 ├── footer.php            # Default footer
 └── index.php             # Default index

@@ -27,7 +27,7 @@ A modular open-source Content Management System combining the modular architectu
 ### Theme System (`themes/`)
 | Theme | Description |
 |-------|-------------|
-| `xoopress` | Default theme: header.php, footer.php, index.php, style.css |
+| `xoopress-lite` | Default theme: header.php, footer.php, index.php, style.css |
 
 ## Theme System (WordPress-style)
 
@@ -57,7 +57,7 @@ Text Domain: my-theme
 A child theme only needs:
 ```
 themes/my-child/
-├── style.css       (with Template: xoopress header)
+├── style.css       (with Template: xoopress-lite header)
 ├── index.php       (overrides parent's index.php)
 ├── header.php      (overrides parent's header.php)
 └── functions.php   (loaded in addition to parent's)
