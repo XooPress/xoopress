@@ -289,11 +289,21 @@ class ThemeManager
     
     /**
      * Get the name of the active theme from database
+     * Checks for per-user theme override in session first.
      * 
      * @return string
      */
     protected function getActiveThemeName(): string
     {
+        // Check for per-user theme override in session
+        if (isset($_SESSION['user_theme']) && !empty($_SESSION['user_theme'])) {
+            $userTheme = $_SESSION['user_theme'];
+            // Verify the theme actually exists
+            if (isset($this->themes[$userTheme])) {
+                return $userTheme;
+            }
+        }
+        
         try {
             if ($this->container->has('database')) {
                 $db = $this->container->get('database');

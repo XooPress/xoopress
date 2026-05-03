@@ -17,7 +17,7 @@ class User extends Model
     protected string $primaryKey = 'id';
     protected array $fillable = [
         'username', 'email', 'password', 'display_name',
-        'role', 'status', 'last_login',
+        'role', 'status', 'last_login', 'user_theme',
     ];
     protected array $hidden = ['password'];
 

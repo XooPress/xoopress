@@ -56,6 +56,10 @@ class AuthController extends Controller
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['user_role'] = $user['role'];
+                // Load user's theme preference into session
+                if (!empty($user['user_theme'])) {
+                    $_SESSION['user_theme'] = $user['user_theme'];
+                }
                 $this->redirect('/admin');
                 return '';
             }
@@ -182,11 +186,103 @@ class AuthController extends Controller
         $this->redirect($referer);
     }
 
+    public function userThemes(): string
+    {
+        // Require authentication
+        if (empty($_SESSION['user_id'])) {
+            $this->redirect('/login');
+            return '';
+        }
+
+        $themes = [];
+        $userTheme = '';
+        $siteName = 'XooPress';
+
+        try {
+            if ($this->container->has('theme')) {
+                $themeManager = $this->container->get('theme');
+                $themes = $themeManager->getThemes();
+            }
+
+            if ($this->container->has('database')) {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+
+                // Get site name
+                $setting = $db->selectOne("SELECT `value` FROM {$prefix}settings WHERE `key` = ?", ['site_name']);
+                if ($setting) {
+                    $siteName = $setting['value'];
+                }
+
+                // Get user's theme preference
+                $user = $db->selectOne("SELECT user_theme FROM {$prefix}users WHERE id = ?", [$_SESSION['user_id']]);
+                if ($user && !empty($user['user_theme'])) {
+                    $userTheme = $user['user_theme'];
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Failed to load user themes: " . $e->getMessage());
+        }
+
+        $message = $_SESSION['user_themes_message'] ?? null;
+        $messageType = $_SESSION['user_themes_message_type'] ?? null;
+        unset($_SESSION['user_themes_message'], $_SESSION['user_themes_message_type']);
+
+        return $this->view('system::user_themes', [
+            'themes' => $themes,
+            'userTheme' => $userTheme,
+            'siteName' => $siteName,
+            'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
+        ]);
+    }
+
+    public function userThemesSave(): void
+    {
+        // Require authentication
+        if (empty($_SESSION['user_id'])) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $theme = $this->input('theme', '');
+
+        try {
+            if ($this->container->has('database')) {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+
+                $db->query(
+                    "UPDATE {$prefix}users SET user_theme = ? WHERE id = ?",
+                    [$theme, $_SESSION['user_id']]
+                );
+
+                // Store in session for immediate effect
+                if (!empty($theme)) {
+                    $_SESSION['user_theme'] = $theme;
+                } else {
+                    unset($_SESSION['user_theme']);
+                }
+
+                $_SESSION['user_themes_message'] = __('Theme preference saved.');
+                $_SESSION['user_themes_message_type'] = 'success';
+            }
+        } catch (\Throwable $e) {
+            error_log("Failed to save user theme: " . $e->getMessage());
+            $_SESSION['user_themes_message'] = __('Failed to save theme preference.');
+            $_SESSION['user_themes_message_type'] = 'error';
+        }
+
+        $this->redirect('/user/themes');
+    }
+
     public function logout(): void
     {
         unset($_SESSION['user_id']);
         unset($_SESSION['username']);
         unset($_SESSION['user_role']);
+        unset($_SESSION['user_theme']);
         session_destroy();
         $this->redirect('/login');
     }

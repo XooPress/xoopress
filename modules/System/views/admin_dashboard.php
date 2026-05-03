@@ -23,6 +23,7 @@
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/themes">Themes</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
+                <li><a href="/user/themes">Choose Theme</a></li>
                 <li><a href="/">View Site</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>

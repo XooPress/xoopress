@@ -57,6 +57,16 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/user/themes',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'userThemes'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/user/themes',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'userThemesSave'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/logout',
             'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'logout'],
         ],
@@ -232,6 +242,7 @@ return [
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             last_login DATETIME NULL,
+            user_theme VARCHAR(100) DEFAULT '' COMMENT 'Per-user theme override',
             INDEX idx_email (email),
             INDEX idx_username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
