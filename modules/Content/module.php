@@ -56,6 +56,7 @@ return [
             author_id INT NOT NULL,
             category_id INT NULL,
             type VARCHAR(50) DEFAULT 'post',
+            language VARCHAR(20) DEFAULT 'en_US',
             featured_image VARCHAR(255) NULL,
             comment_status ENUM('open', 'closed') DEFAULT 'open',
             view_count INT DEFAULT 0,
@@ -67,6 +68,7 @@ return [
             INDEX idx_author (author_id),
             INDEX idx_category (category_id),
             INDEX idx_type (type),
+            INDEX idx_language (language),
             INDEX idx_published (published_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
@@ -121,7 +123,7 @@ return [
             // Add language column if it doesn't exist
             $result = $db->selectOne("SHOW COLUMNS FROM {$prefix}posts WHERE Field = 'language'");
             if (!$result) {
-                $db->query("ALTER TABLE {$prefix}posts ADD COLUMN language VARCHAR(10) DEFAULT 'en_US' AFTER type, ADD INDEX idx_language (language)");
+                $db->query("ALTER TABLE {$prefix}posts ADD COLUMN language VARCHAR(20) DEFAULT 'en_US' AFTER type, ADD INDEX idx_language (language)");
             }
             
             // Add content_type column if it doesn't exist

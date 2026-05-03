@@ -62,7 +62,15 @@ class PostController extends Controller
     public function show(int $id): string
     {
         $postModel = $this->get('content.post');
-        $post = $postModel->find($id);
+        $locale = 'en_US';
+        $i18n = $this->i18n();
+        if ($i18n) {
+            $locale = $i18n->getLocale();
+        }
+        $post = $postModel->firstWhere([
+            'id' => $id,
+            'language' => $locale,
+        ]);
 
         if ($post) {
             $post['rendered_content'] = $this->renderer->render(

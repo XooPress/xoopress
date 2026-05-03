@@ -26,13 +26,19 @@ class DashboardController extends Controller
             if ($this->container->has('database')) {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();
+                $locale = 'en_US';
+                $i18n = $this->i18n();
+                if ($i18n) {
+                    $locale = $i18n->getLocale();
+                }
                 $posts = $db->select(
-                    "SELECT p.*, c.name AS category_name 
-                     FROM {$prefix}posts p 
-                     LEFT JOIN {$prefix}categories c ON p.category_id = c.id 
-                     WHERE p.status = 'published' AND p.type = 'post'
-                     ORDER BY p.published_at DESC 
-                     LIMIT 10"
+                    "SELECT p.*, c.name AS category_name
+                     FROM {$prefix}posts p
+                     LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                     WHERE p.status = 'published' AND p.type = 'post' AND p.language = ?
+                     ORDER BY p.published_at DESC
+                     LIMIT 10",
+                    [$locale]
                 );
             }
         } catch (\Throwable $e) {

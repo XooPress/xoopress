@@ -469,6 +469,7 @@ function getInstallSchema(string $prefix): array
             author_id INT NOT NULL,
             category_id INT NULL,
             type VARCHAR(50) DEFAULT 'post',
+            language VARCHAR(20) DEFAULT 'en_US',
             featured_image VARCHAR(255) NULL,
             comment_status ENUM('open', 'closed') DEFAULT 'open',
             view_count INT DEFAULT 0,
@@ -480,6 +481,7 @@ function getInstallSchema(string $prefix): array
             INDEX idx_author (author_id),
             INDEX idx_category (category_id),
             INDEX idx_type (type),
+            INDEX idx_language (language),
             INDEX idx_published (published_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         
