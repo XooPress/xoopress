@@ -32,9 +32,10 @@ class DashboardController extends Controller
                     $locale = $i18n->getLocale();
                 }
                 $posts = $db->select(
-                    "SELECT p.*, c.name AS category_name
+                    "SELECT p.*, c.name AS category_name, u.display_name AS author_name
                      FROM {$prefix}posts p
                      LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                     LEFT JOIN {$prefix}users u ON p.author_id = u.id
                      WHERE p.status = 'published' AND p.type = 'post' AND p.language = ?
                      ORDER BY p.published_at DESC
                      LIMIT 10",

@@ -32,11 +32,7 @@ class PostController extends Controller
             if ($i18n) {
                 $locale = $i18n->getLocale();
             }
-            $posts = $postModel->where([
-                'status' => 'published',
-                'type' => 'post',
-                'language' => $locale,
-            ]);
+            $posts = $postModel->getPublishedWithDetails($locale, 'post');
         } catch (\Throwable $e) {
             $posts = [];
         }
@@ -67,10 +63,7 @@ class PostController extends Controller
         if ($i18n) {
             $locale = $i18n->getLocale();
         }
-        $post = $postModel->firstWhere([
-            'id' => $id,
-            'language' => $locale,
-        ]);
+        $post = $postModel->findWithDetails($id, $locale);
 
         if ($post) {
             $post['rendered_content'] = $this->renderer->render(

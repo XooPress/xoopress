@@ -35,6 +35,65 @@ class Post extends Model
         return $this->where(['status' => 'published']);
     }
 
+    public function getPublishedWithDetails(?string $language = null, string $type = 'post', int $limit = 0): array
+    {
+        $prefix = $this->db->getPrefix();
+        $params = ['published', $type];
+        $limitClause = $limit > 0 ? 'LIMIT ?' : '';
+
+        if ($language) {
+            $sql = "SELECT p.*, c.name AS category_name, u.display_name AS author_name
+                    FROM {$prefix}posts p
+                    LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                    LEFT JOIN {$prefix}users u ON p.author_id = u.id
+                    WHERE p.status = ? AND p.type = ? AND p.language = ?
+                    ORDER BY p.published_at DESC";
+            $params[] = $language;
+            if ($limit > 0) {
+                $sql .= " LIMIT ?";
+                $params[] = $limit;
+            }
+        } else {
+            $sql = "SELECT p.*, c.name AS category_name, u.display_name AS author_name
+                    FROM {$prefix}posts p
+                    LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                    LEFT JOIN {$prefix}users u ON p.author_id = u.id
+                    WHERE p.status = ? AND p.type = ?
+                    ORDER BY p.published_at DESC";
+            if ($limit > 0) {
+                $sql .= " LIMIT ?";
+                $params[] = $limit;
+            }
+        }
+
+        return $this->db->select($sql, $params);
+    }
+
+    public function findWithDetails(int $id, ?string $language = null): ?array
+    {
+        $prefix = $this->db->getPrefix();
+        $params = [$id];
+
+        if ($language) {
+            $sql = "SELECT p.*, c.name AS category_name, u.display_name AS author_name
+                    FROM {$prefix}posts p
+                    LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                    LEFT JOIN {$prefix}users u ON p.author_id = u.id
+                    WHERE p.id = ? AND p.language = ?
+                    LIMIT 1";
+            $params[] = $language;
+        } else {
+            $sql = "SELECT p.*, c.name AS category_name, u.display_name AS author_name
+                    FROM {$prefix}posts p
+                    LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                    LEFT JOIN {$prefix}users u ON p.author_id = u.id
+                    WHERE p.id = ?
+                    LIMIT 1";
+        }
+
+        return $this->db->selectOne($sql, $params);
+    }
+
     public function getByCategory(int $categoryId, ?string $language = null): array
     {
         if ($language) {
