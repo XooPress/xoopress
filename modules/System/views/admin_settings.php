@@ -19,6 +19,7 @@
                 <li><a href="/admin/pages">Pages</a></li>
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
+                <li><a href="/admin/themes">Themes</a></li>
                 <li><a href="/admin/settings" class="active">Settings</a></li>
                 <li><a href="/">View Site</a></li>
                 <li><a href="/logout">Logout</a></li>

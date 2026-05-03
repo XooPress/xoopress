@@ -17,6 +17,7 @@
                 <li><a href="/admin/categories"><?= __('Categories') ?></a></li>
                 <li><a href="/admin/users"><?= __('Users') ?></a></li>
                 <li><a href="/admin/modules" class="active"><?= __('Modules') ?></a></li>
+                <li><a href="/admin/themes"><?= __('Themes') ?></a></li>
                 <li><a href="/admin/settings"><?= __('Settings') ?></a></li>
                 <li><a href="/"><?= __('View Site') ?></a></li>
                 <li><a href="/logout"><?= __('Logout') ?></a></li>
