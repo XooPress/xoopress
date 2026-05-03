@@ -430,10 +430,73 @@ class AdminController extends Controller
 
     public function settings(): string
     {
+        $settings = [];
+        if ($this->container->has('database')) {
+            try {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                $rows = $db->select("SELECT `key`, `value` FROM {$prefix}settings WHERE `key` IN ('site_name', 'site_description', 'site_url')");
+                foreach ($rows as $row) {
+                    $settings[$row['key']] = $row['value'];
+                }
+            } catch (\Throwable $e) {
+                error_log("Failed to load settings: " . $e->getMessage());
+            }
+        }
+        $message = $_SESSION['settings_message'] ?? null;
+        $messageType = $_SESSION['settings_message_type'] ?? null;
+        unset($_SESSION['settings_message'], $_SESSION['settings_message_type']);
         return $this->view('system::admin_settings', [
-            'settings' => [],
+            'settings' => $settings,
             'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
         ]);
+    }
+
+    public function settingsSave(): void
+    {
+        $data = $this->all();
+        
+        if ($this->container->has('database')) {
+            try {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                
+                $keys = ['site_name', 'site_description', 'site_url'];
+                foreach ($keys as $key) {
+                    if (isset($data[$key])) {
+                        // Use raw SQL with backtick-quoted `key` column (MySQL reserved word)
+                        $existing = $db->selectOne(
+                            "SELECT id FROM {$prefix}settings WHERE `key` = ?",
+                            [$key]
+                        );
+                        if ($existing) {
+                            $db->query(
+                                "UPDATE {$prefix}settings SET `value` = ? WHERE id = ?",
+                                [$data[$key], $existing['id']]
+                            );
+                        } else {
+                            $db->query(
+                                "INSERT INTO {$prefix}settings (`key`, `value`, `autoload`) VALUES (?, ?, 1)",
+                                [$key, $data[$key]]
+                            );
+                        }
+                    }
+                }
+                $_SESSION['settings_message'] = 'Settings saved successfully.';
+                $_SESSION['settings_message_type'] = 'success';
+            } catch (\Throwable $e) {
+                error_log("Failed to save settings: " . $e->getMessage());
+                $_SESSION['settings_message'] = 'Failed to save settings: ' . $e->getMessage();
+                $_SESSION['settings_message_type'] = 'error';
+            }
+        } else {
+            $_SESSION['settings_message'] = 'Database service not available.';
+            $_SESSION['settings_message_type'] = 'error';
+        }
+        
+        $this->redirect('/admin/settings');
     }
 
     private function createSlug(string $text): string

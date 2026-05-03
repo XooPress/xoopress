@@ -95,6 +95,11 @@ return [
             'pattern' => '/admin/settings',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'settings'],
         ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/settings',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'settingsSave'],
+        ],
         // Posts
         [
             'method' => 'GET',
