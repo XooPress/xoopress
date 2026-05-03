@@ -83,11 +83,14 @@
         }
     </style>
 </head>
-<body>
-    <div class="admin-container">
-        <nav class="admin-nav">
-            <h1><?= __('XooPress Admin') ?></h1>
-            <ul>
+<body class="admin-page">
+    <div class="admin-layout">
+        <nav class="admin-sidebar">
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
+            <ul class="admin-nav">
                 <li><a href="/admin"><?= __('Dashboard') ?></a></li>
                 <li><a href="/admin/posts"><?= __('Posts') ?></a></li>
                 <li><a href="/admin/pages"><?= __('Pages') ?></a></li>
@@ -100,7 +103,7 @@
                 <li><a href="/logout"><?= __('Logout') ?></a></li>
             </ul>
         </nav>
-        <main class="admin-main">
+        <main class="admin-content">
             <div class="admin-header">
                 <h2><?= __('Theme Management') ?></h2>
                 <div style="display:flex;gap:10px;align-items:center;">
