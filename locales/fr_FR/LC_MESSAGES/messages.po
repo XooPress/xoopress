@@ -343,3 +343,15 @@ msgstr "Accès sécurisé à la base de données avec des requêtes préparées.
 
 msgid "All rights reserved."
 msgstr "Tous droits réservés."
+
+msgid "Home"
+msgstr "Accueil"
+
+msgid "Secure Database"
+msgstr "Base de données sécurisée"
+
+msgid "PDO with prepared statements for maximum security."
+msgstr "PDO avec des requêtes préparées pour une sécurité maximale."
+
+msgid "Read More →"
+msgstr "Lire la suite →"

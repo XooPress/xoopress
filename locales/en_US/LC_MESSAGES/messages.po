@@ -343,3 +343,15 @@ msgstr "Secure database access with prepared statements."
 
 msgid "All rights reserved."
 msgstr "All rights reserved."
+
+msgid "Home"
+msgstr "Home"
+
+msgid "Secure Database"
+msgstr "Secure Database"
+
+msgid "PDO with prepared statements for maximum security."
+msgstr "PDO with prepared statements for maximum security."
+
+msgid "Read More →"
+msgstr "Read More →"
