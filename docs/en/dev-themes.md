@@ -14,6 +14,10 @@ themes/my-theme/
 ├── functions.php      # Theme functions (loaded on every request)
 ├── screenshot.png     # Admin preview image (880x660 recommended)
 ├── theme.json         # Advanced configuration
+├── assets/            # Static assets (CSS, JS, images)
+│   ├── css/
+│   ├── js/
+│   └── images/
 └── templates/         # Alternative template directory
     └── ...
 ```

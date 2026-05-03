@@ -40,7 +40,11 @@ my-theme.zip
     ├── sidebar.php     (optional)
     ├── functions.php   (optional)
     ├── screenshot.png  (optional — shown in admin)
-    └── theme.json      (optional — advanced config)
+    ├── theme.json      (optional — advanced config)
+    └── assets/         (optional — static assets)
+        ├── css/
+        ├── js/
+        └── images/
 ```
 
 The zip must contain a directory with `style.css` at its root.
