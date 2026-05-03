@@ -355,3 +355,249 @@ msgstr "PDO with prepared statements for maximum security."
 
 msgid "Read More →"
 msgstr "Read More →"
+
+msgid "Account Information"
+msgstr "Account Information"
+
+msgid "Activate"
+msgstr "Activate"
+
+msgid "A fresh approach to content management, designed for sustainability and growth."
+msgstr "A fresh approach to content management, designed for sustainability and growth."
+
+msgid "A vibrant CMS experience that sparks creativity and innovation."
+msgstr "A vibrant CMS experience that sparks creativity and innovation."
+
+msgid "Back to My Dashboard"
+msgstr "Back to My Dashboard"
+
+msgid "Back to Site"
+msgstr "Back to Site"
+
+msgid "Blazing Fast"
+msgstr "Blazing Fast"
+
+msgid "Browse Themes"
+msgstr "Browse Themes"
+
+msgid "Built to last with modular architecture."
+msgstr "Built to last with modular architecture."
+
+msgid "Change"
+msgstr "Change"
+
+msgid "Child"
+msgstr "Child"
+
+msgid "Choose"
+msgstr "Choose"
+
+msgid "Choose Theme"
+msgstr "Choose Theme"
+
+msgid "Choose Your Theme"
+msgstr "Choose Your Theme"
+
+msgid "Clean, natural content management experience."
+msgstr "Clean, natural content management experience."
+
+msgid "Creative Freedom"
+msgstr "Creative Freedom"
+
+msgid "Deactivate"
+msgstr "Deactivate"
+
+msgid "Default site theme"
+msgstr "Default site theme"
+
+msgid "Delete this module from filesystem?"
+msgstr "Delete this module from filesystem?"
+
+msgid "Delete this theme?"
+msgstr "Delete this theme?"
+
+msgid "Eco-Friendly"
+msgstr "Eco-Friendly"
+
+msgid "Elegant glassmorphism effects and smooth animations for a modern feel."
+msgstr "Elegant glassmorphism effects and smooth animations for a modern feel."
+
+msgid "Enterprise-grade security keeping your content protected."
+msgstr "Enterprise-grade security keeping your content protected."
+
+msgid "Evergreen"
+msgstr "Evergreen"
+
+msgid "Experience elegance and power with our sophisticated purple theme."
+msgstr "Experience elegance and power with our sophisticated purple theme."
+
+msgid "Experience the power of modular CMS in a sleek, eye-friendly dark interface."
+msgstr "Experience the power of modular CMS in a sleek, eye-friendly dark interface."
+
+msgid "Explore"
+msgstr "Explore"
+
+msgid "Explore Features"
+msgstr "Explore Features"
+
+msgid "Express yourself with complete design control."
+msgstr "Express yourself with complete design control."
+
+msgid "Express yourself with complete design control and flexible layouts."
+msgstr "Express yourself with complete design control and flexible layouts."
+
+msgid "Failed to save theme preference."
+msgstr "Failed to save theme preference."
+
+msgid "Fresh Posts"
+msgstr "Fresh Posts"
+
+msgid "Get Started"
+msgstr "Get Started"
+
+msgid "Global Reach"
+msgstr "Global Reach"
+
+msgid "Global Ready"
+msgstr "Global Ready"
+
+msgid "Go to Admin"
+msgstr "Go to Admin"
+
+msgid "Install"
+msgstr "Install"
+
+msgid "Learn More"
+msgstr "Learn More"
+
+msgid "Lightning-fast performance with optimized code."
+msgstr "Lightning-fast performance with optimized code."
+
+msgid "Lightweight and optimized for sustainable performance."
+msgstr "Lightweight and optimized for sustainable performance."
+
+msgid "Manage site settings, users, posts, and themes."
+msgstr "Manage site settings, users, posts, and themes."
+
+msgid "Modular Power"
+msgstr "Modular Power"
+
+msgid "Module Management"
+msgstr "Module Management"
+
+msgid "Modules"
+msgstr "Modules"
+
+msgid "Multi-language support for worldwide audiences."
+msgstr "Multi-language support for worldwide audiences."
+
+msgid "Multi-language support out of the box."
+msgstr "Multi-language support out of the box."
+
+msgid "My Dashboard"
+msgstr "My Dashboard"
+
+msgid "My Theme"
+msgstr "My Theme"
+
+msgid "No modules found."
+msgstr "No modules found."
+
+msgid "No posts found. Check back soon for new content!"
+msgstr "No posts found. Check back soon for new content!"
+
+msgid "No screenshot"
+msgstr "No screenshot"
+
+msgid "No themes available."
+msgstr "No themes available."
+
+msgid "No themes found."
+msgstr "No themes found."
+
+msgid "Not Installed"
+msgstr "Not Installed"
+
+msgid "Optimized performance with minimal dependencies and clean code."
+msgstr "Optimized performance with minimal dependencies and clean code."
+
+msgid "Organic Content"
+msgstr "Organic Content"
+
+msgid "Parent"
+msgstr "Parent"
+
+msgid "Personal Theme"
+msgstr "Personal Theme"
+
+msgid "Pick a personal theme that only affects your browsing experience."
+msgstr "Pick a personal theme that only affects your browsing experience."
+
+msgid "Powered by"
+msgstr "Powered by"
+
+msgid "Premium Design"
+msgstr "Premium Design"
+
+msgid "Return to the main site homepage."
+msgstr "Return to the main site homepage."
+
+msgid "Save Theme Preference"
+msgstr "Save Theme Preference"
+
+msgid "Secure & Safe"
+msgstr "Secure & Safe"
+
+msgid "Select a theme to use when browsing the site. This only affects your account."
+msgstr "Select a theme to use when browsing the site. This only affects your account."
+
+msgid "Select your preferred language for the interface."
+msgstr "Select your preferred language for the interface."
+
+msgid "Start Growing →"
+msgstr "Start Growing →"
+
+msgid "Template"
+msgstr "Template"
+
+msgid "Theme Management"
+msgstr "Theme Management"
+
+msgid "Theme preference saved."
+msgstr "Theme preference saved."
+
+msgid "Themes"
+msgstr "Themes"
+
+msgid "Uninstall"
+msgstr "Uninstall"
+
+msgid "Uninstall this module? This will drop its database tables."
+msgstr "Uninstall this module? This will drop its database tables."
+
+msgid "Upload failed."
+msgstr "Upload failed."
+
+msgid "Upload Module"
+msgstr "Upload Module"
+
+msgid "Upload Theme"
+msgstr "Upload Theme"
+
+msgid "Visit Site"
+msgstr "Visit Site"
+
+msgid "Welcome to GreenLeaf"
+msgstr "Welcome to GreenLeaf"
+
+msgid "Welcome to OrangeBlaze"
+msgstr "Welcome to OrangeBlaze"
+
+msgid "Welcome to PurpleHaze"
+msgstr "Welcome to PurpleHaze"
+
+msgid "Welcome to XooPress Dark"
+msgstr "Welcome to XooPress Dark"
+
+msgid "Your Theme"
+msgstr "Your Theme"

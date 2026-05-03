@@ -355,3 +355,249 @@ msgstr "PDO mit vorbereiteten Anweisungen für maximale Sicherheit."
 
 msgid "Read More →"
 msgstr "Weiterlesen →"
+
+msgid "Account Information"
+msgstr "Kontoinformationen"
+
+msgid "Activate"
+msgstr "Aktivieren"
+
+msgid "A fresh approach to content management, designed for sustainability and growth."
+msgstr "Ein frischer Ansatz für Content-Management, entwickelt für Nachhaltigkeit und Wachstum."
+
+msgid "A vibrant CMS experience that sparks creativity and innovation."
+msgstr "Ein lebendiges CMS-Erlebnis, das Kreativität und Innovation fördert."
+
+msgid "Back to My Dashboard"
+msgstr "Zurück zu meinem Dashboard"
+
+msgid "Back to Site"
+msgstr "Zurück zur Seite"
+
+msgid "Blazing Fast"
+msgstr "Blitzschnell"
+
+msgid "Browse Themes"
+msgstr "Themen durchsuchen"
+
+msgid "Built to last with modular architecture."
+msgstr "Gebaut für Langlebigkeit mit modularer Architektur."
+
+msgid "Change"
+msgstr "Ändern"
+
+msgid "Child"
+msgstr "Kind"
+
+msgid "Choose"
+msgstr "Auswählen"
+
+msgid "Choose Theme"
+msgstr "Design auswählen"
+
+msgid "Choose Your Theme"
+msgstr "Wählen Sie Ihr Design"
+
+msgid "Clean, natural content management experience."
+msgstr "Saubere, natürliche Content-Management-Erfahrung."
+
+msgid "Creative Freedom"
+msgstr "Kreative Freiheit"
+
+msgid "Deactivate"
+msgstr "Deaktivieren"
+
+msgid "Default site theme"
+msgstr "Standard-Design der Seite"
+
+msgid "Delete this module from filesystem?"
+msgstr "Dieses Modul vom Dateisystem löschen?"
+
+msgid "Delete this theme?"
+msgstr "Dieses Design löschen?"
+
+msgid "Eco-Friendly"
+msgstr "Umweltfreundlich"
+
+msgid "Elegant glassmorphism effects and smooth animations for a modern feel."
+msgstr "Elegante Glassmorphismus-Effekte und flüssige Animationen für ein modernes Gefühl."
+
+msgid "Enterprise-grade security keeping your content protected."
+msgstr "Sicherheit auf Unternehmensniveau, die Ihre Inhalte schützt."
+
+msgid "Evergreen"
+msgstr "Immergrün"
+
+msgid "Experience elegance and power with our sophisticated purple theme."
+msgstr "Erleben Sie Eleganz und Kraft mit unserem anspruchsvollen lila Design."
+
+msgid "Experience the power of modular CMS in a sleek, eye-friendly dark interface."
+msgstr "Erleben Sie die Kraft des modularen CMS in einer schlanken, augenfreundlichen dunklen Oberfläche."
+
+msgid "Explore"
+msgstr "Erkunden"
+
+msgid "Explore Features"
+msgstr "Funktionen erkunden"
+
+msgid "Express yourself with complete design control."
+msgstr "Drücken Sie sich mit vollständiger Designkontrolle aus."
+
+msgid "Express yourself with complete design control and flexible layouts."
+msgstr "Drücken Sie sich mit vollständiger Designkontrolle und flexiblen Layouts aus."
+
+msgid "Failed to save theme preference."
+msgstr "Fehler beim Speichern der Design-Einstellung."
+
+msgid "Fresh Posts"
+msgstr "Neue Beiträge"
+
+msgid "Get Started"
+msgstr "Loslegen"
+
+msgid "Global Reach"
+msgstr "Globale Reichweite"
+
+msgid "Global Ready"
+msgstr "Global bereit"
+
+msgid "Go to Admin"
+msgstr "Zum Admin"
+
+msgid "Install"
+msgstr "Installieren"
+
+msgid "Learn More"
+msgstr "Mehr erfahren"
+
+msgid "Lightning-fast performance with optimized code."
+msgstr "Blitzschnelle Leistung mit optimiertem Code."
+
+msgid "Lightweight and optimized for sustainable performance."
+msgstr "Leichtgewichtig und optimiert für nachhaltige Leistung."
+
+msgid "Manage site settings, users, posts, and themes."
+msgstr "Verwalten Sie Seiteneinstellungen, Benutzer, Beiträge und Designs."
+
+msgid "Modular Power"
+msgstr "Modulare Kraft"
+
+msgid "Module Management"
+msgstr "Modulverwaltung"
+
+msgid "Modules"
+msgstr "Module"
+
+msgid "Multi-language support for worldwide audiences."
+msgstr "Mehrsprachige Unterstützung für weltweite Zielgruppen."
+
+msgid "Multi-language support out of the box."
+msgstr "Mehrsprachige Unterstützung sofort einsatzbereit."
+
+msgid "My Dashboard"
+msgstr "Mein Dashboard"
+
+msgid "My Theme"
+msgstr "Mein Design"
+
+msgid "No modules found."
+msgstr "Keine Module gefunden."
+
+msgid "No posts found. Check back soon for new content!"
+msgstr "Keine Beiträge gefunden. Schauen Sie bald wieder vorbei!"
+
+msgid "No screenshot"
+msgstr "Kein Screenshot"
+
+msgid "No themes available."
+msgstr "Keine Designs verfügbar."
+
+msgid "No themes found."
+msgstr "Keine Designs gefunden."
+
+msgid "Not Installed"
+msgstr "Nicht installiert"
+
+msgid "Optimized performance with minimal dependencies and clean code."
+msgstr "Optimierte Leistung mit minimalen Abhängigkeiten und sauberem Code."
+
+msgid "Organic Content"
+msgstr "Organischer Inhalt"
+
+msgid "Parent"
+msgstr "Eltern"
+
+msgid "Personal Theme"
+msgstr "Persönliches Design"
+
+msgid "Pick a personal theme that only affects your browsing experience."
+msgstr "Wählen Sie ein persönliches Design, das nur Ihre Browser-Erfahrung betrifft."
+
+msgid "Powered by"
+msgstr "Bereitgestellt von"
+
+msgid "Premium Design"
+msgstr "Premium-Design"
+
+msgid "Return to the main site homepage."
+msgstr "Zurück zur Hauptseite."
+
+msgid "Save Theme Preference"
+msgstr "Design-Einstellung speichern"
+
+msgid "Secure & Safe"
+msgstr "Sicher & Geschützt"
+
+msgid "Select a theme to use when browsing the site. This only affects your account."
+msgstr "Wählen Sie ein Design für die Seitenansicht. Dies betrifft nur Ihr Konto."
+
+msgid "Select your preferred language for the interface."
+msgstr "Wählen Sie Ihre bevorzugte Sprache für die Oberfläche."
+
+msgid "Start Growing →"
+msgstr "Wachsen beginnen →"
+
+msgid "Template"
+msgstr "Vorlage"
+
+msgid "Theme Management"
+msgstr "Design-Verwaltung"
+
+msgid "Theme preference saved."
+msgstr "Design-Einstellung gespeichert."
+
+msgid "Themes"
+msgstr "Designs"
+
+msgid "Uninstall"
+msgstr "Deinstallieren"
+
+msgid "Uninstall this module? This will drop its database tables."
+msgstr "Dieses Modul deinstallieren? Dabei werden die Datenbanktabellen gelöscht."
+
+msgid "Upload failed."
+msgstr "Hochladen fehlgeschlagen."
+
+msgid "Upload Module"
+msgstr "Modul hochladen"
+
+msgid "Upload Theme"
+msgstr "Design hochladen"
+
+msgid "Visit Site"
+msgstr "Seite besuchen"
+
+msgid "Welcome to GreenLeaf"
+msgstr "Willkommen bei GreenLeaf"
+
+msgid "Welcome to OrangeBlaze"
+msgstr "Willkommen bei OrangeBlaze"
+
+msgid "Welcome to PurpleHaze"
+msgstr "Willkommen bei PurpleHaze"
+
+msgid "Welcome to XooPress Dark"
+msgstr "Willkommen bei XooPress Dark"
+
+msgid "Your Theme"
+msgstr "Ihr Design"
