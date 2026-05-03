@@ -329,13 +329,15 @@ class ThemeManager
                 // Check if setting exists
                 $existing = $db->selectOne("SELECT * FROM {$prefix}settings WHERE `key` = 'active_theme'");
                 if ($existing) {
-                    $db->update($prefix . 'settings', ['value' => $themeName], ['key' => 'active_theme']);
+                    $db->query(
+                        "UPDATE {$prefix}settings SET `value` = ? WHERE id = ?",
+                        [$themeName, $existing['id']]
+                    );
                 } else {
-                    $db->insert($prefix . 'settings', [
-                        'key' => 'active_theme',
-                        'value' => $themeName,
-                        'autoload' => 1,
-                    ]);
+                    $db->query(
+                        "INSERT INTO {$prefix}settings (`key`, `value`, `autoload`) VALUES (?, ?, 1)",
+                        ['active_theme', $themeName]
+                    );
                 }
                 
                 // Reload
