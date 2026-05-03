@@ -36,7 +36,6 @@
                     <li><a href="/posts"><?= __('Posts') ?></a></li>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <li><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
-                        <li><a href="/user/themes"><?= __('My Theme') ?></a></li>
                         <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
                             <li><a href="/admin"><?= __('Admin') ?></a></li>
                         <?php endif; ?>
