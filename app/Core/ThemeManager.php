@@ -316,7 +316,7 @@ class ThemeManager
         } catch (\Throwable $e) {}
         
         // Default theme
-        return 'xoopress';
+        return 'xoopress-lite';
     }
     
     /**
