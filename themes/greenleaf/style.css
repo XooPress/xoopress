@@ -448,7 +448,6 @@ button {
     letter-spacing: 1px;
     font-weight: 600;
     position: relative;
-    display: inline-block;
 }
 
 .nav-subtitle::after {

@@ -744,12 +744,12 @@ label {
 .nav-next a:hover {
     background: var(--primary-bg);
     border-color: var(--primary);
-    transform: translateX(0);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .nav-previous a:hover .nav-title,
 .nav-next a:hover .nav-title {
-    color: var(--primary-light);
     background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
     -webkit-background-clip: text;
     background-clip: text;
