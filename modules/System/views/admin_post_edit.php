@@ -155,6 +155,7 @@
     </style>
 </head>
 <body class="admin-page">
+    <?php $role = $_SESSION['user_role'] ?? ''; ?>
     <div class="admin-layout">
         <nav class="admin-sidebar">
             <div class="admin-brand">
@@ -162,13 +163,17 @@
                 <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
             </div>
             <ul class="admin-nav">
+                <?php if ($role === 'admin'): ?>
                 <li><a href="/admin">Dashboard</a></li>
+                <?php endif; ?>
                 <li><a href="/admin/posts" <?= ($type ?? 'post') !== 'page' ? 'class="active"' : '' ?>>Posts</a></li>
+                <?php if ($role === 'admin'): ?>
                 <li><a href="/admin/pages" <?= ($type ?? 'post') === 'page' ? 'class="active"' : '' ?>>Pages</a></li>
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/themes">Themes</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
+                <?php endif; ?>
                 <li><a href="/">View Site</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>

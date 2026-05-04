@@ -182,7 +182,16 @@
                             <option value="fr" <?= isset($_SESSION['locale']) && strpos($_SESSION['locale'], 'fr') === 0 ? 'selected' : '' ?>>Français</option>
                         </select>
                     </div>
-                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                    <?php $role = $_SESSION['user_role'] ?? ''; ?>
+                    <?php if (in_array($role, ['admin', 'editor', 'author'])): ?>
+                    <div class="dashboard-card">
+                        <span class="card-icon">📝</span>
+                        <h3><?= __('My Posts') ?></h3>
+                        <p><?= __('Write and manage your posts.') ?></p>
+                        <a href="/admin/posts" class="btn btn-secondary"><?= __('Manage Posts') ?></a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($role === 'admin'): ?>
                     <div class="dashboard-card">
                         <span class="card-icon">⚙️</span>
                         <h3><?= __('Admin Dashboard') ?></h3>

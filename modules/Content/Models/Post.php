@@ -73,9 +73,10 @@ class Post extends Model
      * Get all posts with category and author details (for admin listing)
      *
      * @param string|null $type Optional type filter ('post' or 'page')
+     * @param int|null $authorId Optional author ID filter
      * @return array
      */
-    public function getAllWithDetails(?string $type = null): array
+    public function getAllWithDetails(?string $type = null, ?int $authorId = null): array
     {
         $prefix = $this->db->getPrefix();
         $params = [];
@@ -85,9 +86,18 @@ class Post extends Model
                 LEFT JOIN {$prefix}categories c ON p.category_id = c.id
                 LEFT JOIN {$prefix}users u ON p.author_id = u.id";
 
+        $conditions = [];
         if ($type) {
-            $sql .= " WHERE p.type = ?";
+            $conditions[] = "p.type = ?";
             $params[] = $type;
+        }
+        if ($authorId !== null) {
+            $conditions[] = "p.author_id = ?";
+            $params[] = $authorId;
+        }
+
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
         }
 
         $sql .= " ORDER BY p.created_at DESC";

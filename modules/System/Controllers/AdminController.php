@@ -38,8 +38,36 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Require admin role, redirect if not authorized
+     */
+    private function requireAdmin(): void
+    {
+        if (empty($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'admin') {
+            $this->redirect('/user/dashboard');
+            exit;
+        }
+    }
+
+    /**
+     * Require author, editor, or admin role
+     */
+    private function requireAuthorOrEditor(): void
+    {
+        if (empty($_SESSION['user_id'])) {
+            $this->redirect('/login');
+            exit;
+        }
+        $role = $_SESSION['user_role'] ?? '';
+        if (!in_array($role, ['admin', 'editor', 'author'])) {
+            $this->redirect('/user/dashboard');
+            exit;
+        }
+    }
+
     public function dashboard(): string
     {
+        $this->requireAdmin();
         $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
         $moduleList = [];
         foreach ($modules as $name => $module) {
@@ -67,15 +95,26 @@ class AdminController extends Controller
 
     public function posts(): string
     {
+        $this->requireAuthorOrEditor();
         $posts = [];
         if ($this->postModel) {
-            try { $posts = $this->postModel->getAllWithDetails('post'); } catch (\Throwable $e) {}
+            try {
+                $role = $_SESSION['user_role'] ?? '';
+                if ($role === 'admin' || $role === 'editor') {
+                    // Admins and editors see all posts
+                    $posts = $this->postModel->getAllWithDetails('post');
+                } else {
+                    // Authors only see their own posts
+                    $posts = $this->postModel->getAllWithDetails('post', $_SESSION['user_id']);
+                }
+            } catch (\Throwable $e) {}
         }
         return $this->view('system::admin_posts', ['posts' => $posts]);
     }
 
     public function postNew(): string
     {
+        $this->requireAuthorOrEditor();
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => $categories, 'type' => 'post',
@@ -84,7 +123,14 @@ class AdminController extends Controller
 
     public function postEdit(int $id): string
     {
+        $this->requireAuthorOrEditor();
         $post = $this->postModel ? $this->postModel->find($id) : null;
+        // Authors can only edit their own posts
+        $role = $_SESSION['user_role'] ?? '';
+        if ($role === 'author' && $post && (int)$post['author_id'] !== (int)$_SESSION['user_id']) {
+            $this->redirect('/admin/posts');
+            return '';
+        }
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $post['type'] ?? 'post',
@@ -93,28 +139,45 @@ class AdminController extends Controller
 
     public function postSave(): void
     {
+        $this->requireAuthorOrEditor();
         $data = $this->all();
         if (empty($data['title'])) { $this->redirect('/admin/posts/new'); return; }
         $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['title']);
         $isNew = empty($data['id']);
         $type = $data['type'] ?? 'post';
+        $role = $_SESSION['user_role'] ?? '';
         if ($this->postModel) {
             try {
+                // Authors can only save posts as 'draft' or 'pending' (not directly publish)
+                $status = $data['status'] ?? 'draft';
+                if ($role === 'author' && $status === 'published') {
+                    $status = 'pending';
+                }
                 $postData = [
                     'title' => $data['title'], 'slug' => $slug,
                     'content' => $data['content'] ?? '', 'excerpt' => $data['excerpt'] ?? '',
-                    'status' => $data['status'] ?? 'draft',
+                    'status' => $status,
                     'category_id' => !empty($data['category_id']) ? (int)$data['category_id'] : null,
-                    'author_id' => 1, 'type' => $type,
+                    'author_id' => (int)($_SESSION['user_id'] ?? 1), 'type' => $type,
                     'language' => $data['language'] ?? 'en_US',
                     'content_type' => $data['content_type'] ?? 'html',
                     'comment_status' => 'open',
                 ];
-                if ($data['status'] === 'published' && empty($data['published_at'])) {
+                if ($status === 'published' && empty($data['published_at'])) {
                     $postData['published_at'] = date('Y-m-d H:i:s');
                 }
                 if ($isNew) { $this->postModel->create($postData); }
-                else { $this->postModel->update((int)$data['id'], $postData); }
+                else {
+                    // Authors can only edit their own posts
+                    if ($role === 'author') {
+                        $existing = $this->postModel->find((int)$data['id']);
+                        if (!$existing || (int)$existing['author_id'] !== (int)$_SESSION['user_id']) {
+                            $this->redirect('/admin/posts');
+                            return;
+                        }
+                    }
+                    $this->postModel->update((int)$data['id'], $postData);
+                }
             } catch (\Throwable $e) {}
         }
         $redirect = ($type === 'page') ? '/admin/pages' : '/admin/posts';
@@ -123,8 +186,20 @@ class AdminController extends Controller
 
     public function postDelete(int $id): void
     {
+        $this->requireAuthorOrEditor();
+        $role = $_SESSION['user_role'] ?? '';
         if ($this->postModel) {
-            try { $this->postModel->delete($id); } catch (\Throwable $e) {}
+            try {
+                // Authors can only delete their own posts
+                if ($role === 'author') {
+                    $post = $this->postModel->find($id);
+                    if (!$post || (int)$post['author_id'] !== (int)$_SESSION['user_id']) {
+                        $this->redirect('/admin/posts');
+                        return;
+                    }
+                }
+                $this->postModel->delete($id);
+            } catch (\Throwable $e) {}
         }
         $referer = $_SERVER['HTTP_REFERER'] ?? '';
         $redirect = str_contains($referer, '/admin/pages') ? '/admin/pages' : '/admin/posts';
