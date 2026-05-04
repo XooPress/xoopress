@@ -156,6 +156,34 @@ class Post extends Model
         return $this->db->select($sql, [$limit]);
     }
 
+    public function getAdjacentPosts(int $id, ?string $language = null, string $type = 'post'): array
+    {
+        $prefix = $this->db->getPrefix();
+        $params = [$id, $type];
+
+        $langCondition = '';
+        if ($language) {
+            $langCondition = "AND p.language = ?";
+            $params[] = $language;
+        }
+
+        $prevSql = "SELECT p.id, p.title, p.slug
+                    FROM {$prefix}posts p
+                    WHERE p.id < ? AND p.status = 'published' AND p.type = ? {$langCondition}
+                    ORDER BY p.id DESC
+                    LIMIT 1";
+        $nextSql = "SELECT p.id, p.title, p.slug
+                    FROM {$prefix}posts p
+                    WHERE p.id > ? AND p.status = 'published' AND p.type = ? {$langCondition}
+                    ORDER BY p.id ASC
+                    LIMIT 1";
+
+        return [
+            'prev' => $this->db->selectOne($prevSql, $params) ?: null,
+            'next' => $this->db->selectOne($nextSql, $params) ?: null,
+        ];
+    }
+
     public function incrementViewCount(int $id): void
     {
         $this->db->query(

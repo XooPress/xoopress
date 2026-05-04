@@ -367,3 +367,111 @@ label {
     color: var(--error);
     border-left: 4px solid var(--error);
 }
+
+/* ==========================================================================
+   Post Navigation (Pagination) - OrangeBlaze Theme
+   ========================================================================== */
+
+.post-navigation {
+    margin: 60px 0;
+    padding: 30px 0;
+    border-top: 2px solid var(--primary-light);
+    border-bottom: 2px solid var(--primary-light);
+    background: linear-gradient(135deg, rgba(255,107,53,0.05) 0%, rgba(255,180,71,0.05) 100%);
+    border-radius: 15px;
+}
+
+.nav-links {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.nav-previous,
+.nav-next {
+    flex: 1;
+    max-width: 45%;
+}
+
+.nav-previous {
+    text-align: left;
+}
+
+.nav-next {
+    text-align: right;
+}
+
+.nav-subtitle {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.nav-title {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.4;
+    transition: var(--transition);
+}
+
+.nav-previous a,
+.nav-next a {
+    text-decoration: none;
+    display: block;
+    padding: 20px;
+    border-radius: 15px;
+    background: var(--white);
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-previous a:hover,
+.nav-next a:hover {
+    background: var(--white);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.nav-previous a:hover .nav-title {
+    color: var(--primary);
+    transform: translateX(-5px);
+    display: inline-block;
+}
+
+.nav-next a:hover .nav-title {
+    color: var(--primary);
+    transform: translateX(5px);
+    display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .nav-previous,
+    .nav-next {
+        max-width: 100%;
+    }
+    
+    .nav-previous {
+        text-align: left;
+    }
+    
+    .nav-next {
+        text-align: left;
+    }
+    
+    .nav-previous a:hover .nav-title,
+    .nav-next a:hover .nav-title {
+        transform: translateX(0);
+    }
+}

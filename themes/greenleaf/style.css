@@ -407,3 +407,132 @@ button {
     margin-right: 0.5rem;
     margin-bottom: 0.5rem;
 }
+
+/* ==========================================================================
+   Post Navigation (Pagination) - GreenLeaf Theme
+   ========================================================================== */
+
+.post-navigation {
+    margin: var(--spacing-12) 0;
+    padding: var(--spacing-6);
+    background: linear-gradient(135deg, rgba(45,139,87,0.05) 0%, rgba(139,195,74,0.05) 100%);
+    border-radius: 20px;
+}
+
+.nav-links {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-6);
+}
+
+.nav-previous,
+.nav-next {
+    flex: 1;
+    max-width: 45%;
+}
+
+.nav-previous {
+    text-align: left;
+}
+
+.nav-next {
+    text-align: right;
+}
+
+.nav-subtitle {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: var(--spacing-2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    position: relative;
+    display: inline-block;
+}
+
+.nav-subtitle::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 30px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px;
+}
+
+.nav-next .nav-subtitle::after {
+    left: auto;
+    right: 0;
+}
+
+.nav-title {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--dark);
+    line-height: 1.4;
+    margin-top: var(--spacing-3);
+    transition: var(--transition);
+}
+
+.nav-previous a,
+.nav-next a {
+    text-decoration: none;
+    display: block;
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    transition: var(--transition);
+    border: 1px solid rgba(45,139,87,0.1);
+}
+
+.nav-previous a:hover,
+.nav-next a:hover {
+    background: var(--white);
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.nav-previous a:hover .nav-title {
+    color: var(--primary);
+    transform: translateX(-8px);
+}
+
+.nav-next a:hover .nav-title {
+    color: var(--primary);
+    transform: translateX(8px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links {
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+    
+    .nav-previous,
+    .nav-next {
+        max-width: 100%;
+    }
+    
+    .nav-previous {
+        text-align: left;
+    }
+    
+    .nav-next {
+        text-align: left;
+    }
+    
+    .nav-subtitle::after {
+        left: 0;
+        right: auto;
+    }
+    
+    .nav-previous a:hover .nav-title,
+    .nav-next a:hover .nav-title {
+        transform: translateX(0);
+    }
+}

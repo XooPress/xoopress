@@ -72,12 +72,15 @@ class PostController extends Controller
             );
         }
 
+        // Get adjacent posts for pagination
+        $adjacent = $post ? $postModel->getAdjacentPosts($id, $locale, $post['type'] ?? 'post') : ['prev' => null, 'next' => null];
+
         // Try theme rendering first
         if ($this->container->has('theme') && $post) {
             $theme = $this->container->get('theme');
-            return $theme->render('singular', ['post' => $post], ['single']);
+            return $theme->render('singular', ['post' => $post, 'prev_post' => $adjacent['prev'], 'next_post' => $adjacent['next']], ['single']);
         }
 
-        return $this->view('content::post', ['post' => $post]);
+        return $this->view('content::post', ['post' => $post, 'prev_post' => $adjacent['prev'], 'next_post' => $adjacent['next']]);
     }
 }

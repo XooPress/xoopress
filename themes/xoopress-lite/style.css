@@ -634,3 +634,97 @@ label {
         display: none;
     }
 }
+
+/* ==========================================================================
+   Post Navigation (Pagination)
+   ========================================================================== */
+
+.post-navigation {
+    margin: var(--spacing-12) 0;
+    padding: var(--spacing-6) 0;
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.nav-links {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-6);
+}
+
+.nav-previous,
+.nav-next {
+    flex: 1;
+    max-width: 45%;
+}
+
+.nav-previous {
+    text-align: left;
+}
+
+.nav-next {
+    text-align: right;
+}
+
+.nav-subtitle {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-title {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+    transition: var(--transition-base);
+}
+
+.nav-previous a,
+.nav-next a {
+    text-decoration: none;
+    display: block;
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    background: var(--bg-secondary);
+    transition: var(--transition-base);
+}
+
+.nav-previous a:hover,
+.nav-next a:hover {
+    background: var(--primary-bg);
+    transform: translateX(0);
+}
+
+.nav-previous a:hover .nav-title {
+    color: var(--primary);
+}
+
+.nav-next a:hover .nav-title {
+    color: var(--primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links {
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+    
+    .nav-previous,
+    .nav-next {
+        max-width: 100%;
+    }
+    
+    .nav-previous {
+        text-align: left;
+    }
+    
+    .nav-next {
+        text-align: left;
+    }
+}
