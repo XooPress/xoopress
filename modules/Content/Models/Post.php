@@ -69,6 +69,32 @@ class Post extends Model
         return $this->db->select($sql, $params);
     }
 
+    /**
+     * Get all posts with category and author details (for admin listing)
+     *
+     * @param string|null $type Optional type filter ('post' or 'page')
+     * @return array
+     */
+    public function getAllWithDetails(?string $type = null): array
+    {
+        $prefix = $this->db->getPrefix();
+        $params = [];
+
+        $sql = "SELECT p.*, c.name AS category_name, u.display_name AS author_name
+                FROM {$prefix}posts p
+                LEFT JOIN {$prefix}categories c ON p.category_id = c.id
+                LEFT JOIN {$prefix}users u ON p.author_id = u.id";
+
+        if ($type) {
+            $sql .= " WHERE p.type = ?";
+            $params[] = $type;
+        }
+
+        $sql .= " ORDER BY p.created_at DESC";
+
+        return $this->db->select($sql, $params);
+    }
+
     public function findWithDetails(int $id, ?string $language = null): ?array
     {
         $prefix = $this->db->getPrefix();

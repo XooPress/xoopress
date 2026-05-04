@@ -69,7 +69,7 @@ class AdminController extends Controller
     {
         $posts = [];
         if ($this->postModel) {
-            try { $posts = $this->postModel->all(); } catch (\Throwable $e) {}
+            try { $posts = $this->postModel->getAllWithDetails('post'); } catch (\Throwable $e) {}
         }
         return $this->view('system::admin_posts', ['posts' => $posts]);
     }
@@ -138,8 +138,7 @@ class AdminController extends Controller
         $pages = [];
         if ($this->postModel) {
             try {
-                $all = $this->postModel->all();
-                $pages = array_filter($all, fn($p) => ($p['type'] ?? 'post') === 'page');
+                $pages = $this->postModel->getAllWithDetails('page');
             } catch (\Throwable $e) {}
         }
         return $this->view('system::admin_pages', ['pages' => $pages]);
