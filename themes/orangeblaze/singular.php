@@ -24,7 +24,7 @@
             <div class="nav-links">
                 <div class="nav-previous">
                     <?php if (isset($prev_post) && $prev_post): ?>
-                        <a href="/post/<?= (int)$prev_post['id'] ?>" rel="prev">
+                        <a href="/posts/<?= (int)$prev_post['id'] ?>" rel="prev">
                             <span class="nav-subtitle">← <?= __('Previous Post') ?></span>
                             <span class="nav-title"><?= htmlspecialchars($prev_post['title']) ?></span>
                         </a>
@@ -32,7 +32,7 @@
                 </div>
                 <div class="nav-next">
                     <?php if (isset($next_post) && $next_post): ?>
-                        <a href="/post/<?= (int)$next_post['id'] ?>" rel="next">
+                        <a href="/posts/<?= (int)$next_post['id'] ?>" rel="next">
                             <span class="nav-subtitle"><?= __('Next Post') ?> →</span>
                             <span class="nav-title"><?= htmlspecialchars($next_post['title']) ?></span>
                         </a>
