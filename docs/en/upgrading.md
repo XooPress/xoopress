@@ -51,6 +51,18 @@ rm -rf storage/cache/*
 
 - First stable release
 - No upgrade path from earlier versions
+- Features included: core framework, module system, theme system, i18n, content editor
+
+### Recent Updates (Post 1.0.0)
+
+- **Post Pagination** — Previous/next post navigation added to `singular.php` across all 5 themes
+- **Author/Editor Roles** — Authors can create and manage their own posts; Editors can manage all content
+- **Per-User Theme Override** — Users can switch themes via session preference (`$_SESSION['user_theme']`)
+- **Theme Upload** — Upload themes as `.zip` files via admin panel at `/admin/themes`
+- **Module Upload** — Upload modules as `.zip` files via admin panel at `/admin/modules`
+- **5 Built-in Themes** — Added xoopress-dark, greenleaf, orangeblaze, purplehaze themes
+- **Multi-Format Editor** — Visual (WYSIWYG), HTML, Markdown, and PHP editor modes with live preview
+- **Pagination UI** — Standardized pagination CSS across all themes
 
 ## Rollback
 

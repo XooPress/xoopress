@@ -24,7 +24,7 @@ The admin navigation menu provides access to all management sections:
 The dashboard displays:
 
 - **Site Information** — XooPress version, PHP version
-- **Module List** — All installed modules with versions
+- **Module List** — All installed modules with versions (System, Content)
 - **User Count** — Total registered users
 - **Quick Links** — Common admin tasks
 
@@ -37,3 +37,14 @@ Example:
 - `/admin/posts/new` — Create new post
 - `/admin/posts/edit/1` — Edit post with ID 1
 - `/admin/posts/delete/1` — Delete post with ID 1
+
+## Role-Based Access
+
+The navigation menu adapts to the user's role:
+
+| Role | Access |
+|------|--------|
+| **Admin** | Full menu — all sections visible |
+| **Editor** | Posts, Pages, Categories, Dashboard |
+| **Author** | Posts (own only), Dashboard |
+| **Subscriber** | Dashboard only (limited info) |

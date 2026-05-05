@@ -5,7 +5,7 @@
 - **PHP** 8.2 or higher
 - **Database** MySQL 5.7+ or MariaDB 10.3+
 - **Web Server** Apache with mod_rewrite, or Nginx
-- **Extensions** PDO, PDO MySQL, mbstring, intl, zip (for uploads)
+- **Extensions** PDO, PDO MySQL, mbstring, intl, zip (for uploads), gettext (for i18n)
 - **Composer** (for dependency management)
 
 ## Quick Install
@@ -25,10 +25,10 @@ composer install --no-dev
 
 ### 3. Configure Database
 
-Copy the config file and edit your database settings:
+Copy the example config file and edit your database settings:
 
 ```bash
-cp config/app.php config/app.local.php
+cp config/app.example.php config/app.local.php
 ```
 
 Edit `config/app.local.php`:
@@ -45,6 +45,8 @@ Edit `config/app.local.php`:
     'charset'  => 'utf8mb4',
 ],
 ```
+
+> **Note:** The `config/app.local.php` file is in `.gitignore` and will not be committed. All local overrides should go in this file.
 
 ### 4. Set Up Web Server
 
@@ -88,10 +90,11 @@ server {
 Navigate to `http://your-server/install.php` in your browser.
 
 The installer will:
-1. Verify system requirements
-2. Create the database tables
-3. Create the admin user
-4. Set up default settings
+1. Verify system requirements (PHP version, extensions, database connection)
+2. Create the database tables (settings, users, sessions, modules, posts, categories, post_meta, theme_settings)
+3. Create the admin user account
+4. Set up default settings (site name, default theme, available locales)
+5. Install default modules (System, Content)
 
 ### 6. Login
 
@@ -102,7 +105,7 @@ Navigate to `/login` and sign in with the admin credentials you created during i
 - Visit `/admin` to access the dashboard
 - Go to `/admin/settings` to configure your site name and description
 - Check `/admin/modules` to see installed modules
-- Visit `/admin/themes` to manage your active theme
+- Visit `/admin/themes` to manage your active theme (5 built-in themes available)
 
 ## Troubleshooting
 
@@ -113,3 +116,4 @@ Navigate to `/login` and sign in with the admin credentials you created during i
 | Database connection error | Verify credentials in `config/app.local.php` |
 | "Call to undefined function __()" | Ensure `app/helpers.php` is loaded (check `public/index.php`) |
 | File upload fails | Check `upload_max_filesize` and `post_max_size` in php.ini |
+| Installer shows "ext-gettext missing" | Install PHP gettext extension, or it will fall back to built-in .mo parser |

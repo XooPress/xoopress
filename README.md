@@ -1,5 +1,4 @@
-<img src="/public/images/xp-logo.svg" alt="Official OOPress Logo" width="220" height="220">
-
+<img src="/public/images/xp-logo.svg" alt="Official XooPress Logo" width="220" height="220">
 
 [![PHP Version](https://img.shields.io/badge/php-8.2%2B-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-GPL--v3-green.svg)](LICENSE)
@@ -13,16 +12,20 @@ A modular CMS combining the best of XOOPS and WordPress concepts — built from 
 
 ## Features
 
-- **Modular Architecture** — Extend functionality with plug-and-play modules
+- **Modular Architecture** — Extend functionality with plug-and-play modules (XOOPS-style)
+- **Theme System** — WordPress-style themes with child theme support and 5 built-in themes
 - **MVC Pattern** — Clean separation of concerns (Model-View-Controller)
 - **PDO Database** — Secure database access with prepared statements and transactions
-- **Internationalization** — Full i18n support via gettext with automatic browser locale detection
-- **Dependency Injection** — Lightweight DI container for service management
-- **Routing** — Simple yet powerful pattern-based HTTP router
+- **Internationalization** — Full i18n support with custom .mo parser, gettext fallback, and 3 locales (en, de, fr)
+- **Dependency Injection** — Lightweight PSR-11-like DI container for service management
+- **Routing** — Simple yet powerful pattern-based HTTP router (`:num`, `:alpha`, `:all`)
 - **Validation** — Built-in validator with 20+ rules
 - **Error Handling** — Whoops error handling for beautiful debug pages
 - **Multi-Format Content Editor** — Write posts in Visual (WYSIWYG), HTML, Markdown, or PHP
-- **Theme System** — WordPress-style themes with child theme support
+- **User Roles** — Admin, Editor, Author, Subscriber with role-based capabilities
+- **Post Pagination** — Previous/next post navigation across all themes
+- **Content Rendering** — Server-side multi-format content rendering engine
+- **Per-User Theme Override** — Users can switch themes via session preference
 - **Documentation** — Comprehensive user & developer docs in `docs/`
 
 ## Requirements
@@ -42,7 +45,13 @@ composer install --no-dev
 
 ## Configuration
 
-Edit `config/app.php` to set your database credentials and other settings:
+Copy the example config and edit your database settings:
+
+```bash
+cp config/app.example.php config/app.local.php
+```
+
+Edit `config/app.local.php` to set your database credentials:
 
 ```php
 'database' => [
@@ -89,7 +98,8 @@ xoopress/
 │       ├── Router.php       # HTTP router
 │       └── Validator.php    # Input validation
 ├── config/
-│   └── app.php              # Application configuration
+│   ├── app.example.php      # Example configuration
+│   └── app.local.php        # Local overrides (gitignored)
 ├── docs/                    # Documentation
 │   ├── README.md            # Documentation table of contents
 │   ├── project-summary.md   # Architecture overview & roadmap
@@ -105,12 +115,20 @@ xoopress/
 │       ├── Controllers/     # Post, Category
 │       ├── Models/          # Post, Category
 │       └── views/           # Templates
+├── themes/
+│   ├── xoopress-lite/       # Default light theme
+│   ├── xoopress-dark/       # Dark theme variant
+│   ├── greenleaf/           # Organic green theme
+│   ├── orangeblaze/         # Warm orange theme
+│   └── purplehaze/          # Creative purple theme
 ├── public/
 │   ├── index.php            # Entry point
 │   ├── .htaccess            # URL rewriting
-│   └── css/xoopress.css     # Stylesheet
-├── locales/                 # Translation files
-└── storage/                 # Cache & logs
+│   ├── install.php          # Web installer
+│   └── css/xoopress.css     # Admin stylesheet
+├── locales/                 # Translation files (en_US, de_DE, fr_FR)
+├── storage/                 # Cache & logs
+└── themes/                  # Theme directories
 ```
 
 ## Web Server Setup
@@ -144,7 +162,7 @@ server {
 1. Create a directory in `modules/YourModule/`
 2. Add a `module.php` definition file
 3. Create controllers, models, and views as needed
-4. Add the module name to `config/app.php` `modules.enabled` array
+4. Install via the admin panel at `/admin/modules`
 
 Example module definition (`modules/example/module.php`):
 
@@ -166,6 +184,18 @@ return [
     'uninstall' => function ($container) { /* drop tables */ },
 ];
 ```
+
+## Built-in Themes
+
+XooPress ships with 5 themes:
+
+- **XooPress Lite** — Clean, minimal default theme
+- **XooPress Dark** — Dark mode variant with the same structure
+- **GreenLeaf** — Fresh green theme for environmental/wellness sites
+- **OrangeBlaze** — Warm orange theme with bold typography
+- **PurpleHaze** — Creative purple theme with vibrant gradients
+
+All themes include full template support (header, footer, index, singular) with responsive design and post pagination.
 
 ## License
 

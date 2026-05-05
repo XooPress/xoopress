@@ -15,11 +15,13 @@ Navigate to `/admin/pages` to see all pages. The interface is similar to posts b
 |-------|-------------|
 | **Title** | The page headline (required) |
 | **Slug** | URL-friendly version (auto-generated if left empty) |
-| **Content** | The main body (HTML) |
+| **Content** | The main body (HTML, Markdown, Visual, or PHP) |
+| **Excerpt** | A short summary for listings |
 | **Status** | Draft or Published |
-| **Language** | Content language |
+| **Language** | Content language (en_US, de_DE, fr_FR) |
 
-3. Click **Save**
+3. Choose your editor mode (Visual, HTML, Markdown, or PHP)
+4. Click **Save**
 
 ## Editing a Page
 
@@ -37,3 +39,12 @@ Navigate to `/admin/pages` to see all pages. The interface is similar to posts b
 | Archives | Yes | No |
 | URL pattern | `/posts/{id}` | Custom routing needed |
 | Use case | Blog, news | About, contact, landing |
+
+## Role-Based Access
+
+| Role | Can create/edit pages? |
+|------|-----------------------|
+| **Admin** | ✅ |
+| **Editor** | ✅ |
+| **Author** | ❌ |
+| **Subscriber** | ❌ |

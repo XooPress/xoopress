@@ -17,11 +17,19 @@ The main content area displays:
 
 - **Homepage** — Latest published posts or a welcome message
 - **Posts Archive** — List of all published posts at `/posts`
-- **Single Post** — Full post content at `/posts/{id}`
+- **Single Post** — Full post content at `/posts/{id}` with previous/next post navigation
+
+## Post Pagination
+
+On single post pages (`/posts/{id}`), previous and next post links are displayed at the bottom for easy navigation between posts.
 
 ## Site Footer
 
 The footer typically contains copyright information.
+
+## Theme Switching
+
+XooPress supports per-user theme switching via session preference. Depending on the theme configuration, you may be able to select a personal theme preference that overrides the site-wide theme.
 
 ## Language Switching
 

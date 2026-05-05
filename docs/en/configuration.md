@@ -1,6 +1,6 @@
 # Configuration
 
-XooPress configuration is managed through `config/app.php`. For local overrides, create `config/app.local.php` which is merged on top of the defaults.
+XooPress configuration is managed through `config/app.example.php`. For your local settings, copy it to `config/app.local.php` which is merged on top of the defaults and is gitignored.
 
 ## Database Configuration
 
@@ -14,6 +14,7 @@ XooPress configuration is managed through `config/app.php`. For local overrides,
     'password' => '',
     'prefix'   => 'xp_',
     'charset'  => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
     'options'  => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -32,22 +33,25 @@ XooPress configuration is managed through `config/app.php`. For local overrides,
 | `password` | Database password |
 | `prefix` | Table prefix (e.g., `xp_` for `xp_posts`) |
 | `charset` | Connection charset |
+| `collation` | Connection collation |
 | `options` | PDO options array |
 
 ## Internationalization (i18n)
 
 ```php
 'i18n' => [
-    'default_locale'   => 'en_US',
+    'default_locale'    => 'en_US',
+    'fallback_locale'   => 'en_US',
     'available_locales' => ['en_US', 'de_DE', 'fr_FR'],
-    'domain'           => 'messages',
-    'encoding'         => 'UTF-8',
+    'domain'            => 'messages',
+    'encoding'          => 'UTF-8',
 ],
 ```
 
 | Option | Description |
 |--------|-------------|
 | `default_locale` | Fallback locale |
+| `fallback_locale` | Secondary fallback locale |
 | `available_locales` | Array of supported locales |
 | `domain` | Translation domain (maps to `.mo` filename) |
 | `encoding` | Character encoding |
@@ -57,24 +61,55 @@ XooPress configuration is managed through `config/app.php`. For local overrides,
 ```php
 'session' => [
     'enabled' => true,
-    'options' => [
-        'name'           => 'XOOPRESS_SESSION',
-        'cookie_lifetime' => 86400 * 7,
-        'cookie_path'    => '/',
-        'cookie_domain'  => '',
-        'cookie_secure'  => false,
-        'cookie_httponly' => true,
+    'name'    => 'xoopress_session',
+    'lifetime' => 7200, // 2 hours
+    'path'    => '/',
+    'domain'  => '',
+    'secure'  => false,
+    'httponly' => true,
+    'options' => [],
+],
+```
+
+## Security Configuration
+
+```php
+'security' => [
+    'csrf' => [
+        'enabled' => true,
+        'token_name' => '_csrf_token',
     ],
+    'xss_protection' => true,
+],
+```
+
+## Cache Configuration
+
+```php
+'cache' => [
+    'driver' => 'file',
+    'path'   => dirname(__DIR__) . '/storage/cache',
+    'ttl'    => 3600,
+],
+```
+
+## Logging Configuration
+
+```php
+'logging' => [
+    'enabled' => true,
+    'path'    => dirname(__DIR__) . '/storage/logs',
+    'level'   => 'debug',
 ],
 ```
 
 ## Debug Mode
 
 ```php
-'debug' => false,
+'debug' => true,
 ```
 
-Set to `true` to enable detailed error messages during development. Always set to `false` in production.
+Set to `true` to enable detailed error messages (Whoops) during development. Always set to `false` in production.
 
 ## Timezone
 
@@ -83,6 +118,15 @@ Set to `true` to enable detailed error messages during development. Always set t
 ```
 
 See the [PHP timezone documentation](https://www.php.net/manual/en/timezones.php) for valid values.
+
+## URL Settings
+
+```php
+'url' => [
+    'base'   => 'http://localhost',
+    'assets' => '/assets',
+],
+```
 
 ## Modules
 
@@ -104,7 +148,7 @@ See the [PHP timezone documentation](https://www.php.net/manual/en/timezones.php
 
 To override settings without modifying the main config file:
 
-1. Copy `config/app.php` to `config/app.local.php`
+1. Copy `config/app.example.php` to `config/app.local.php`
 2. Modify only the values you need to change
 3. The local file is merged on top of the defaults
 

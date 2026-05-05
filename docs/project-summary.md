@@ -16,7 +16,7 @@ A modular open-source Content Management System combining the modular architectu
 | `ModuleManager.php` | XOOPS-style module system (DB-backed install/uninstall/activate/deactivate) |
 | `Router.php` | URL routing with pattern matching (`:num`, `:alpha`, `:all`) |
 | `ThemeManager.php` | WordPress-style theme system (style.css headers, child themes, template hierarchy) |
-| `Validator.php` | Request validation |
+| `Validator.php` | Request validation with 20+ rules |
 
 ### Modules (`modules/`)
 | Module | Purpose | DB Tables Created |
@@ -24,18 +24,33 @@ A modular open-source Content Management System combining the modular architectu
 | `System` | Core: auth, admin dashboard, users, settings, sessions | `users`, `settings`, `sessions` |
 | `Content` | Posts, pages, categories, custom content types | `posts`, `categories`, `post_meta` |
 
-### Theme System (`themes/`)
+### Themes (`themes/`)
 | Theme | Description |
 |-------|-------------|
-| `xoopress-lite` | Default theme: header.php, footer.php, index.php, style.css |
+| `xoopress-lite` | Default light theme: header.php, footer.php, index.php, style.css |
+| `xoopress-dark` | Dark theme variant with full template support |
+| `greenleaf` | Fresh green organic theme for environmental/wellness sites |
+| `orangeblaze` | Warm orange theme with bold typography |
+| `purplehaze` | Creative purple theme with vibrant gradients |
+
+All five themes include:
+- `header.php`, `footer.php`, `index.php`, `singular.php` (full template set)
+- `style.css` with WordPress-style header metadata
+- Pagination support (previous/next post navigation)
+- Responsive layouts with CSS variables
+- `assets/` directory (css, js, images)
+- `screenshot.png` for admin preview
 
 ## Theme System (WordPress-style)
 
 ### How it works
 - Themes are directories under `themes/` with a `style.css` header block
 - The active theme is stored in the `settings` DB table (`active_theme` key)
+- Per-user theme override via session (`$_SESSION['user_theme']`)
 - Template hierarchy: child theme → parent theme → index.php fallback
 - Template parts: `getHeader()`, `getFooter()`, `getSidebar()`, `getTemplatePart()`
+- `theme.json` support for advanced configuration
+- Theme upload via `.zip` files in admin panel
 
 ### Theme style.css header
 ```css
@@ -77,6 +92,13 @@ $theme->getSetting('key', 'default');
 $theme->setSetting('key', $value);
 ```
 
+### Post Pagination
+All themes include previous/next post navigation on singular post pages (`singular.php`):
+- Previous/Next post links with titles
+- Styled navigation with hover effects
+- Responsive (stacks vertically on mobile)
+- Falls back gracefully when no adjacent posts exist
+
 ## Module System (XOOPS-style)
 
 ### Module structure
@@ -116,6 +138,22 @@ return [
 - **Not Installed**: module files exist in `modules/` but not registered in DB
 - **Installed (Active)**: DB record exists `active=1`, routes/services/translations loaded
 - **Installed (Inactive)**: DB record exists `active=0`, not loaded but data preserved
+
+### Module Lifecycle
+| Event | Trigger | What happens |
+|-------|---------|-------------|
+| **Install** | Admin clicks Install | `install` callback runs (creates tables), DB record created, module activated |
+| **Activate** | Admin clicks Activate | Routes registered, services bound, translations loaded, `init` callback runs |
+| **Deactivate** | Admin clicks Deactivate | Routes unregistered, services unbound, module state set to inactive |
+| **Uninstall** | Admin clicks Uninstall | `uninstall` callback runs (drops tables), DB record removed |
+| **Upload** | Admin uploads zip | Files extracted to `modules/`, module appears in list |
+| **Delete** | Admin clicks Delete | Module directory removed from filesystem (only if not installed) |
+
+### Dependencies
+- Modules declare dependencies via `dependencies` array in `module.php`
+- System blocks installation if a dependency is missing
+- System blocks uninstallation if another module depends on it
+- Dependencies are initialized before the dependent module
 
 ## Content Renderer & Multi-Input Editor
 
@@ -171,10 +209,23 @@ content_type VARCHAR(20) DEFAULT 'html'
 ### Dependencies
 
 - `erusev/parsedown` (^1.8) — Markdown-to-HTML conversion library
+- `filp/whoops` (^2.16) — Error handling for beautiful debug pages
+
+## User Roles & Permissions
+
+| Role | Capabilities |
+|------|-------------|
+| **Admin** | Full access to all admin features |
+| **Editor** | Can manage all posts, pages, and categories |
+| **Author** | Can create and manage their own posts |
+| **Subscriber** | Can log in and manage their profile only |
 
 ## Suggested Roadmap for Core
 
 ### Phase 1: Stability & Polish (Current)
+- [x] Post pagination (previous/next navigation in singular.php across all themes)
+- [x] Author/Editor role-based post management
+- [x] Pagination CSS cleanup and standardization across all themes
 - [ ] Add comprehensive error handling to theme/module upload
 - [ ] Add CSRF protection to all admin POST routes
 - [ ] Improve .mo file parser robustness (more edge cases)
@@ -262,7 +313,7 @@ content_type VARCHAR(20) DEFAULT 'html'
 4. **View rendering**: Plain PHP templates with `extract()` + `include()` (no Blade/Twig dependency)
 5. **Routing**: Simple pattern matching (no Symfony Router dependency)
 6. **Container**: Custom PSR-11-like container (no Symfony DI / PHP-DI dependency)
-7. **CSS**: Plain CSS files (no build step, no Sass/Less/PostCSS)
+7. **CSS**: Plain CSS files with CSS custom properties (no build step, no Sass/Less/PostCSS)
 
 ## Quick Reference
 
