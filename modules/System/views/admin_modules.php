@@ -86,6 +86,7 @@
                         <td><?= htmlspecialchars($def['description'] ?? '') ?></td>
                         <td><span class="status-badge <?= $statusClass ?>"><?= $statusText ?></span></td>
                         <td class="actions-cell">
+                            <a href="/admin/modules/edit/<?= urlencode($name) ?>" class="btn btn-sm btn-primary"><?= __('Edit') ?></a>
                             <?php if (!$isInstalled): ?>
                                 <a href="/admin/modules/install/<?= urlencode($name) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
                                 <a href="/admin/modules/delete/<?= urlencode($name) ?>" class="btn btn-sm btn-danger" onclick="return confirm('<?= __('Delete this module from filesystem?') ?>')"><?= __('Delete') ?></a>

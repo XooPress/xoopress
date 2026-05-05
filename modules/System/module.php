@@ -210,6 +210,16 @@ return [
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleDelete'],
         ],
         [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/edit/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/modules/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleSave'],
+        ],
+        [
             'method' => 'POST',
             'pattern' => '/admin/modules/upload',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUpload'],

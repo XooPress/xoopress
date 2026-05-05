@@ -22,6 +22,7 @@
                 <li><a href="/admin/categories">Categories</a></li>
                 <li><a href="/admin/users">Users</a></li>
                 <li><a href="/admin/themes">Themes</a></li>
+                <li><a href="/admin/modules">Modules</a></li>
                 <li><a href="/admin/settings">Settings</a></li>
                 <li><a href="/user/themes">Choose Theme</a></li>
                 <li><a href="/">View Site</a></li>

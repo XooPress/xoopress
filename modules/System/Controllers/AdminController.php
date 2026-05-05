@@ -485,6 +485,106 @@ class AdminController extends Controller
         $this->redirect($redirect);
     }
 
+    public function moduleEdit(string $name): string
+    {
+        $this->requireAdmin();
+        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
+        $module = $modules[$name] ?? null;
+        if (!$module) {
+            $_SESSION['modules_message'] = "Module '{$name}' not found.";
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return '';
+        }
+        $message = $_SESSION['modules_message'] ?? null;
+        $messageType = $_SESSION['modules_message_type'] ?? null;
+        unset($_SESSION['modules_message'], $_SESSION['modules_message_type']);
+        return $this->view('system::admin_module_edit', [
+            'module' => $module,
+            'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
+        ]);
+    }
+
+    public function moduleSave(): void
+    {
+        $this->requireAdmin();
+        $data = $this->all();
+        $name = $data['name'] ?? '';
+        if (empty($name)) {
+            $_SESSION['modules_message'] = __('Module name is required.');
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return;
+        }
+
+        $modules = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if (!$modules) {
+            $_SESSION['modules_message'] = __('Module manager not available.');
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return;
+        }
+
+        $module = $modules->getModule($name);
+        if (!$module) {
+            $_SESSION['modules_message'] = "Module '{$name}' not found.";
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return;
+        }
+
+        // Update module definition file (module.php)
+        $def = $module['definition'] ?? [];
+        $def['name'] = $data['display_name'] ?? $def['name'] ?? $name;
+        $def['version'] = $data['version'] ?? $def['version'] ?? '1.0.0';
+        $def['description'] = $data['description'] ?? $def['description'] ?? '';
+        $def['author'] = $data['author'] ?? $def['author'] ?? '';
+        $def['license'] = $data['license'] ?? $def['license'] ?? '';
+
+        // Write updated definition back to module.php
+        $modulePhpPath = $module['path'] . '/module.php';
+        $this->writeModuleDefinition($modulePhpPath, $def);
+
+        // Update database record if module is installed
+        if ($module['installed']) {
+            try {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                $db->update($prefix . 'modules', [
+                    'version' => $def['version'],
+                    'description' => $def['description'],
+                    'author' => $def['author'],
+                    'license' => $def['license'],
+                    'active' => !empty($data['active']) ? 1 : 0,
+                ], ['name' => $name]);
+            } catch (\Throwable $e) {
+                error_log("Failed to update module DB record: " . $e->getMessage());
+            }
+        }
+
+        $_SESSION['modules_message'] = __('Module settings saved.');
+        $_SESSION['modules_message_type'] = 'success';
+        $this->redirect('/admin/modules/edit/' . urlencode($name));
+    }
+
+    /**
+     * Write a module definition array back to a module.php file
+     */
+    private function writeModuleDefinition(string $path, array $def): void
+    {
+        $code = "<?php\n/**\n * Module Definition\n *\n * @package XooPress\n * @subpackage Modules\n */\n\nreturn [\n";
+        $code .= "    'name' => " . var_export($def['name'] ?? '', true) . ",\n";
+        $code .= "    'version' => " . var_export($def['version'] ?? '1.0.0', true) . ",\n";
+        $code .= "    'description' => " . var_export($def['description'] ?? '', true) . ",\n";
+        $code .= "    'author' => " . var_export($def['author'] ?? '', true) . ",\n";
+        $code .= "    'license' => " . var_export($def['license'] ?? '', true) . ",\n";
+        $code .= "    'dependencies' => " . var_export($def['dependencies'] ?? [], true) . ",\n";
+        $code .= "];\n";
+        file_put_contents($path, $code);
+    }
+
     public function moduleUpload(): void
     {
         $redirect = '/admin/modules';
