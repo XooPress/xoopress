@@ -35,3 +35,25 @@ function __(string $message): string
     
     return $message;
 }
+
+/**
+ * Get published pages for footer menu.
+ * Pages are stored in the posts table with type = 'page'.
+ *
+ * @return array
+ */
+function getFooterPages(): array
+{
+    try {
+        if (isset($GLOBALS['xoopress_container'])) {
+            $container = $GLOBALS['xoopress_container'];
+            if ($container->has('content.post')) {
+                $postModel = $container->get('content.post');
+                return $postModel->where(['status' => 'published', 'type' => 'page']);
+            }
+        }
+    } catch (\Throwable $e) {
+        // Silently fail - footer menu is non-essential
+    }
+    return [];
+}

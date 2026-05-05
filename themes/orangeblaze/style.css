@@ -294,6 +294,26 @@ a:hover {
     margin-top: 3rem;
 }
 
+.footer-menu {
+    margin-bottom: 0.75rem;
+}
+
+.footer-menu-link {
+    color: var(--gray-light);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.footer-menu-link:hover {
+    color: var(--primary-light);
+    text-decoration: none;
+}
+
+.footer-menu-sep {
+    margin: 0 0.5rem;
+    color: rgba(255,255,255,0.3);
+}
+
 .site-footer .container p {
     margin: 0;
 }

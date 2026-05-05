@@ -538,6 +538,26 @@ a:hover {
     margin-top: var(--spacing-16);
 }
 
+.footer-menu {
+    margin-bottom: 0.75rem;
+}
+
+.footer-menu-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: var(--transition-base);
+}
+
+.footer-menu-link:hover {
+    color: var(--primary-light);
+    text-decoration: none;
+}
+
+.footer-menu-sep {
+    margin: 0 0.5rem;
+    color: var(--border-medium);
+}
+
 .site-footer p {
     margin-bottom: 0;
     color: var(--text-muted);
