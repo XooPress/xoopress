@@ -35,6 +35,13 @@ class ModuleManager
     protected array $modules = [];
     
     /**
+     * Registered admin menu links
+     * 
+     * @var array
+     */
+    protected array $adminMenu = [];
+    
+    /**
      * Database table prefix for module tracking
      */
     protected ?string $table = null;
@@ -223,6 +230,65 @@ class ModuleManager
     public function getModules(): array
     {
         return $this->modules;
+    }
+    
+    /**
+     * Register an admin menu link for a module
+     * 
+     * @param string $label Menu label (translated)
+     * @param string $url URL path (e.g., '/admin/my-module')
+     * @param string $moduleName Module name this link belongs to
+     * @param int $order Sort order (lower = first)
+     * @return void
+     */
+    public function addAdminMenuLink(string $label, string $url, string $moduleName, int $order = 10): void
+    {
+        $this->adminMenu[] = [
+            'label' => $label,
+            'url' => $url,
+            'module' => $moduleName,
+            'order' => $order,
+        ];
+    }
+    
+    /**
+     * Get all registered admin menu links, sorted by order
+     * 
+     * @return array
+     */
+    public function getAdminMenuLinks(): array
+    {
+        $links = $this->adminMenu;
+        usort($links, function ($a, $b) {
+            return $a['order'] <=> $b['order'];
+        });
+        return $links;
+    }
+    
+    /**
+     * Get admin menu links for a specific module
+     * 
+     * @param string $moduleName
+     * @return array
+     */
+    public function getModuleAdminMenuLinks(string $moduleName): array
+    {
+        return array_values(array_filter($this->adminMenu, function ($link) use ($moduleName) {
+            return $link['module'] === $moduleName;
+        }));
+    }
+    
+    /**
+     * Remove all admin menu links for a module
+     * 
+     * @param string $moduleName
+     * @return void
+     */
+    public function removeModuleAdminMenuLinks(string $moduleName): void
+    {
+        $this->adminMenu = array_values(array_filter($this->adminMenu, function ($link) use ($moduleName) {
+            return $link['module'] !== $moduleName;
+        }));
     }
     
     /**
@@ -445,6 +511,9 @@ class ModuleManager
         $module['active'] = false;
         $module['loaded'] = false;
         
+        // Remove admin menu links for this module
+        $this->removeModuleAdminMenuLinks($name);
+        
         return ['success' => true, 'message' => "Module '{$name}' deactivated."];
     }
     
@@ -474,6 +543,19 @@ class ModuleManager
             if (isset($def['services']) && is_array($def['services'])) {
                 foreach ($def['services'] as $serviceName => $serviceDef) {
                     $this->container->bind($serviceName, $serviceDef);
+                }
+            }
+            
+            // Register admin menu links from module definition
+            if (isset($def['admin_menu']) && is_array($def['admin_menu'])) {
+                foreach ($def['admin_menu'] as $menuItem) {
+                    if (!isset($menuItem['label'], $menuItem['url'])) continue;
+                    $this->addAdminMenuLink(
+                        $menuItem['label'],
+                        $menuItem['url'],
+                        $name,
+                        $menuItem['order'] ?? 10
+                    );
                 }
             }
             

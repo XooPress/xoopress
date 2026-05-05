@@ -91,14 +91,15 @@
                 <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
             </div>
             <ul class="admin-nav">
-                <li><a href="/admin"><?= __('Dashboard') ?></a></li>
-                <li><a href="/admin/posts"><?= __('Posts') ?></a></li>
-                <li><a href="/admin/pages"><?= __('Pages') ?></a></li>
-                <li><a href="/admin/categories"><?= __('Categories') ?></a></li>
-                <li><a href="/admin/users"><?= __('Users') ?></a></li>
-                <li><a href="/admin/modules"><?= __('Modules') ?></a></li>
-                <li><a href="/admin/themes" class="active"><?= __('Themes') ?></a></li>
-                <li><a href="/admin/settings"><?= __('Settings') ?></a></li>
+                <?php if (!empty($adminMenu)): ?>
+                <?php foreach ($adminMenu as $menuItem): ?>
+                <?php
+                    $menuUrl = $menuItem['url'] ?? '';
+                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
+                ?>
+                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
+                <?php endforeach; ?>
+                <?php endif; ?>
                 <li><a href="/"><?= __('View Site') ?></a></li>
                 <li><a href="/logout"><?= __('Logout') ?></a></li>
             </ul>

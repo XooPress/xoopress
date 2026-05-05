@@ -65,6 +65,20 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Get admin menu links from all active modules
+     * 
+     * @return array
+     */
+    private function getAdminMenu(): array
+    {
+        if ($this->container->has('modules')) {
+            $modules = $this->container->get('modules');
+            return $modules->getAdminMenuLinks();
+        }
+        return [];
+    }
+
     public function dashboard(): string
     {
         $this->requireAdmin();
@@ -88,6 +102,7 @@ class AdminController extends Controller
             'version' => defined('XOO_PRESS_VERSION') ? XOO_PRESS_VERSION : '1.0.0',
             'modules' => $moduleList,
             'userCount' => $userCount,
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -109,7 +124,10 @@ class AdminController extends Controller
                 }
             } catch (\Throwable $e) {}
         }
-        return $this->view('system::admin_posts', ['posts' => $posts]);
+        return $this->view('system::admin_posts', [
+            'posts' => $posts,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
     }
 
     public function postNew(): string
@@ -118,6 +136,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => $categories, 'type' => 'post',
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -134,6 +153,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $post['type'] ?? 'post',
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -222,13 +242,17 @@ class AdminController extends Controller
                 $pages = $this->postModel->getAllWithDetails('page');
             } catch (\Throwable $e) {}
         }
-        return $this->view('system::admin_pages', ['pages' => $pages]);
+        return $this->view('system::admin_pages', [
+            'pages' => $pages,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
     }
 
     public function pageNew(): string
     {
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => [], 'type' => 'page',
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -238,6 +262,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => 'page',
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -246,7 +271,10 @@ class AdminController extends Controller
     public function categories(): string
     {
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
-        return $this->view('system::admin_categories', ['categories' => $categories]);
+        return $this->view('system::admin_categories', [
+            'categories' => $categories,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
     }
 
     public function categorySave(): void
@@ -279,13 +307,17 @@ class AdminController extends Controller
         if ($this->userModel) {
             try { $users = $this->userModel->all(); } catch (\Throwable $e) {}
         }
-        return $this->view('system::admin_users', ['users' => $users]);
+        return $this->view('system::admin_users', [
+            'users' => $users,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
     }
 
     public function userNew(): string
     {
         return $this->view('system::admin_user_edit', [
             'isNew' => true, 'user' => [],
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -294,6 +326,7 @@ class AdminController extends Controller
         $user = $this->userModel ? $this->userModel->find($id) : null;
         return $this->view('system::admin_user_edit', [
             'isNew' => false, 'user' => $user ?? [],
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -361,6 +394,7 @@ class AdminController extends Controller
             'csrfToken' => $this->csrfToken(),
             'message' => $message,
             'messageType' => $messageType,
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -422,6 +456,7 @@ class AdminController extends Controller
             'csrfToken' => $this->csrfToken(),
             'message' => $message,
             'messageType' => $messageType,
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -504,6 +539,7 @@ class AdminController extends Controller
             'csrfToken' => $this->csrfToken(),
             'message' => $message,
             'messageType' => $messageType,
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
@@ -631,6 +667,7 @@ class AdminController extends Controller
             'csrfToken' => $this->csrfToken(),
             'message' => $message,
             'messageType' => $messageType,
+            'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 

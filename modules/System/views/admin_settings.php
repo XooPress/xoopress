@@ -14,13 +14,15 @@
                 <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
             </div>
             <ul class="admin-nav">
-                <li><a href="/admin">Dashboard</a></li>
-                <li><a href="/admin/posts">Posts</a></li>
-                <li><a href="/admin/pages">Pages</a></li>
-                <li><a href="/admin/categories">Categories</a></li>
-                <li><a href="/admin/users">Users</a></li>
-                <li><a href="/admin/themes">Themes</a></li>
-                <li><a href="/admin/settings" class="active">Settings</a></li>
+                <?php if (!empty($adminMenu)): ?>
+                <?php foreach ($adminMenu as $menuItem): ?>
+                <?php
+                    $menuUrl = $menuItem['url'] ?? '';
+                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
+                ?>
+                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
+                <?php endforeach; ?>
+                <?php endif; ?>
                 <li><a href="/">View Site</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>

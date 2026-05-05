@@ -15,6 +15,49 @@ return [
     
     'dependencies' => [],
     
+    'admin_menu' => [
+        [
+            'label' => 'Dashboard',
+            'url' => '/admin',
+            'order' => 1,
+        ],
+        [
+            'label' => 'Posts',
+            'url' => '/admin/posts',
+            'order' => 2,
+        ],
+        [
+            'label' => 'Pages',
+            'url' => '/admin/pages',
+            'order' => 3,
+        ],
+        [
+            'label' => 'Categories',
+            'url' => '/admin/categories',
+            'order' => 4,
+        ],
+        [
+            'label' => 'Users',
+            'url' => '/admin/users',
+            'order' => 5,
+        ],
+        [
+            'label' => 'Modules',
+            'url' => '/admin/modules',
+            'order' => 6,
+        ],
+        [
+            'label' => 'Themes',
+            'url' => '/admin/themes',
+            'order' => 7,
+        ],
+        [
+            'label' => 'Settings',
+            'url' => '/admin/settings',
+            'order' => 8,
+        ],
+    ],
+    
     'services' => [
         'system.user' => function ($container) {
             return new XooPress\Modules\System\Models\User($container->get('database'));
