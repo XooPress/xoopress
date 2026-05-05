@@ -60,7 +60,9 @@ function getFooterPages(): array
 
 /**
  * Get published pages for the main navigation menu (WordPress-style).
- * If no pages exist, returns an empty array.
+ * Respects the show_in_nav flag and menu_order per page.
+ * Only includes pages where the admin has set "Show in nav" = true.
+ * If no pages exist or none are set to show, returns an empty array.
  *
  * @return array
  */
@@ -71,7 +73,11 @@ function getNavPages(): array
             $container = $GLOBALS['xoopress_container'];
             if ($container->has('content.post')) {
                 $postModel = $container->get('content.post');
-                return $postModel->where(['status' => 'published', 'type' => 'page']);
+                if (method_exists($postModel, 'getNavPages')) {
+                    return $postModel->getNavPages();
+                }
+                // Fallback for backward compatibility
+                return $postModel->where(['status' => 'published', 'type' => 'page', 'show_in_nav' => 1]);
             }
         }
     } catch (\Throwable $e) {

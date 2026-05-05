@@ -134,5 +134,21 @@ return [
         } catch (\Throwable $e) {
             // Table may not exist yet
         }
+        
+        // Add show_in_nav column if it doesn't exist
+        try {
+            $result = $db->selectOne("SHOW COLUMNS FROM {$prefix}posts WHERE Field = 'show_in_nav'");
+            if (!$result) {
+                $db->query("ALTER TABLE {$prefix}posts ADD COLUMN show_in_nav TINYINT(1) DEFAULT 1 AFTER content_type, ADD INDEX idx_show_in_nav (show_in_nav)");
+            }
+        } catch (\Throwable $e) {}
+        
+        // Add menu_order column if it doesn't exist
+        try {
+            $result = $db->selectOne("SHOW COLUMNS FROM {$prefix}posts WHERE Field = 'menu_order'");
+            if (!$result) {
+                $db->query("ALTER TABLE {$prefix}posts ADD COLUMN menu_order INT DEFAULT 0 AFTER show_in_nav, ADD INDEX idx_menu_order (menu_order)");
+            }
+        } catch (\Throwable $e) {}
     },
 ];

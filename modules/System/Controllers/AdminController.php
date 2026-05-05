@@ -163,6 +163,12 @@ class AdminController extends Controller
                     'content_type' => $data['content_type'] ?? 'html',
                     'comment_status' => 'open',
                 ];
+                // Handle show_in_nav and menu_order for pages
+                if ($type === 'page') {
+                    // Checkbox not sent when unchecked, so default to 0 if absent
+                    $postData['show_in_nav'] = !empty($data['show_in_nav']) ? 1 : 0;
+                    $postData['menu_order'] = !empty($data['menu_order']) ? (int)$data['menu_order'] : 0;
+                }
                 if ($status === 'published' && empty($data['published_at'])) {
                     $postData['published_at'] = date('Y-m-d H:i:s');
                 }

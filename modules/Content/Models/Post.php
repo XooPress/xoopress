@@ -19,7 +19,7 @@ class Post extends Model
         'title', 'slug', 'content', 'excerpt', 'status',
         'author_id', 'category_id', 'type', 'featured_image',
         'comment_status', 'view_count', 'published_at',
-        'language', 'content_type',
+        'language', 'content_type', 'show_in_nav', 'menu_order',
     ];
 
     public function __construct(Database $db)
@@ -190,6 +190,22 @@ class Post extends Model
             "UPDATE {$this->table} SET view_count = view_count + 1 WHERE id = ?",
             [$id]
         );
+    }
+
+    /**
+     * Get published pages for the navigation menu (WordPress-style).
+     * Respects show_in_nav flag and menu_order.
+     *
+     * @return array
+     */
+    public function getNavPages(): array
+    {
+        $prefix = $this->db->getPrefix();
+        $sql = "SELECT id, title, slug
+                FROM {$prefix}posts
+                WHERE status = 'published' AND type = 'page' AND show_in_nav = 1
+                ORDER BY menu_order ASC, title ASC";
+        return $this->db->select($sql);
     }
 
     public function search(string $query, ?string $language = null): array

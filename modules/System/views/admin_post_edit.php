@@ -320,6 +320,22 @@
                         </select>
                     </div>
                 </div>
+                <?php if (($type ?? 'post') === 'page'): ?>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px;padding:15px;background:#f9f9f9;border:1px solid #eee;border-radius:4px;">
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" name="show_in_nav" value="1" <?= ($post['show_in_nav'] ?? 1) ? 'checked' : '' ?> style="width:auto;">
+                            <span><?= __('Show in navigation menu') ?></span>
+                        </label>
+                        <div class="form-hint" style="margin-left:26px;font-size:0.85rem;color:#888;">Uncheck to hide this page from the main navigation.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="menu_order"><?= __('Menu order') ?></label>
+                        <input type="number" id="menu_order" name="menu_order" value="<?= (int)($post['menu_order'] ?? 0) ?>" min="0" max="999" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;">
+                        <div class="form-hint" style="font-size:0.85rem;color:#888;">Lower numbers appear first in the menu.</div>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div style="margin-top:20px;">
                     <button type="submit" class="btn btn-primary" style="padding:12px 30px;"><?= $isNew ? 'Publish' : 'Update' ?></button>
                     <a href="<?= $listUrl ?>" class="btn btn-secondary" style="padding:12px 30px;">Cancel</a>
