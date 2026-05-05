@@ -253,6 +253,12 @@ a:hover {
     text-decoration: none;
 }
 
+.main-navigation .current-menu-item a {
+    background: var(--primary-bg);
+    color: var(--primary-light);
+    font-weight: 700;
+}
+
 .language-switcher select {
     padding: var(--spacing-2) var(--spacing-3);
     border-radius: var(--radius-full);

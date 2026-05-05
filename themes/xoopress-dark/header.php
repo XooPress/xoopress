@@ -32,16 +32,20 @@
             
             <nav class="main-navigation">
                 <ul>
-                    <li><a href="/"><?= __('Home') ?></a></li>
-                    <li><a href="/posts"><?= __('Posts') ?></a></li>
+                    <li class="<?= is_current_nav('/') ? 'current-menu-item' : '' ?>"><a href="/"><?= __('Home') ?></a></li>
+                    <li class="<?= is_current_nav('/posts') ? 'current-menu-item' : '' ?>"><a href="/posts"><?= __('Posts') ?></a></li>
+                    <?php $navPages = getNavPages(); ?>
+                    <?php foreach ($navPages as $navPage): ?>
+                    <li class="<?= is_current_nav('/posts/' . (int)$navPage['id']) ? 'current-menu-item' : '' ?>"><a href="/posts/<?= (int)$navPage['id'] ?>"><?= htmlspecialchars($navPage['title']) ?></a></li>
+                    <?php endforeach; ?>
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <li><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
+                        <li class="<?= is_current_nav('/user/dashboard') ? 'current-menu-item' : '' ?>"><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
                         <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
-                            <li><a href="/admin"><?= __('Admin') ?></a></li>
+                            <li class="<?= is_current_nav('/admin') ? 'current-menu-item' : '' ?>"><a href="/admin"><?= __('Admin') ?></a></li>
                         <?php endif; ?>
                         <li><a href="/logout"><?= __('Logout') ?></a></li>
                     <?php else: ?>
-                        <li><a href="/login"><?= __('Login') ?></a></li>
+                        <li class="<?= is_current_nav('/login') ? 'current-menu-item' : '' ?>"><a href="/login"><?= __('Login') ?></a></li>
                     <?php endif; ?>
                     <li class="language-switcher">
                         <select onchange="window.location.href='/locale/'+this.value">

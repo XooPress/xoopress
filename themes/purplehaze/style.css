@@ -264,6 +264,15 @@ a:hover {
     background: rgba(168, 85, 247, 0.1);
 }
 
+.main-navigation .current-menu-item a {
+    background: rgba(168, 85, 247, 0.15);
+    font-weight: 700;
+}
+
+.main-navigation .current-menu-item a::before {
+    width: 80%;
+}
+
 .language-switcher select {
     padding: var(--spacing-2) var(--spacing-3);
     border-radius: var(--radius-full);

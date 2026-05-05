@@ -143,6 +143,14 @@ a:hover {
     text-decoration: none;
 }
 
+.main-navigation .current-menu-item a {
+    color: var(--secondary);
+}
+
+.main-navigation .current-menu-item a::after {
+    width: 100%;
+}
+
 .language-switcher select {
     padding: 0.5rem;
     border-radius: 20px;
