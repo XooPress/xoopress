@@ -630,7 +630,7 @@ class ModuleManager
         // Check that the zip has a module.php at top level
         $moduleName = null;
         $hasModulePhp = false;
-        for ($i = 0; $i < $zip->numEntries; $i++) {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
             $parts = explode('/', $name);
             if (count($parts) === 2 && $parts[1] === 'module.php') {

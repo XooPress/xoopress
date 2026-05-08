@@ -713,7 +713,7 @@ class ThemeManager
         // Check for style.css at top level
         $themeDirName = null;
         $hasStyleCss = false;
-        for ($i = 0; $i < $zip->numEntries; $i++) {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
             $parts = explode('/', $name);
             if (count($parts) === 2 && $parts[1] === 'style.css') {
