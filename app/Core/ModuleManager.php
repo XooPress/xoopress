@@ -594,6 +594,30 @@ class ModuleManager
         if (!$def) return false;
         
         try {
+            // Register autoloader for standalone modules (not System/Content)
+            if (!in_array($name, ['System', 'Content'])) {
+                $composerFile = $module['path'] . '/composer.json';
+                if (file_exists($composerFile)) {
+                    $composerConfig = json_decode(file_get_contents($composerFile), true);
+                    if (isset($composerConfig['autoload']['psr-4'])) {
+                        foreach ($composerConfig['autoload']['psr-4'] as $namespace => $path) {
+                            $autoloadPath = $module['path'] . '/' . $path;
+                            if (is_dir($autoloadPath)) {
+                                spl_autoload_register(function ($class) use ($namespace, $autoloadPath) {
+                                    if (strpos($class, $namespace) === 0) {
+                                        $relativeClass = substr($class, strlen($namespace));
+                                        $file = $autoloadPath . '/' . str_replace('\\', '/', $relativeClass) . '.php';
+                                        if (file_exists($file)) {
+                                            require_once $file;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Load bootstrap file if exists
             $bootstrap = $module['path'] . '/bootstrap.php';
             if (file_exists($bootstrap)) {

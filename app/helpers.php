@@ -59,7 +59,8 @@ function getFooterPages(): array
 }
 
 /**
- * Get published pages for the main navigation menu (WordPress-style).
+ * Get navigation pages including standalone module routes.
+ * Combines footer pages with module-defined navigation items.
  * Respects the show_in_nav flag and menu_order per page.
  * Only includes pages where the admin has set "Show in nav" = true.
  * If no pages exist or none are set to show, returns an empty array.
