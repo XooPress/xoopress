@@ -13,7 +13,7 @@ return [
     'author' => 'XooPress Team',
     'license' => 'GPL-3.0-or-later',
     
-    'dependencies' => ['system'],
+    'dependencies' => ['System'],
     
     'services' => [
         'content.post' => function ($container) {

@@ -137,7 +137,7 @@ abstract class Model
     public function findBy(string $column, $value, array $columns = ['*']): ?array
     {
         $columns = $columns === ['*'] ? '*' : implode(', ', $columns);
-        $sql = "SELECT {$columns} FROM {$this->table} WHERE {$column} = ?";
+        $sql = "SELECT {$columns} FROM {$this->table} WHERE `{$column}` = ?";
         return $this->db->selectOne($sql, [$value]);
     }
     
@@ -152,7 +152,7 @@ abstract class Model
     public function findAllBy(string $column, $value, array $columns = ['*']): array
     {
         $columns = $columns === ['*'] ? '*' : implode(', ', $columns);
-        $sql = "SELECT {$columns} FROM {$this->table} WHERE {$column} = ?";
+        $sql = "SELECT {$columns} FROM {$this->table} WHERE `{$column}` = ?";
         return $this->db->select($sql, [$value]);
     }
     
@@ -284,7 +284,7 @@ abstract class Model
         $values = [];
         
         foreach ($conditions as $column => $value) {
-            $whereParts[] = "{$column} = ?";
+            $whereParts[] = "`{$column}` = ?";
             $values[] = $value;
         }
         
@@ -309,7 +309,7 @@ abstract class Model
         $values = [];
         
         foreach ($conditions as $column => $value) {
-            $whereParts[] = "{$column} = ?";
+            $whereParts[] = "`{$column}` = ?";
             $values[] = $value;
         }
         

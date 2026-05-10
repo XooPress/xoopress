@@ -354,8 +354,8 @@ function runInstallation(array $data, array &$errors): bool
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
         $stmt = $pdo->prepare("INSERT IGNORE INTO {$dbPrefix}modules (name, version, description, author, license, active) VALUES (?, ?, ?, ?, ?, 1)");
-        $stmt->execute(['System', '1.0.0', 'Core system module providing user management, settings, and dashboard.', 'XooPress Team', 'GPL-3.0-or-later']);
-        $stmt->execute(['Content', '1.0.0', 'Content management module for pages, posts, and custom content types.', 'XooPress Team', 'GPL-3.0-or-later']);
+        $stmt->execute(['system', '1.0.0', 'Core system module providing user management, settings, and dashboard.', 'XooPress Team', 'GPL-3.0-or-later']);
+        $stmt->execute(['content', '1.0.0', 'Content management module for pages, posts, and custom content types.', 'XooPress Team', 'GPL-3.0-or-later']);
         
         // Write config file (app.local.php is gitignored, won't be overwritten by git pull)
         $configContent = "<?php\n/**\n * XooPress Application Configuration\n * \n * @package XooPress\n */\n\nreturn [\n";
@@ -392,7 +392,7 @@ function runInstallation(array $data, array &$errors): bool
         $configContent .= "        'path' => dirname(__DIR__) . '/storage/logs',\n";
         $configContent .= "        'level' => 'debug',\n    ],\n\n";
         $configContent .= "    'modules' => [\n        'path' => dirname(__DIR__) . '/modules',\n";
-        $configContent .= "        'enabled' => ['System', 'Content'],\n";
+        $configContent .= "        'enabled' => ['system', 'content'],\n";
         $configContent .= "        'autoload' => true,\n    ],\n];\n";
         
         file_put_contents(XOO_PRESS_CONFIG . '/app.local.php', $configContent);

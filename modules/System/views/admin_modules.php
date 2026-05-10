@@ -55,14 +55,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($modules)): ?>
+                    <?php if (empty($modulesList)): ?>
                     <tr>
                         <td colspan="6" style="text-align:center;padding:40px;color:#888;">
                             <?= __('No modules found.') ?>
                         </td>
                     </tr>
                     <?php else: ?>
-                    <?php foreach ($modules as $module): ?>
+                    <?php foreach ($modulesList as $module): ?>
                     <?php
                         $def = $module['definition'] ?? [];
                         $isInstalled = $module['installed'] ?? false;
@@ -97,7 +97,6 @@
                             <?php else: ?>
                                 <a href="/admin/modules/activate/<?= urlencode($name) ?>" class="btn btn-sm btn-success"><?= __('Activate') ?></a>
                                 <a href="/admin/modules/uninstall/<?= urlencode($name) ?>" class="btn btn-sm btn-danger" onclick="return confirm('<?= __('Uninstall this module? This will drop its database tables.') ?>')"><?= __('Uninstall') ?></a>
-                                <a href="/admin/modules/delete/<?= urlencode($name) ?>" class="btn btn-sm btn-danger" onclick="return confirm('<?= __('Delete this module from filesystem?') ?>')"><?= __('Delete') ?></a>
                             <?php endif; ?>
                         </td>
                     </tr>

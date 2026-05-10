@@ -172,6 +172,33 @@ class Database
     }
     
     /**
+     * Quote a column/table identifier with backticks for MySQL
+     * 
+     * @param string $identifier Column or table name
+     * @return string
+     */
+    protected function quoteIdentifier(string $identifier): string
+    {
+        // Split on dot for table.column notation
+        $parts = explode('.', $identifier);
+        foreach ($parts as &$part) {
+            $part = '`' . str_replace('`', '``', $part) . '`';
+        }
+        return implode('.', $parts);
+    }
+
+    /**
+     * Quote an array of identifiers
+     * 
+     * @param array $identifiers
+     * @return array
+     */
+    protected function quoteIdentifiers(array $identifiers): array
+    {
+        return array_map([$this, 'quoteIdentifier'], $identifiers);
+    }
+
+    /**
      * Execute an INSERT query
      * 
      * @param string $table Table name
@@ -180,7 +207,7 @@ class Database
      */
     public function insert(string $table, array $data): int
     {
-        $columns = array_keys($data);
+        $columns = $this->quoteIdentifiers(array_keys($data));
         $placeholders = array_fill(0, count($columns), '?');
         $values = array_values($data);
         
@@ -206,13 +233,13 @@ class Database
         $values = [];
         
         foreach ($data as $column => $value) {
-            $setParts[] = "{$column} = ?";
+            $setParts[] = $this->quoteIdentifier($column) . " = ?";
             $values[] = $value;
         }
         
         $whereParts = [];
         foreach ($where as $column => $value) {
-            $whereParts[] = "{$column} = ?";
+            $whereParts[] = $this->quoteIdentifier($column) . " = ?";
             $values[] = $value;
         }
         
@@ -236,7 +263,7 @@ class Database
         $values = [];
         
         foreach ($where as $column => $value) {
-            $whereParts[] = "{$column} = ?";
+            $whereParts[] = $this->quoteIdentifier($column) . " = ?";
             $values[] = $value;
         }
         

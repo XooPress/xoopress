@@ -138,32 +138,48 @@ class Application
         $modules->createTable();
         
         // First, scan the filesystem so $this->modules is populated
+        // This only marks modules as installed if they exist in the DB
         $modules->scanFilesystem();
         
         // Debug: log what modules were found
         $found = array_keys($modules->getModules());
         error_log("XooPress bootModules: found modules: " . implode(', ', $found));
         
-        // Migrate old config-based modules to DB on first run:
-        // If no modules are in DB yet, install the modules listed in config
-        $installed = [];
+        // Migrate config-based modules to DB:
+        // Install any modules from config that are not yet in the database
+        $installedNames = [];
         try {
             $db = $this->container->get('database');
             $prefix = $db->getPrefix();
-            $installed = $db->select("SELECT * FROM {$prefix}modules");
-            error_log("XooPress bootModules: installed in DB: " . count($installed));
+            $installedRows = $db->select("SELECT * FROM {$prefix}modules");
+            foreach ($installedRows as $row) {
+                $installedNames[] = $row['name'];
+            }
+            error_log("XooPress bootModules: installed in DB: " . implode(', ', $installedNames));
         } catch (\Throwable $e) {
             error_log("XooPress bootModules: DB error checking installed: " . $e->getMessage());
         }
         
-        if (empty($installed)) {
-            $legacyEnabled = $this->config['modules']['enabled'] ?? [];
-            error_log("XooPress bootModules: no modules in DB, installing from config: " . implode(', ', $legacyEnabled));
-            foreach ($legacyEnabled as $moduleName) {
-                $result = $modules->install($moduleName);
+        $legacyEnabled = $this->config['modules']['enabled'] ?? [];
+        foreach ($legacyEnabled as $moduleName) {
+            // Check if module is already installed (case-insensitive)
+            $alreadyInstalled = false;
+            foreach ($installedNames as $installedName) {
+                if (strtolower($installedName) === strtolower($moduleName)) {
+                    $alreadyInstalled = true;
+                    break;
+                }
+            }
+            if (!$alreadyInstalled) {
+                // Use lowercase name for filesystem matching
+                $result = $modules->install(strtolower($moduleName));
                 error_log("XooPress bootModules: install {$moduleName}: " . ($result['success'] ? 'OK' : 'FAIL: ' . $result['message']));
             }
         }
+        
+        // Re-scan filesystem to pick up newly installed modules
+        // This ensures the in-memory state reflects what's in the DB
+        $modules->scanFilesystem();
         
         // Now load all active modules (registers routes, services, translations)
         $modules->loadModules();

@@ -60,6 +60,8 @@ class ModuleManager
     
     /**
      * Get the modules tracking table name (lazy-resolved)
+     * Uses the configured database prefix to ensure the table name
+     * matches what the installer created (e.g., xp_modules, xoopress_modules).
      * 
      * @return string
      */
@@ -68,9 +70,10 @@ class ModuleManager
         if ($this->table === null) {
             try {
                 $db = $this->container->get('database');
-                $this->table = $db->getPrefix() . 'modules';
+                $prefix = $db->getPrefix();
+                $this->table = $prefix . 'modules';
             } catch (\Throwable $e) {
-                $this->table = '';
+                $this->table = 'modules';
             }
         }
         return $this->table;
@@ -79,6 +82,7 @@ class ModuleManager
     /**
      * Scan the filesystem for available modules and populate $this->modules
      * without initializing them. Used before install to ensure modules are known.
+     * Always rebuilds the full list to pick up DB state changes.
      * 
      * @return void
      */
@@ -89,23 +93,36 @@ class ModuleManager
         // Scan modules directory for available modules
         $available = $this->scanModules($modulesPath);
         
-        // Get installed modules from database
+        // Get installed modules from database (keyed by name)
         $installed = $this->getInstalledModules();
         
+        // Build a case-insensitive lookup for installed modules
+        $installedLower = [];
+        foreach ($installed as $name => $record) {
+            $installedLower[strtolower($name)] = $record;
+        }
+        
+        // Always rebuild the full modules list to pick up changes
+        // (e.g., modules installed between scans, or status changes)
+        $this->modules = [];
+        
         foreach ($available as $moduleName) {
-            if (isset($this->modules[$moduleName])) continue;
-            
             $path = $modulesPath . '/' . $moduleName;
             $def = $this->loadDefinition($path);
+            
+            // Check if module is installed (case-insensitive)
+            $nameLower = strtolower($moduleName);
+            $isInstalled = isset($installedLower[$nameLower]);
+            $installedRecord = $isInstalled ? $installedLower[$nameLower] : null;
             
             $this->modules[$moduleName] = [
                 'name' => $moduleName,
                 'path' => $path,
                 'definition' => $def,
                 'loaded' => false,
-                'installed' => isset($installed[$moduleName]),
-                'active' => isset($installed[$moduleName]) && ($installed[$moduleName]['active'] ?? false),
-                'version_db' => $installed[$moduleName]['version'] ?? null,
+                'installed' => $isInstalled,
+                'active' => $isInstalled && ($installedRecord['active'] ?? false),
+                'version_db' => $installedRecord['version'] ?? null,
             ];
         }
     }
@@ -117,10 +134,8 @@ class ModuleManager
      */
     public function loadModules(): void
     {
-        // Ensure filesystem is scanned first
-        if (empty($this->modules)) {
-            $this->scanFilesystem();
-        }
+        // Always re-scan to ensure latest DB state
+        $this->scanFilesystem();
         
         // Initialize active modules
         foreach ($this->modules as $name => &$module) {
@@ -133,6 +148,8 @@ class ModuleManager
     
     /**
      * Scan modules directory for available module directories
+     * Returns original folder names (used for PSR-4 autoloading paths).
+     * Matching against DB is done case-insensitively via strtolower().
      * 
      * @param string $path
      * @return array
@@ -148,6 +165,7 @@ class ModuleManager
             if ($item[0] === '.') continue;
             $dir = $path . '/' . $item;
             if (is_dir($dir) && file_exists($dir . '/module.php')) {
+                // Keep original folder name for PSR-4 autoloading (e.g. Content, System)
                 $modules[] = $item;
             }
         }
@@ -170,21 +188,22 @@ class ModuleManager
     
     /**
      * Get installed modules from the database
+     * Returns results keyed by lowercase name for case-insensitive
+     * matching with filesystem folder names.
      * 
-     * @return array keyed by module name
+     * @return array keyed by lowercase module name
      */
     protected function getInstalledModules(): array
     {
         try {
             $db = $this->container->get('database');
             $table = $this->getTable();
-            if (!$db->tableExists($table)) {
-                return [];
-            }
+            
             $rows = $db->select("SELECT * FROM {$table}");
             $result = [];
             foreach ($rows as $row) {
-                $result[$row['name']] = $row;
+                // Use lowercase name for case-insensitive matching with folder names
+                $result[strtolower($row['name'])] = $row;
             }
             return $result;
         } catch (\Throwable $e) {
@@ -217,18 +236,19 @@ class ModuleManager
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             return true;
         } catch (\Throwable $e) {
-            error_log("Failed to create modules table: " . $e->getMessage());
             return false;
         }
     }
     
     /**
      * Get all available modules (scanned from filesystem)
+     * Always re-scans to ensure the latest DB state is reflected.
      * 
      * @return array
      */
     public function getModules(): array
     {
+        $this->scanFilesystem();
         return $this->modules;
     }
     
@@ -299,7 +319,26 @@ class ModuleManager
      */
     public function getModule(string $name): ?array
     {
-        return $this->modules[$name] ?? null;
+        $this->scanFilesystem();
+        $key = $this->findModuleKey($name);
+        return $key !== null ? $this->modules[$key] : null;
+    }
+    
+    /**
+     * Find the actual module key in $this->modules using case-insensitive lookup
+     * 
+     * @param string $name
+     * @return string|null
+     */
+    protected function findModuleKey(string $name): ?string
+    {
+        $nameLower = strtolower($name);
+        foreach ($this->modules as $key => $mod) {
+            if (strtolower($key) === $nameLower) {
+                return $key;
+            }
+        }
+        return null;
     }
     
     /**
@@ -310,7 +349,8 @@ class ModuleManager
      */
     public function isModuleLoaded(string $name): bool
     {
-        return isset($this->modules[$name]) && $this->modules[$name]['loaded'];
+        $key = $this->findModuleKey($name);
+        return $key !== null && $this->modules[$key]['loaded'];
     }
     
     /**
@@ -321,11 +361,20 @@ class ModuleManager
      */
     public function install(string $name): array
     {
-        if (!isset($this->modules[$name])) {
+        // Case-insensitive lookup: find the actual key in $this->modules
+        $actualKey = null;
+        foreach ($this->modules as $key => $mod) {
+            if (strtolower($key) === strtolower($name)) {
+                $actualKey = $key;
+                break;
+            }
+        }
+        if ($actualKey === null) {
             return ['success' => false, 'message' => "Module '{$name}' not found in filesystem."];
         }
         
-        $module = &$this->modules[$name];
+        $module = &$this->modules[$actualKey];
+        $name = $actualKey; // Use the actual key (folder name) for subsequent operations
         $def = $module['definition'];
         
         if (!$def) {
@@ -336,10 +385,17 @@ class ModuleManager
             return ['success' => false, 'message' => "Module '{$name}' is already installed."];
         }
         
-        // Check dependencies
+        // Check dependencies (case-insensitive lookup)
         $deps = $def['dependencies'] ?? [];
         foreach ($deps as $dep) {
-            $depModule = $this->modules[$dep] ?? null;
+            $depKey = null;
+            foreach ($this->modules as $key => $mod) {
+                if (strtolower($key) === strtolower($dep)) {
+                    $depKey = $key;
+                    break;
+                }
+            }
+            $depModule = $depKey ? ($this->modules[$depKey] ?? null) : null;
             if (!$depModule || !$depModule['installed']) {
                 return ['success' => false, 'message' => "Dependency '{$dep}' is not installed."];
             }
@@ -353,7 +409,6 @@ class ModuleManager
                     return ['success' => false, 'message' => "Install callback returned false."];
                 }
             } catch (\Throwable $e) {
-                error_log("Module install failed for {$name}: " . $e->getMessage());
                 return ['success' => false, 'message' => "Install error: " . $e->getMessage()];
             }
         }
@@ -371,7 +426,6 @@ class ModuleManager
                 'active' => 1,
             ]);
         } catch (\Throwable $e) {
-            error_log("Failed to register module {$name} in DB: " . $e->getMessage());
             return ['success' => false, 'message' => "Database error: " . $e->getMessage()];
         }
         
@@ -393,24 +447,29 @@ class ModuleManager
      */
     public function uninstall(string $name): array
     {
-        if (!isset($this->modules[$name])) {
+        // Case-insensitive lookup
+        $actualKey = $this->findModuleKey($name);
+        if ($actualKey === null) {
             return ['success' => false, 'message' => "Module '{$name}' not found."];
         }
         
-        $module = &$this->modules[$name];
+        $module = &$this->modules[$actualKey];
+        $name = $actualKey;
         $def = $module['definition'];
         
         if (!$module['installed']) {
             return ['success' => false, 'message' => "Module '{$name}' is not installed."];
         }
         
-        // Check if other modules depend on this one
+        // Check if other modules depend on this one (case-insensitive)
         foreach ($this->modules as $otherName => $other) {
             if ($otherName === $name) continue;
             $otherDef = $other['definition'] ?? [];
             $deps = $otherDef['dependencies'] ?? [];
-            if (in_array($name, $deps) && $other['installed']) {
-                return ['success' => false, 'message' => "Cannot uninstall: '{$otherName}' depends on '{$name}'."];
+            foreach ($deps as $dep) {
+                if (strtolower($dep) === strtolower($name) && $other['installed']) {
+                    return ['success' => false, 'message' => "Cannot uninstall: '{$otherName}' depends on '{$name}'."];
+                }
             }
         }
         
@@ -424,7 +483,6 @@ class ModuleManager
             try {
                 $def['uninstall']($this->container);
             } catch (\Throwable $e) {
-                error_log("Module uninstall callback failed for {$name}: " . $e->getMessage());
             }
         }
         
@@ -434,7 +492,6 @@ class ModuleManager
             $table = $this->getTable();
             $db->delete($table, ['name' => $name]);
         } catch (\Throwable $e) {
-            error_log("Failed to remove module {$name} from DB: " . $e->getMessage());
         }
         
         $module['installed'] = false;
@@ -452,11 +509,13 @@ class ModuleManager
      */
     public function activate(string $name): array
     {
-        if (!isset($this->modules[$name])) {
+        $actualKey = $this->findModuleKey($name);
+        if ($actualKey === null) {
             return ['success' => false, 'message' => "Module '{$name}' not found."];
         }
         
-        $module = &$this->modules[$name];
+        $module = &$this->modules[$actualKey];
+        $name = $actualKey;
         
         if (!$module['installed']) {
             return ['success' => false, 'message' => "Module '{$name}' is not installed. Install it first."];
@@ -489,11 +548,13 @@ class ModuleManager
      */
     public function deactivate(string $name): array
     {
-        if (!isset($this->modules[$name])) {
+        $actualKey = $this->findModuleKey($name);
+        if ($actualKey === null) {
             return ['success' => false, 'message' => "Module '{$name}' not found."];
         }
         
-        $module = &$this->modules[$name];
+        $module = &$this->modules[$actualKey];
+        $name = $actualKey;
         
         if (!$module['active']) {
             return ['success' => false, 'message' => "Module '{$name}' is not active."];
@@ -586,7 +647,6 @@ class ModuleManager
             $module['loaded'] = true;
             return true;
         } catch (\Throwable $e) {
-            error_log("Failed to initialize module {$name}: " . $e->getMessage());
             return false;
         }
     }
@@ -702,18 +762,20 @@ class ModuleManager
      */
     public function delete(string $name): array
     {
-        if (!isset($this->modules[$name])) {
+        $actualKey = $this->findModuleKey($name);
+        if ($actualKey === null) {
             return ['success' => false, 'message' => "Module '{$name}' not found."];
         }
         
-        if ($this->modules[$name]['installed']) {
+        $module = $this->modules[$actualKey];
+        $name = $actualKey;
+        
+        if ($module['installed']) {
             return ['success' => false, 'message' => "Module '{$name}' is installed. Uninstall it first."];
         }
         
-        $path = $this->modules[$name]['path'];
-        if (is_dir($path)) {
-            $this->rmDir($path);
-        }
+        $path = $module['path'];
+        $this->rmDir($path);
         
         unset($this->modules[$name]);
         
@@ -734,7 +796,7 @@ class ModuleManager
     }
     
     /**
-     * Check if all dependencies are satisfied
+     * Check if all dependencies are satisfied (case-insensitive)
      * 
      * @param string $name
      * @return bool
@@ -743,7 +805,14 @@ class ModuleManager
     {
         $deps = $this->getModuleDependencies($name);
         foreach ($deps as $dep) {
-            $m = $this->modules[$dep] ?? null;
+            $depKey = null;
+            foreach ($this->modules as $key => $mod) {
+                if (strtolower($key) === strtolower($dep)) {
+                    $depKey = $key;
+                    break;
+                }
+            }
+            $m = $depKey ? ($this->modules[$depKey] ?? null) : null;
             if (!$m || !$m['installed']) return false;
         }
         return true;

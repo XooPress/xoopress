@@ -447,17 +447,91 @@ class AdminController extends Controller
 
     public function modules(): string
     {
-        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
+        $this->requireAdmin();
+        
+        $modules = [];
+        
+        // Try to get modules through container first
+        if ($this->container->has('modules')) {
+            $moduleManager = $this->container->get('modules');
+            $modules = $moduleManager->getModules();
+            
+            if (empty($modules)) {
+                $moduleManager->scanFilesystem();
+                $modules = $moduleManager->getModules();
+            }
+        }
+        
+        // Fallback: If still no modules, try direct loading
+        if (empty($modules)) {
+            $modules = $this->fallbackModuleLoading();
+        }
+        
         $message = $_SESSION['modules_message'] ?? null;
         $messageType = $_SESSION['modules_message_type'] ?? null;
         unset($_SESSION['modules_message'], $_SESSION['modules_message_type']);
+        
         return $this->view('system::admin_modules', [
-            'modules' => $modules,
+            'modulesList' => $modules,
             'csrfToken' => $this->csrfToken(),
             'message' => $message,
             'messageType' => $messageType,
             'adminMenu' => $this->getAdminMenu(),
         ]);
+    }
+    
+    /**
+     * Fallback module loading method that bypasses container issues
+     * 
+     * @return array
+     */
+    private function fallbackModuleLoading(): array
+    {
+        $modules = [];
+        
+        try {
+            // Get database directly
+            $db = $this->container->get('database');
+            $prefix = $db->getPrefix();
+            
+            // Get installed modules from database
+            $installedRows = $db->select("SELECT * FROM {$prefix}modules");
+            $installedModules = [];
+            foreach ($installedRows as $row) {
+                $installedModules[strtolower($row['name'])] = $row;
+            }
+            
+            // Scan filesystem for modules
+            $modulesPath = XOO_PRESS_MODULES;
+            if (is_dir($modulesPath)) {
+                $dirs = scandir($modulesPath);
+                foreach ($dirs as $dir) {
+                    if ($dir[0] === '.') continue;
+                    $modulePath = $modulesPath . '/' . $dir;
+                    if (is_dir($modulePath) && file_exists($modulePath . '/module.php')) {
+                        $definition = require $modulePath . '/module.php';
+                        
+                        $nameLower = strtolower($dir);
+                        $isInstalled = isset($installedModules[$nameLower]);
+                        $installedRecord = $isInstalled ? $installedModules[$nameLower] : null;
+                        
+                        $modules[$dir] = [
+                            'name' => $dir,
+                            'path' => $modulePath,
+                            'definition' => is_array($definition) ? $definition : [],
+                            'loaded' => false,
+                            'installed' => $isInstalled,
+                            'active' => $isInstalled && ($installedRecord['active'] ?? false),
+                            'version_db' => $installedRecord['version'] ?? null,
+                        ];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Fallback module loading failed: " . $e->getMessage());
+        }
+        
+        return $modules;
     }
 
     public function moduleInstall(string $name): void
@@ -523,8 +597,19 @@ class AdminController extends Controller
     public function moduleEdit(string $name): string
     {
         $this->requireAdmin();
-        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
-        $module = $modules[$name] ?? null;
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        $modules = $manager ? $manager->getModules() : [];
+        
+        // Case-insensitive lookup
+        $module = null;
+        $nameLower = strtolower($name);
+        foreach ($modules as $key => $mod) {
+            if (strtolower($key) === $nameLower) {
+                $module = $mod;
+                break;
+            }
+        }
+        
         if (!$module) {
             $_SESSION['modules_message'] = "Module '{$name}' not found.";
             $_SESSION['modules_message_type'] = 'error';

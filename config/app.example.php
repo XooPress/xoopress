@@ -88,6 +88,6 @@ return [
     // there are no modules registered in the database yet.
     'modules' => [
         'path' => dirname(__DIR__) . '/modules',
-        'enabled' => ['System', 'Content'],
+        'enabled' => ['system', 'content'],
     ],
 ];
