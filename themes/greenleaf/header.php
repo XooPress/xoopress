@@ -27,6 +27,20 @@
                     <?php foreach ($navPages as $navPage): ?>
                     <li class="<?= is_current_nav('/posts/' . (int)$navPage['id']) ? 'current-menu-item' : '' ?>"><a href="/posts/<?= (int)$navPage['id'] ?>"><?= htmlspecialchars($navPage['title']) ?></a></li>
                     <?php endforeach; ?>
+                    <?php
+                    // Module nav items (registered by modules like XPDownloads)
+                    $moduleNavItems = $GLOBALS['xoopress_module_nav_items'] ?? [];
+                    if (!empty($moduleNavItems)) {
+                        usort($moduleNavItems, function($a, $b) {
+                            return ($a['order'] ?? 10) <=> ($b['order'] ?? 10);
+                        });
+                        foreach ($moduleNavItems as $navItem) {
+                            $url = $navItem['url'] ?? '#';
+                            $label = $navItem['label'] ?? 'Link';
+                            echo '<li class="' . (is_current_nav($url) ? 'current-menu-item' : '') . '"><a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a></li>';
+                        }
+                    }
+                    ?>
                     <?php if (isset($_SESSION['user_id'])): ?>
                     <li class="<?= is_current_nav('/user/dashboard') ? 'current-menu-item' : '' ?>"><a href="/user/dashboard"><?= __('Dashboard') ?></a></li>
                     <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
