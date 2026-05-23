@@ -333,4 +333,22 @@ abstract class Controller
         
         return hash_equals($_SESSION['csrf_token'], $token);
     }
+    
+    /**
+     * Require a valid CSRF token from request data.
+     * Redirects to the given URL (or referrer) if validation fails.
+     * 
+     * @param string|null $redirect URL to redirect to on failure (null = use referrer)
+     * @return bool True if CSRF token is valid
+     */
+    protected function requireCsrfToken(?string $redirect = null): bool
+    {
+        $token = $this->input('_csrf_token', '');
+        if (!$this->verifyCsrfToken($token)) {
+            $url = $redirect ?? $_SERVER['HTTP_REFERER'] ?? '/';
+            $this->redirect($url);
+            return false;
+        }
+        return true;
+    }
 }

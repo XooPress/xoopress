@@ -35,6 +35,7 @@
             </header>
 
             <form method="POST" action="/admin/categories" style="margin-bottom:20px;padding:15px;background:#f9f9f9;border-radius:4px;">
+                <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                 <h3 style="margin-bottom:10px;">Add New Category</h3>
                 <div style="display:flex;gap:10px;">
                     <input type="text" name="name" placeholder="Category name" required style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:4px;">

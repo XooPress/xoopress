@@ -689,6 +689,11 @@ class ThemeManager
     }
     
     /**
+     * Maximum upload file size in bytes (10 MB)
+     */
+    public const MAX_UPLOAD_SIZE = 10485760;
+    
+    /**
      * Upload and install a theme zip file
      * 
      * @param string $zipPath
@@ -700,6 +705,19 @@ class ThemeManager
             return ['success' => false, 'message' => 'Upload file not found.'];
         }
         
+        // Check file size
+        $fileSize = filesize($zipPath);
+        if ($fileSize === false) {
+            return ['success' => false, 'message' => 'Cannot determine uploaded file size.'];
+        }
+        if ($fileSize > self::MAX_UPLOAD_SIZE) {
+            $maxMb = self::MAX_UPLOAD_SIZE / 1048576;
+            return ['success' => false, 'message' => "Upload file is too large. Maximum size is {$maxMb} MB."];
+        }
+        if ($fileSize === 0) {
+            return ['success' => false, 'message' => 'Uploaded file is empty.'];
+        }
+        
         if (!class_exists('ZipArchive')) {
             return ['success' => false, 'message' => 'ZipArchive is required for theme uploads.'];
         }
@@ -707,25 +725,56 @@ class ThemeManager
         $zip = new \ZipArchive();
         $res = $zip->open($zipPath);
         if ($res !== true) {
-            return ['success' => false, 'message' => "Cannot open zip file (error code: {$res})."];
+            $errorMessages = [
+                \ZipArchive::ER_EXISTS => 'File already exists.',
+                \ZipArchive::ER_INCONS => 'Zip archive is inconsistent.',
+                \ZipArchive::ER_INVAL  => 'Invalid argument.',
+                \ZipArchive::ER_MEMORY => 'Memory allocation failure.',
+                \ZipArchive::ER_NOENT  => 'File not found.',
+                \ZipArchive::ER_NOZIP  => 'Not a valid zip archive.',
+                \ZipArchive::ER_OPEN   => 'Cannot open file.',
+                \ZipArchive::ER_READ   => 'Read error.',
+                \ZipArchive::ER_SEEK   => 'Seek error.',
+            ];
+            $errorMsg = $errorMessages[$res] ?? "Unknown error (code: {$res})";
+            return ['success' => false, 'message' => "Cannot open zip file: {$errorMsg}"];
         }
         
-        // Check for style.css at top level
+        // Validate zip contents before extraction
         $themeDirName = null;
         $hasStyleCss = false;
+        $safePaths = true;
+        
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
+            
+            // Guard against path traversal
+            if (str_contains($name, '..') || str_starts_with($name, '/')) {
+                $safePaths = false;
+                break;
+            }
+            
             $parts = explode('/', $name);
             if (count($parts) === 2 && $parts[1] === 'style.css') {
                 $themeDirName = $parts[0];
                 $hasStyleCss = true;
-                break;
             }
+        }
+        
+        if (!$safePaths) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Zip file contains invalid paths (path traversal detected).'];
         }
         
         if (!$hasStyleCss || !$themeDirName) {
             $zip->close();
             return ['success' => false, 'message' => 'Zip must contain a theme directory with style.css at its root.'];
+        }
+        
+        // Validate theme directory name
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $themeDirName)) {
+            $zip->close();
+            return ['success' => false, 'message' => "Invalid theme directory name '{$themeDirName}'. Only letters, numbers, hyphens, and underscores are allowed."];
         }
         
         if (isset($this->themes[$themeDirName])) {
@@ -739,9 +788,21 @@ class ThemeManager
             return ['success' => false, 'message' => "Directory '{$themeDirName}' already exists."];
         }
         
+        // Check disk space
+        $stat = $zip->statIndex(-1);
+        $estimatedSize = ($stat['size'] ?? 0) * 3;
+        $diskFree = disk_free_space(dirname($targetDir));
+        if ($diskFree !== false && $estimatedSize > $diskFree) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Not enough disk space to extract the theme.'];
+        }
+        
         if (!$zip->extractTo($this->themesPath)) {
             $zip->close();
-            return ['success' => false, 'message' => 'Failed to extract zip file.'];
+            if (is_dir($targetDir)) {
+                $this->rmDir($targetDir);
+            }
+            return ['success' => false, 'message' => 'Failed to extract zip file. The directory may be incomplete and has been cleaned up.'];
         }
         $zip->close();
         
@@ -754,7 +815,7 @@ class ThemeManager
         $theme = $this->parseTheme($targetDir);
         if (!$theme) {
             $this->rmDir($targetDir);
-            return ['success' => false, 'message' => 'Invalid theme.'];
+            return ['success' => false, 'message' => 'Invalid theme: could not parse style.css headers.'];
         }
         
         $this->themes[$themeDirName] = $theme;

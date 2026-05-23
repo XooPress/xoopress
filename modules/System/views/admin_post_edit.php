@@ -182,6 +182,7 @@
                 <a href="<?= $listUrl ?>" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px;">← Back to <?= $contentType ?>s</a>
             </header>
             <form method="POST" action="/admin/posts/save" style="max-width:900px;">
+                <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                 <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?= $post['id'] ?? '' ?>">
                 <?php endif; ?>

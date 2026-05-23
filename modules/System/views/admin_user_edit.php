@@ -35,6 +35,7 @@
                 <a href="/admin/users" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px;">← Back to Users</a>
             </header>
             <form method="POST" action="/admin/users/save" style="max-width:600px;">
+                <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                 <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?= $user['id'] ?? '' ?>">
                 <?php endif; ?>

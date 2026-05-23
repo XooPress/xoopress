@@ -136,6 +136,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => $categories, 'type' => 'post',
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
@@ -153,6 +154,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $post['type'] ?? 'post',
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
@@ -160,6 +162,7 @@ class AdminController extends Controller
     public function postSave(): void
     {
         $this->requireAuthorOrEditor();
+        $this->requireCsrfToken('/admin/posts');
         $data = $this->all();
         if (empty($data['title'])) { $this->redirect('/admin/posts/new'); return; }
         $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['title']);
@@ -252,6 +255,7 @@ class AdminController extends Controller
     {
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => [], 'type' => 'page',
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
@@ -262,6 +266,7 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_post_edit', [
             'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => 'page',
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
@@ -273,12 +278,14 @@ class AdminController extends Controller
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
         return $this->view('system::admin_categories', [
             'categories' => $categories,
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
     public function categorySave(): void
     {
+        $this->requireCsrfToken('/admin/categories');
         $data = $this->all();
         if (!empty($data['name']) && $this->categoryModel) {
             $slug = !empty($data['slug']) ? $data['slug'] : $this->createSlug($data['name']);
@@ -317,6 +324,7 @@ class AdminController extends Controller
     {
         return $this->view('system::admin_user_edit', [
             'isNew' => true, 'user' => [],
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
@@ -326,12 +334,14 @@ class AdminController extends Controller
         $user = $this->userModel ? $this->userModel->find($id) : null;
         return $this->view('system::admin_user_edit', [
             'isNew' => false, 'user' => $user ?? [],
+            'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
         ]);
     }
 
     public function userSave(): void
     {
+        $this->requireCsrfToken('/admin/users');
         $data = $this->all();
         if (empty($data['username']) || empty($data['email'])) {
             $this->redirect('/admin/users');
@@ -425,6 +435,10 @@ class AdminController extends Controller
     public function themeUpload(): void
     {
         $redirect = '/admin/themes';
+        
+        if (!$this->requireCsrfToken($redirect)) {
+            return;
+        }
         
         if (!isset($_FILES['theme_zip']) || $_FILES['theme_zip']['error'] !== UPLOAD_ERR_OK) {
             $_SESSION['themes_message'] = __('Upload failed.') . ' ' . ($_FILES['theme_zip']['error'] ?? '');
@@ -631,6 +645,7 @@ class AdminController extends Controller
     public function moduleSave(): void
     {
         $this->requireAdmin();
+        $this->requireCsrfToken('/admin/modules');
         $data = $this->all();
         $name = $data['name'] ?? '';
         if (empty($name)) {
@@ -710,6 +725,10 @@ class AdminController extends Controller
     {
         $redirect = '/admin/modules';
         
+        if (!$this->requireCsrfToken($redirect)) {
+            return;
+        }
+        
         if (!isset($_FILES['module_zip']) || $_FILES['module_zip']['error'] !== UPLOAD_ERR_OK) {
             $_SESSION['modules_message'] = __('Upload failed.') . ' ' . ($_FILES['module_zip']['error'] ?? '');
             $_SESSION['modules_message_type'] = 'error';
@@ -758,6 +777,7 @@ class AdminController extends Controller
 
     public function settingsSave(): void
     {
+        $this->requireCsrfToken('/admin/settings');
         $data = $this->all();
         
         if ($this->container->has('database')) {

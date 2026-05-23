@@ -701,6 +701,19 @@ class ModuleManager
             return ['success' => false, 'message' => 'Upload file not found.'];
         }
         
+        // Check file size
+        $fileSize = filesize($zipPath);
+        if ($fileSize === false) {
+            return ['success' => false, 'message' => 'Cannot determine uploaded file size.'];
+        }
+        if ($fileSize > self::MAX_UPLOAD_SIZE) {
+            $maxMb = self::MAX_UPLOAD_SIZE / 1048576;
+            return ['success' => false, 'message' => "Upload file is too large. Maximum size is {$maxMb} MB."];
+        }
+        if ($fileSize === 0) {
+            return ['success' => false, 'message' => 'Uploaded file is empty.'];
+        }
+        
         if (!class_exists('ZipArchive')) {
             return ['success' => false, 'message' => 'ZipArchive is required for module uploads.'];
         }
@@ -708,20 +721,45 @@ class ModuleManager
         $zip = new \ZipArchive();
         $res = $zip->open($zipPath);
         if ($res !== true) {
-            return ['success' => false, 'message' => "Cannot open zip file (error code: {$res})."];
+            $errorMessages = [
+                \ZipArchive::ER_EXISTS => 'File already exists.',
+                \ZipArchive::ER_INCONS => 'Zip archive is inconsistent.',
+                \ZipArchive::ER_INVAL  => 'Invalid argument.',
+                \ZipArchive::ER_MEMORY => 'Memory allocation failure.',
+                \ZipArchive::ER_NOENT  => 'File not found.',
+                \ZipArchive::ER_NOZIP  => 'Not a valid zip archive.',
+                \ZipArchive::ER_OPEN   => 'Cannot open file.',
+                \ZipArchive::ER_READ   => 'Read error.',
+                \ZipArchive::ER_SEEK   => 'Seek error.',
+            ];
+            $errorMsg = $errorMessages[$res] ?? "Unknown error (code: {$res})";
+            return ['success' => false, 'message' => "Cannot open zip file: {$errorMsg}"];
         }
         
-        // Check that the zip has a module.php at top level
+        // Validate zip contents before extraction
         $moduleName = null;
         $hasModulePhp = false;
+        $safePaths = true;
+        
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
+            
+            // Guard against path traversal
+            if (str_contains($name, '..') || str_starts_with($name, '/')) {
+                $safePaths = false;
+                break;
+            }
+            
             $parts = explode('/', $name);
             if (count($parts) === 2 && $parts[1] === 'module.php') {
                 $moduleName = $parts[0];
                 $hasModulePhp = true;
-                break;
             }
+        }
+        
+        if (!$safePaths) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Zip file contains invalid paths (path traversal detected).'];
         }
         
         if (!$hasModulePhp || !$moduleName) {
@@ -729,23 +767,42 @@ class ModuleManager
             return ['success' => false, 'message' => 'Zip must contain a module directory with module.php at its root.'];
         }
         
-        if (isset($this->modules[$moduleName])) {
+        // Validate module name is a valid directory name
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $moduleName)) {
             $zip->close();
-            return ['success' => false, 'message' => "Module '{$moduleName}' already exists in filesystem. Remove it first."];
+            return ['success' => false, 'message' => "Invalid module name '{$moduleName}'. Only letters, numbers, hyphens, and underscores are allowed."];
         }
         
         $modulesPath = $this->config['path'] ?? XOO_PRESS_MODULES;
         $targetDir = $modulesPath . '/' . $moduleName;
+        
+        if (isset($this->modules[$moduleName])) {
+            $zip->close();
+            return ['success' => false, 'message' => "Module '{$moduleName}' already exists in filesystem. Remove it first."];
+        }
         
         if (is_dir($targetDir)) {
             $zip->close();
             return ['success' => false, 'message' => "Directory '{$moduleName}' already exists."];
         }
         
+        // Check disk space: estimate required space (compressed size * 3 as rough estimate)
+        $stat = $zip->statIndex(-1);
+        $estimatedSize = ($stat['size'] ?? 0) * 3;
+        $diskFree = disk_free_space(dirname($targetDir));
+        if ($diskFree !== false && $estimatedSize > $diskFree) {
+            $zip->close();
+            return ['success' => false, 'message' => 'Not enough disk space to extract the module.'];
+        }
+        
         // Extract
         if (!$zip->extractTo($modulesPath)) {
             $zip->close();
-            return ['success' => false, 'message' => 'Failed to extract zip file.'];
+            // Clean up partial extraction
+            if (is_dir($targetDir)) {
+                $this->rmDir($targetDir);
+            }
+            return ['success' => false, 'message' => 'Failed to extract zip file. The directory may be incomplete and has been cleaned up.'];
         }
         $zip->close();
         
@@ -758,7 +815,13 @@ class ModuleManager
         $def = $this->loadDefinition($targetDir);
         if (!$def) {
             $this->rmDir($targetDir);
-            return ['success' => false, 'message' => 'Invalid module definition.'];
+            return ['success' => false, 'message' => 'Invalid module definition in module.php.'];
+        }
+        
+        // Validate required fields
+        if (empty($def['name'])) {
+            $this->rmDir($targetDir);
+            return ['success' => false, 'message' => 'Module definition must include a name.'];
         }
         
         // Add to modules list

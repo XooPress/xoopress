@@ -40,6 +40,10 @@ class AuthController extends Controller
 
     public function login(): string
     {
+        if (!$this->requireCsrfToken('/login')) {
+            return '';
+        }
+        
         $username = $this->input('username');
         $password = $this->input('password');
 
@@ -82,6 +86,10 @@ class AuthController extends Controller
 
     public function register(): string
     {
+        if (!$this->requireCsrfToken('/register')) {
+            return '';
+        }
+        
         $username = $this->input('username');
         $email = $this->input('email');
         $password = $this->input('password');
@@ -247,6 +255,10 @@ class AuthController extends Controller
         // Require authentication
         if (empty($_SESSION['user_id'])) {
             $this->redirect('/login');
+            return;
+        }
+        
+        if (!$this->requireCsrfToken('/user/themes')) {
             return;
         }
 
