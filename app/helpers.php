@@ -258,3 +258,161 @@ function set_theme_mod(string $key, mixed $value, string $type = 'text'): bool
     }
     return false;
 }
+
+// ═══════════════════════════════════════════════════════════
+//  Phase 5: Hooks API — WordPress-style actions & filters
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Register an action callback
+ *
+ * @param string $hook Hook name
+ * @param callable $callback Callable to execute
+ * @param int $priority Execution order (lower = earlier)
+ * @return void
+ */
+function add_action(string $hook, callable $callback, int $priority = 10): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('hooks')) {
+        $GLOBALS['xoopress_container']->get('hooks')->addAction($hook, $callback, $priority);
+    }
+}
+
+/**
+ * Execute all callbacks for an action hook
+ *
+ * @param string $hook Hook name
+ * @param mixed ...$args Arguments passed to callbacks
+ * @return void
+ */
+function do_action(string $hook, mixed ...$args): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('hooks')) {
+        $GLOBALS['xoopress_container']->get('hooks')->doAction($hook, ...$args);
+    }
+}
+
+/**
+ * Register a filter callback
+ *
+ * @param string $hook Hook name
+ * @param callable $callback Callable that receives and returns a value
+ * @param int $priority Execution order (lower = earlier)
+ * @return void
+ */
+function add_filter(string $hook, callable $callback, int $priority = 10): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('hooks')) {
+        $GLOBALS['xoopress_container']->get('hooks')->addFilter($hook, $callback, $priority);
+    }
+}
+
+/**
+ * Apply registered filter callbacks to a value
+ *
+ * @param string $hook Hook name
+ * @param mixed $value Value to filter
+ * @param mixed ...$args Additional arguments
+ * @return mixed Filtered value
+ */
+function apply_filters(string $hook, mixed $value, mixed ...$args): mixed
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('hooks')) {
+        return $GLOBALS['xoopress_container']->get('hooks')->applyFilters($hook, $value, ...$args);
+    }
+    return $value;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Phase 5: Shortcodes API
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Register a shortcode
+ *
+ * @param string $tag Shortcode tag
+ * @param callable $handler Handler function
+ * @return void
+ */
+function add_shortcode(string $tag, callable $handler): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('shortcodes')) {
+        $GLOBALS['xoopress_container']->get('shortcodes')->add($tag, $handler);
+    }
+}
+
+/**
+ * Parse shortcodes in content
+ *
+ * @param string $content Content with shortcodes
+ * @return string Content with shortcodes replaced
+ */
+function do_shortcode(string $content): string
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('shortcodes')) {
+        return $GLOBALS['xoopress_container']->get('shortcodes')->parse($content);
+    }
+    return $content;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Phase 5: Cache API
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Get a cached value
+ *
+ * @param string $key Cache key
+ * @param mixed $default Default value
+ * @return mixed
+ */
+function cache_get(string $key, mixed $default = null): mixed
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('cache')) {
+        return $GLOBALS['xoopress_container']->get('cache')->get($key, $default);
+    }
+    return $default;
+}
+
+/**
+ * Store a value in cache
+ *
+ * @param string $key Cache key
+ * @param mixed $value Value to store
+ * @param int|null $ttl TTL in seconds
+ * @return bool
+ */
+function cache_set(string $key, mixed $value, ?int $ttl = null): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('cache')) {
+        return $GLOBALS['xoopress_container']->get('cache')->set($key, $value, $ttl);
+    }
+    return false;
+}
+
+/**
+ * Delete a cached value
+ *
+ * @param string $key Cache key
+ * @return bool
+ */
+function cache_delete(string $key): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('cache')) {
+        return $GLOBALS['xoopress_container']->get('cache')->delete($key);
+    }
+    return false;
+}
+
+/**
+ * Clear all cached values
+ *
+ * @return bool
+ */
+function cache_flush(): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('cache')) {
+        return $GLOBALS['xoopress_container']->get('cache')->flush();
+    }
+    return false;
+}

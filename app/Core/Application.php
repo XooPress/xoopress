@@ -13,6 +13,11 @@ use XooPress\Core\Database;
 use XooPress\Core\Router;
 use XooPress\Core\ModuleManager;
 use XooPress\Core\I18n;
+use XooPress\Core\Hooks;
+use XooPress\Core\Shortcodes;
+use XooPress\Core\Scheduler;
+use XooPress\Core\Cache;
+use XooPress\Core\ApiRouter;
 
 class Application
 {
@@ -85,6 +90,32 @@ class Application
         $this->container->singleton('theme', function ($container) {
             return new ThemeManager($container);
         });
+        
+        // Phase 5: Register extensibility services
+        $this->container->singleton('hooks', function ($container) {
+            return new Hooks();
+        });
+        
+        $this->container->singleton('shortcodes', function ($container) {
+            $shortcodes = new Shortcodes();
+            $shortcodes->registerBuiltIn();
+            return $shortcodes;
+        });
+        
+        $this->container->singleton('scheduler', function ($container) {
+            return new Scheduler($container);
+        });
+        
+        $this->container->singleton('cache', function ($container) {
+            $config = $container->get('config')['cache'] ?? [];
+            return new Cache($config);
+        });
+        
+        $this->container->singleton('api', function ($container) {
+            $api = new ApiRouter($container);
+            $api->registerBuiltInRoutes();
+            return $api;
+        });
     }
     
     /**
@@ -104,11 +135,38 @@ class Application
         // Initialize internationalization
         $this->container->get('i18n')->initialize();
         
+        // Initialize hooks system
+        $hooks = $this->container->get('hooks');
+        $hooks->doAction('before_boot', $this);
+        
         // Initialize module system
         $this->bootModules();
         
         // Initialize theme system
         $this->bootThemes();
+        
+        // Boot plugins (fires plugin_loaded action for each)
+        $this->bootPlugins();
+        
+        // Initialize scheduler table
+        try {
+            if ($this->container->has('scheduler')) {
+                $this->container->get('scheduler')->createTable();
+            }
+        } catch (\Throwable $e) {
+            error_log("Scheduler table creation: " . $e->getMessage());
+        }
+        
+        // Initialize API keys table
+        try {
+            if ($this->container->has('api')) {
+                $this->container->get('api')->createTable();
+            }
+        } catch (\Throwable $e) {
+            error_log("API keys table creation: " . $e->getMessage());
+        }
+        
+        $hooks->doAction('after_boot', $this);
         
         $this->booted = true;
     }
@@ -129,6 +187,55 @@ class Application
         $customizerCss = $theme->generateCustomizerCss();
         if (!empty($customizerCss)) {
             $GLOBALS['xoopress_head'] = '<style id="xoopress-customizer-css">' . $customizerCss . '</style>';
+        }
+    }
+    
+    /**
+     * Boot plugins from the plugins/ directory.
+     * Each .php file is loaded in alphabetical order.
+     * Fires plugin_loaded action after each plugin.
+     *
+     * @return void
+     */
+    protected function bootPlugins(): void
+    {
+        $hooks = $this->container->has('hooks') ? $this->container->get('hooks') : null;
+        $pluginsPath = XOO_PRESS_ROOT . '/plugins';
+        
+        if (!is_dir($pluginsPath)) {
+            return;
+        }
+        
+        $files = scandir($pluginsPath);
+        sort($files);
+        
+        foreach ($files as $file) {
+            if ($file[0] === '.') continue;
+            $path = $pluginsPath . '/' . $file;
+            
+            // Load single .php files
+            if (is_file($path) && str_ends_with($file, '.php')) {
+                try {
+                    require_once $path;
+                    if ($hooks) {
+                        $hooks->doAction('plugin_loaded', basename($file, '.php'));
+                    }
+                } catch (\Throwable $e) {
+                    error_log("Failed to load plugin '{$file}': " . $e->getMessage());
+                }
+            }
+            
+            // Load directories with plugin.php entry point
+            if (is_dir($path) && file_exists($path . '/plugin.php')) {
+                try {
+                    require_once $path . '/plugin.php';
+                    if ($hooks) {
+                        $hooks->doAction('plugin_loaded', $file);
+                    }
+                } catch (\Throwable $e) {
+                    error_log("Failed to load plugin from directory '{$file}': " . $e->getMessage());
+                }
+            }
         }
     }
     
@@ -214,8 +321,34 @@ class Application
         // Get the router
         $router = $this->container->get('router');
         
-        // Dispatch the request
+        // Dispatch API requests via ApiRouter
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        if (str_starts_with($uri, '/api/')) {
+            if ($this->container->has('api')) {
+                $hooks = $this->container->get('hooks');
+                $hooks->doAction('before_api_dispatch', $this);
+                $apiResponse = $this->container->get('api')->dispatch();
+                $hooks->doAction('after_api_dispatch', $this, $apiResponse);
+                $this->sendResponse($apiResponse);
+                return;
+            }
+        }
+        
+        // Run scheduler (check due cron events before each request)
+        try {
+            if ($this->container->has('scheduler')) {
+                $hooks = $this->container->get('hooks');
+                $this->container->get('scheduler')->run($hooks);
+            }
+        } catch (\Throwable $e) {
+            error_log("Scheduler run: " . $e->getMessage());
+        }
+        
+        // Dispatch the request via main router
+        $hooks = $this->container->get('hooks');
+        $hooks->doAction('before_dispatch', $router);
         $response = $router->dispatch();
+        $response = $hooks->applyFilters('after_dispatch', $response, $router);
         
         // Send the response
         $this->sendResponse($response);

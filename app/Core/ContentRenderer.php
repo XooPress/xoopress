@@ -16,22 +16,67 @@ namespace XooPress\Core;
 
 class ContentRenderer
 {
+    /** @var \XooPress\Core\Container|null */
+    protected $container;
+
+    /**
+     * Set the container for service access
+     *
+     * @param \XooPress\Core\Container $container
+     * @return void
+     */
+    public function setContainer(\XooPress\Core\Container $container): void
+    {
+        $this->container = $container;
+    }
+
     /**
      * Render content based on its type
      * 
      * @param string $content Raw content
      * @param string $type Content type (html, markdown, php, wysiwyg)
+     * @param string|null $cacheKey Optional cache key to cache the rendered result
      * @return string Rendered HTML
      */
-    public function render(string $content, string $type = 'html'): string
+    public function render(string $content, string $type = 'html', ?string $cacheKey = null): string
     {
-        return match ($type) {
+        // Check cache first
+        if ($cacheKey !== null && $this->container && $this->container->has('cache')) {
+            $cache = $this->container->get('cache');
+            $cacheKey = 'content:' . $cacheKey . ':' . md5($content);
+            $cached = $cache->get($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $rendered = match ($type) {
             'markdown' => $this->renderMarkdown($content),
             'php'      => $this->renderPhp($content),
             'html'     => $content,
             'wysiwyg'  => $content,
             default    => $content,
         };
+
+        // Parse shortcodes
+        if ($this->container && $this->container->has('shortcodes')) {
+            $shortcodes = $this->container->get('shortcodes');
+            $rendered = $shortcodes->parse($rendered);
+        }
+
+        // Apply content filters
+        if ($this->container && $this->container->has('hooks')) {
+            $hooks = $this->container->get('hooks');
+            $rendered = $hooks->applyFilters('render_content', $rendered, $type);
+        }
+
+        // Store in cache
+        if ($cacheKey !== null && $this->container && $this->container->has('cache')) {
+            $cache = $this->container->get('cache');
+            $cache->set($cacheKey, $rendered, 3600);
+        }
+
+        return $rendered;
     }
     
     /**

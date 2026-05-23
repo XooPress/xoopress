@@ -256,13 +256,13 @@ content_type VARCHAR(20) DEFAULT 'html'
 - [x] Module version comparison and upgrade callbacks (`upgrade` key in module definition, version_compare, DB version update)
 - [x] Module cloning/export (ZipArchive export as downloadable file, directory copy + name rewrite for cloning)
 
-### Phase 5: API & Extensibility
-- [ ] Add hook/event system (actions and filters like WP)
-- [ ] Add REST API for front-end
-- [ ] Add shortcode system
-- [ ] Add plugin-like functionality (standalone PHP files in plugins/)
-- [ ] Add cron/scheduler system
-- [ ] Add cache system (file, redis, memcached backends)
+### Phase 5: API & Extensibility ✅
+- [x] Hook/Event System (`app/Core/Hooks.php`) — WordPress-style actions & filters with priority, global `add_action()`/`do_action()`/`add_filter()`/`apply_filters()` helpers
+- [x] REST API (`app/Core/ApiRouter.php`) — `/api/posts`, `/api/posts/:num`, `/api/categories`, `/api/users/:num` with Bearer/X-API-Key auth, `xp_api_keys` table
+- [x] Shortcode System (`app/Core/Shortcodes.php`) — `[button]`, `[accordion]`, `[accordion-item]`, `[tabs]`, `[tab]` with attribute parsing & nesting depth protection, global `add_shortcode()`/`do_shortcode()` helpers
+- [x] Plugin System (`plugins/` directory) — single `.php` files or directories with `plugin.php`, loaded alphabetically, fires `plugin_loaded` action
+- [x] Cron/Scheduler (`app/Core/Scheduler.php`) — recurring (hourly/daily/weekly) and one-time events, `xp_cron_events` table, runs on every page load before dispatch
+- [x] Multi-Backend Cache (`app/Core/Cache.php`) — file, Redis, Memcached with auto-detect, TTL, global `cache_get()`/`cache_set()`/`cache_delete()`/`cache_flush()` helpers
 
 ### Phase 6: Content Features
 - [ ] Add revision system for posts/pages
