@@ -222,15 +222,16 @@ content_type VARCHAR(20) DEFAULT 'html'
 
 ## Suggested Roadmap for Core
 
-### Phase 1: Stability & Polish (Current)
+### Phase 1: Stability & Polish ✅
 - [x] Post pagination (previous/next navigation in singular.php across all themes)
 - [x] Author/Editor role-based post management
 - [x] Pagination CSS cleanup and standardization across all themes
-- [ ] Add comprehensive error handling to theme/module upload
-- [ ] Add CSRF protection to all admin POST routes
-- [ ] Improve .mo file parser robustness (more edge cases)
-- [ ] Add unit tests for core classes (Container, Router, Database, I18n)
-- [ ] Add integration tests for module/theme lifecycle
+- [x] Comprehensive error handling in theme/module upload (file validation, ZipArchive errors, path traversal protection, disk space checks, cleanup on failure)
+- [x] CSRF protection on all admin POST routes (AdminController + AuthController login/register)
+- [x] .mo file parser robustness (magic number detection, bounds checking, plural forms, graceful corruption handling)
+- [x] Unit tests for core classes (Container 14 tests, Database 5 tests, I18n 11 tests, Router 10 tests)
+- [x] Integration tests for module lifecycle (9 tests) and theme lifecycle (8 tests)
+- **Total: 57 test methods across 6 test files**
 
 ### Phase 2: Admin UX
 - [x] Build admin menu system (register_admin_menu hook/event)
