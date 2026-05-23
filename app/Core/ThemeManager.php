@@ -342,7 +342,7 @@ class ThemeManager
      * @param string $id
      * @return array|null
      */
-    public function getSidebar(string $id): ?array
+    public function getSidebarById(string $id): ?array
     {
         return $this->registeredSidebars[$id] ?? null;
     }
