@@ -123,6 +123,13 @@ class Application
         $theme = $this->container->get('theme');
         $theme->createTable();
         $theme->initialize();
+        
+        // Inject customizer CSS into the page head via a global variable
+        // that theme headers can output
+        $customizerCss = $theme->generateCustomizerCss();
+        if (!empty($customizerCss)) {
+            $GLOBALS['xoopress_head'] = '<style id="xoopress-customizer-css">' . $customizerCss . '</style>';
+        }
     }
     
     /**

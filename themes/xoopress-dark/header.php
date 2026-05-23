@@ -11,6 +11,7 @@
     <link rel="icon" type="image/x-icon" href="<?= $theme->getThemeUri() ?>/assets/images/xp-favicon.ico">
     <link rel="stylesheet" href="<?= $theme->getStylesheetUrl() ?>">
     <?php if (!empty($head)) echo $head; ?>
+    <?php if (!empty($GLOBALS['xoopress_head'])) echo $GLOBALS['xoopress_head']; ?>
 </head>
 <body>
     <header class="site-header">

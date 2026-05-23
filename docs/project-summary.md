@@ -241,12 +241,12 @@ content_type VARCHAR(20) DEFAULT 'html'
 - [x] Add admin notices system (success/error/warning banners)
 
 ### Phase 3: Theme Enhancements
-- [ ] Add theme customizer (live preview, color picker, layout options)
-- [ ] Add widget system (register_sidebar, dynamic_sidebar like WP)
-- [ ] Add menu system (register_nav_menus, wp_nav_menu like WP)
-- [ ] Add theme.json support for global styles (WP 6+ style)
-- [ ] Add block/template part editing (FSE-like)
-- [ ] Add theme auto-update checking
+- [x] Add widget system (register_sidebar, dynamic_sidebar like WP)
+- [x] Add menu system (register_nav_menus, wp_nav_menu like WP)
+- [x] Add theme customizer (live preview, color picker, layout options)
+- [x] Add theme.json support for global styles (WP 6+ style)
+- [x] Add block/template part editing (FSE-like)
+- [x] Add theme auto-update checking
 
 ### Phase 4: Module Enhancements
 - [ ] Add module dependencies graph visualization

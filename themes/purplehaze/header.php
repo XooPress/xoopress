@@ -21,6 +21,7 @@
     
     <!-- Additional Head Content -->
     <?php if (!empty($head)) echo $head; ?>
+    <?php if (!empty($GLOBALS['xoopress_head'])) echo $GLOBALS['xoopress_head']; ?>
 </head>
 <body>
     <header class="site-header">

@@ -52,9 +52,19 @@ return [
             'order' => 7,
         ],
         [
+            'label' => 'Widgets',
+            'url' => '/admin/widgets',
+            'order' => 8,
+        ],
+        [
+            'label' => 'Menus',
+            'url' => '/admin/menus',
+            'order' => 9,
+        ],
+        [
             'label' => 'Settings',
             'url' => '/admin/settings',
-            'order' => 8,
+            'order' => 10,
         ],
     ],
     
@@ -180,6 +190,7 @@ return [
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postSave'],
         ],
         [
+],        [            'method' => 'POST',            'pattern' => '/admin/posts/bulk',            'handler' => ['XooPress\\Modules\\System\\Controllers\\AdminController', 'postBulk'],        ],        [            'method' => 'POST',            'pattern' => '/admin/pages/bulk',            'handler' => ['XooPress\\Modules\\System\\Controllers\\AdminController', 'postBulk'],
             'method' => 'GET',
             'pattern' => '/admin/posts/delete/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postDelete'],
@@ -266,6 +277,84 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/modules/upload',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUpload'],
+        ],
+        // Widgets
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/widgets',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'widgets'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/widgets/add',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'widgetAdd'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/widgets/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'widgetEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/widgets/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'widgetSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/widgets/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'widgetDelete'],
+        ],
+        // Menus
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/menus',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menus'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/menus/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/menus/create',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuCreate'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/menus/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuDelete'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/menus/add-item',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuAddItem'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/menus/delete-item/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuDeleteItem'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/menus/assign-location',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'menuAssignLocation'],
+        ],
+        // Theme Customizer
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes/customize',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeCustomize'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/themes/customize/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeCustomizeSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes/customize/reset',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeCustomizeReset'],
         ],
         // Categories
         [

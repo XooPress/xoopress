@@ -107,3 +107,154 @@ function is_current_nav(string $path): bool
     
     return $uri === $path;
 }
+
+/**
+ * Register a sidebar (widget area).
+ * WordPress-style: register_sidebar(array('id' => 'sidebar-main', 'name' => 'Main Sidebar'))
+ *
+ * @param array $args Sidebar configuration
+ * @return void
+ */
+function register_sidebar(array $args): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        $theme->registerSidebar($args);
+    }
+}
+
+/**
+ * Register multiple sidebars.
+ *
+ * @param array $sidebars Array of sidebar configs
+ * @return void
+ */
+function register_sidebars(array $sidebars): void
+{
+    foreach ($sidebars as $sidebar) {
+        register_sidebar($sidebar);
+    }
+}
+
+/**
+ * Render a dynamic sidebar.
+ * WordPress-style: dynamic_sidebar('sidebar-main')
+ *
+ * @param string $sidebarId Sidebar ID
+ * @return string HTML output
+ */
+function dynamic_sidebar(string $sidebarId): string
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        return $theme->dynamicSidebar($sidebarId);
+    }
+    return '';
+}
+
+/**
+ * Check if a sidebar has active widgets.
+ *
+ * @param string $sidebarId Sidebar ID
+ * @return bool
+ */
+function is_sidebar_active(string $sidebarId): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        return $theme->isSidebarActive($sidebarId);
+    }
+    return false;
+}
+
+/**
+ * Register a nav menu location.
+ * WordPress-style: register_nav_menu('primary', 'Primary Navigation')
+ *
+ * @param string $location Location slug
+ * @param string $description Description
+ * @return void
+ */
+function register_nav_menu(string $location, string $description): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        $theme->registerNavMenu($location, $description);
+    }
+}
+
+/**
+ * Register multiple nav menu locations.
+ * WordPress-style: register_nav_menus(array('primary' => 'Primary Nav', 'footer' => 'Footer Nav'))
+ *
+ * @param array $menus Array of location => description pairs
+ * @return void
+ */
+function register_nav_menus(array $menus): void
+{
+    foreach ($menus as $location => $description) {
+        register_nav_menu($location, $description);
+    }
+}
+
+/**
+ * Render a navigation menu.
+ * WordPress-style: wp_nav_menu(array('menu' => 'primary', 'theme_location' => 'primary'))
+ *
+ * @param array $args Menu arguments
+ * @return string HTML output
+ */
+function wp_nav_menu(array $args = []): string
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        $menuId = 0;
+        $location = '';
+        
+        if (!empty($args['menu'])) {
+            if (is_numeric($args['menu'])) {
+                $menuId = (int)$args['menu'];
+            }
+        }
+        
+        if (!empty($args['theme_location'])) {
+            $location = $args['theme_location'];
+        }
+        
+        return $theme->renderNavMenu($menuId, $location);
+    }
+    return '';
+}
+
+/**
+ * Get customizer setting value.
+ *
+ * @param string $key Setting key
+ * @param mixed $default Default value
+ * @return mixed
+ */
+function get_theme_mod(string $key, mixed $default = null): mixed
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        return $theme->getCustomizerSetting($key, $default);
+    }
+    return $default;
+}
+
+/**
+ * Set a customizer setting value.
+ *
+ * @param string $key Setting key
+ * @param mixed $value Setting value
+ * @param string $type Setting type
+ * @return bool
+ */
+function set_theme_mod(string $key, mixed $value, string $type = 'text'): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('theme')) {
+        $theme = $GLOBALS['xoopress_container']->get('theme');
+        return $theme->setCustomizerSetting($key, $value, $type);
+    }
+    return false;
+}
