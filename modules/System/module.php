@@ -190,7 +190,16 @@ return [
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postSave'],
         ],
         [
-],        [            'method' => 'POST',            'pattern' => '/admin/posts/bulk',            'handler' => ['XooPress\\Modules\\System\\Controllers\\AdminController', 'postBulk'],        ],        [            'method' => 'POST',            'pattern' => '/admin/pages/bulk',            'handler' => ['XooPress\\Modules\\System\\Controllers\\AdminController', 'postBulk'],
+            'method' => 'POST',
+            'pattern' => '/admin/posts/bulk',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postBulk'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/pages/bulk',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postBulk'],
+        ],
+        [
             'method' => 'GET',
             'pattern' => '/admin/posts/delete/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postDelete'],
@@ -277,6 +286,45 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/modules/upload',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUpload'],
+        ],
+        // Phase 4: Module Dependencies
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/dependencies/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleDependencies'],
+        ],
+        // Phase 4: Module Config
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/config/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleConfig'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/modules/config/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleConfigSave'],
+        ],
+        // Phase 4: Module Updates
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/check-updates',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleCheckUpdates'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/upgrade/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleUpgrade'],
+        ],
+        // Phase 4: Module Export & Clone
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/modules/export/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleExport'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/modules/clone',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'moduleClone'],
         ],
         // Widgets
         [

@@ -249,12 +249,12 @@ content_type VARCHAR(20) DEFAULT 'html'
 - [x] Add block/template part editing (FSE-like)
 - [x] Add theme auto-update checking
 
-### Phase 4: Module Enhancements
-- [ ] Add module dependencies graph visualization
-- [ ] Add module config page (each module can register settings)
-- [ ] Add module auto-update checking from remote repository
-- [ ] Add module version comparison and upgrade callbacks
-- [ ] Add module cloning/export
+### Phase 4: Module Enhancements ✅
+- [x] Module dependencies graph visualization (recursive tree with cycle detection, reverse dependency lookup)
+- [x] Module config page (per-module settings via `config` key in module.php, DB-backed in `xp_module_config` table)
+- [x] Module auto-update checking (remote HTTP fetch + DB cache in `xp_module_updates` table, manual "Check for Updates" button)
+- [x] Module version comparison and upgrade callbacks (`upgrade` key in module definition, version_compare, DB version update)
+- [x] Module cloning/export (ZipArchive export as downloadable file, directory copy + name rewrite for cloning)
 
 ### Phase 5: API & Extensibility
 - [ ] Add hook/event system (actions and filters like WP)

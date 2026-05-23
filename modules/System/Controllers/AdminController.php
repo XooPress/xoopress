@@ -617,11 +617,65 @@ class AdminController extends Controller
         return $modules;
     }
 
-    public function moduleInstall(string $name): void { /* ... */ $this->redirect('/admin/modules'); }
-    public function moduleUninstall(string $name): void { /* ... */ $this->redirect('/admin/modules'); }
-    public function moduleActivate(string $name): void { /* ... */ $this->redirect('/admin/modules'); }
-    public function moduleDeactivate(string $name): void { /* ... */ $this->redirect('/admin/modules'); }
-    public function moduleDelete(string $name): void { /* ... */ $this->redirect('/admin/modules'); }
+    public function moduleInstall(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->install($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    public function moduleUninstall(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->uninstall($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    public function moduleActivate(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->activate($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    public function moduleDeactivate(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->deactivate($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    public function moduleDelete(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->delete($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
 
     public function moduleEdit(string $name): string
     {
@@ -692,7 +746,31 @@ class AdminController extends Controller
         file_put_contents($path, $code);
     }
 
-    public function moduleUpload(): void { /* ... */ $this->redirect('/admin/modules'); }
+    public function moduleUpload(): void
+    {
+        $this->requireAdmin();
+        $redirect = '/admin/modules';
+        
+        if (!$this->requireCsrfToken($redirect)) {
+            return;
+        }
+        
+        if (!isset($_FILES['module_zip']) || $_FILES['module_zip']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['modules_message'] = __('Upload failed.') . ' ' . ($_FILES['module_zip']['error'] ?? '');
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect($redirect);
+            return;
+        }
+        
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->upload($_FILES['module_zip']['tmp_name']);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect($redirect);
+    }
 
     // ── Widgets ───────────────────────────────────────────
 
@@ -994,5 +1072,169 @@ class AdminController extends Controller
         $text = preg_replace('/[\s_]+/', '-', $text);
         $text = trim($text, '-');
         return $text ?: 'untitled';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 4: Module Dependencies
+    // ═══════════════════════════════════════════════════════
+
+    public function moduleDependencies(string $name): string
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        $graph = $manager ? $manager->getDependencyGraph($name) : null;
+        $reverseDeps = $manager ? $manager->getReverseDependencies($name) : [];
+        $module = $manager ? $manager->getModule($name) : null;
+        
+        if (!$module) {
+            $_SESSION['modules_message'] = "Module '{$name}' not found.";
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return '';
+        }
+        
+        return $this->view('system::admin_module_dependencies', [
+            'module' => $module,
+            'graph' => $graph,
+            'reverseDeps' => $reverseDeps,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 4: Module Config
+    // ═══════════════════════════════════════════════════════
+
+    public function moduleConfig(string $name): string
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        $module = $manager ? $manager->getModule($name) : null;
+        
+        if (!$module) {
+            $_SESSION['modules_message'] = "Module '{$name}' not found.";
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return '';
+        }
+        
+        $config = $manager ? $manager->getModuleConfig($name) : [];
+        $configSchema = $manager ? $manager->getModuleConfigSchema($name) : [];
+        
+        $message = $_SESSION['modules_message'] ?? null;
+        $messageType = $_SESSION['modules_message_type'] ?? null;
+        unset($_SESSION['modules_message'], $_SESSION['modules_message_type']);
+        
+        return $this->view('system::admin_module_config', [
+            'module' => $module,
+            'config' => $config,
+            'configSchema' => $configSchema,
+            'csrfToken' => $this->csrfToken(),
+            'message' => $message,
+            'messageType' => $messageType,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function moduleConfigSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/modules');
+        
+        $name = $this->input('name', '');
+        $configData = $this->input('config', []);
+        
+        if (empty($name) || !is_array($configData)) {
+            $this->redirect('/admin/modules');
+            return;
+        }
+        
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->saveModuleConfigBatch($name, $configData);
+            $_SESSION['modules_message'] = $result ? __('Module configuration saved.') : __('Failed to save module configuration.');
+            $_SESSION['modules_message_type'] = $result ? 'success' : 'error';
+        }
+        
+        $this->redirect('/admin/modules/config/' . urlencode($name));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 4: Module Updates & Upgrade
+    // ═══════════════════════════════════════════════════════
+
+    public function moduleCheckUpdates(): string
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        $results = $manager ? $manager->checkAllModuleUpdates() : [];
+        
+        $_SESSION['modules_message'] = count($results) . ' module(s) checked for updates.';
+        $_SESSION['modules_message_type'] = 'info';
+        
+        $this->redirect('/admin/modules');
+        return '';
+    }
+
+    public function moduleUpgrade(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->upgrade($name);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 4: Module Export & Clone
+    // ═══════════════════════════════════════════════════════
+
+    public function moduleExport(string $name): void
+    {
+        $this->requireAdmin();
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->export($name);
+            if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
+                // Stream the zip file to the browser
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="' . $name . '.zip"');
+                header('Content-Length: ' . filesize($result['path']));
+                readfile($result['path']);
+                unlink($result['path']); // Clean up temp file
+                exit;
+            }
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
+    }
+
+    public function moduleClone(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/modules');
+        
+        $name = $this->input('name', '');
+        $newName = $this->input('new_name', '');
+        
+        if (empty($name) || empty($newName)) {
+            $_SESSION['modules_message'] = __('Source module name and new module name are required.');
+            $_SESSION['modules_message_type'] = 'error';
+            $this->redirect('/admin/modules');
+            return;
+        }
+        
+        $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        if ($manager) {
+            $result = $manager->clone($name, $newName);
+            $_SESSION['modules_message'] = $result['message'];
+            $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
+        }
+        $this->redirect('/admin/modules');
     }
 }
