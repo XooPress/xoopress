@@ -233,12 +233,12 @@ content_type VARCHAR(20) DEFAULT 'html'
 - [ ] Add integration tests for module/theme lifecycle
 
 ### Phase 2: Admin UX
-- [ ] Build admin menu system (register_admin_menu hook/event)
-- [ ] Add bulk actions to admin tables (delete, publish, unpublish)
-- [ ] Add pagination to admin listings
-- [ ] Add search/filter to admin listings
-- [ ] Add responsive admin layout
-- [ ] Add admin notices system (success/error/warning banners)
+- [x] Build admin menu system (register_admin_menu hook/event)
+- [x] Add bulk actions to admin tables (delete, publish, unpublish)
+- [x] Add pagination to admin listings
+- [x] Add search/filter to admin listings
+- [x] Add responsive admin layout
+- [x] Add admin notices system (success/error/warning banners)
 
 ### Phase 3: Theme Enhancements
 - [ ] Add theme customizer (live preview, color picker, layout options)
