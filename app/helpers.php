@@ -416,3 +416,113 @@ function cache_flush(): bool
     }
     return false;
 }
+
+// ═══════════════════════════════════════════════════════════
+//  Phase 6: Content Types, Meta Boxes & Taxonomies API
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Register a custom post type
+ *
+ * @param string $type Post type name
+ * @param array $args Arguments
+ * @return bool
+ */
+function register_post_type(string $type, array $args = []): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('content_types')) {
+        return $GLOBALS['xoopress_container']->get('content_types')->register($type, $args);
+    }
+    return false;
+}
+
+/**
+ * Register a meta box on the post edit screen
+ *
+ * @param string $id Meta box ID
+ * @param string $title Display title
+ * @param array $screens Post types this box appears on
+ * @param string $context 'normal', 'side', 'advanced'
+ * @param string $priority 'default', 'high', 'low'
+ * @return void
+ */
+function add_meta_box(string $id, string $title, array $screens = ['post'], string $context = 'normal', string $priority = 'default'): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('meta_boxes')) {
+        $GLOBALS['xoopress_container']->get('meta_boxes')->addMetaBox($id, $title, $screens, $context, $priority);
+    }
+}
+
+/**
+ * Add a field to a meta box
+ *
+ * @param string $metaBoxId Meta box ID
+ * @param string $key Field key
+ * @param array $config Field configuration
+ * @return void
+ */
+function add_meta_field(string $metaBoxId, string $key, array $config): void
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('meta_boxes')) {
+        $GLOBALS['xoopress_container']->get('meta_boxes')->addField($metaBoxId, $key, $config);
+    }
+}
+
+/**
+ * Get a post meta value
+ *
+ * @param int $postId Post ID
+ * @param string $key Meta key
+ * @param mixed $default Default value
+ * @return mixed
+ */
+function get_post_meta(int $postId, string $key, mixed $default = null): mixed
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('meta_boxes')) {
+        return $GLOBALS['xoopress_container']->get('meta_boxes')->getValue($postId, $key, $default);
+    }
+    return $default;
+}
+
+/**
+ * Get all meta values for a post
+ *
+ * @param int $postId
+ * @return array
+ */
+function get_post_meta_all(int $postId): array
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('meta_boxes')) {
+        return $GLOBALS['xoopress_container']->get('meta_boxes')->getValues($postId);
+    }
+    return [];
+}
+
+/**
+ * Register a taxonomy
+ *
+ * @param string $name Taxonomy name
+ * @param string $singular_label Singular label
+ * @param string $plural_label Plural label
+ * @param array $postTypes Post types this taxonomy applies to
+ * @param array $args Additional arguments
+ * @return bool
+ */
+function register_taxonomy(string $name, string $singular_label, string $plural_label, array $postTypes = ['post'], array $args = []): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('taxonomies')) {
+        return $GLOBALS['xoopress_container']->get('taxonomies')->register($name, $singular_label, $plural_label, $postTypes, $args);
+    }
+    return false;
+}
+
+/**
+ * Get shortcode placeholder for a content block
+ *
+ * @param string $slug Block slug
+ * @return string
+ */
+function block_shortcode(string $slug): string
+{
+    return '[block slug="' . htmlspecialchars($slug, ENT_QUOTES) . '"]';
+}

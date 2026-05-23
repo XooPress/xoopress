@@ -10,11 +10,19 @@ A modular open-source Content Management System combining the modular architectu
 | `Application.php` | Bootstrap, service registration, boot sequence |
 | `Container.php` | Dependency injection container (singleton/bind/instance) |
 | `ContentRenderer.php` | Multi-format content rendering: HTML, Markdown (Parsedown), PHP eval, WYSIWYG |
+| `ContentTypes.php` | WordPress-style register_post_type() API |
 | `Controller.php` | Base controller: view rendering, JSON, redirect, validation, CSRF |
 | `Database.php` | PDO abstraction: query builder, insert/update/delete, table prefix |
+| `Hooks.php` | WordPress-style actions & filters |
 | `I18n.php` | Internationalization: .mo file parsing, gettext fallback, locale detection |
+| `MetaBoxes.php` | ACF-style meta boxes & custom fields API |
 | `ModuleManager.php` | XOOPS-style module system (DB-backed install/uninstall/activate/deactivate) |
 | `Router.php` | URL routing with pattern matching (`:num`, `:alpha`, `:all`) |
+| `Shortcodes.php` | WordPress-style shortcode system |
+| `Scheduler.php` | Cron-style event scheduler |
+| `Cache.php` | Multi-backend cache (file, Redis, Memcached) |
+| `ApiRouter.php` | REST API router with key-based auth |
+| `Taxonomies.php` | WordPress-style register_taxonomy() API |
 | `ThemeManager.php` | WordPress-style theme system (style.css headers, child themes, template hierarchy) |
 | `Validator.php` | Request validation with 20+ rules |
 
@@ -22,7 +30,7 @@ A modular open-source Content Management System combining the modular architectu
 | Module | Purpose | DB Tables Created |
 |--------|---------|-------------------|
 | `System` | Core: auth, admin dashboard, users, settings, sessions | `users`, `settings`, `sessions` |
-| `Content` | Posts, pages, categories, custom content types | `posts`, `categories`, `post_meta` |
+| `Content` | Posts, pages, categories, revisions, tags, content blocks | `posts`, `categories`, `post_meta`, `revisions`, `tags`, `term_relationships`, `content_blocks` |
 
 ### Themes (`themes/`)
 | Theme | Description |
@@ -41,184 +49,68 @@ All five themes include:
 - `assets/` directory (css, js, images)
 - `screenshot.png` for admin preview
 
-## Theme System (WordPress-style)
+## Global Helper Functions (helpers.php)
 
-### How it works
-- Themes are directories under `themes/` with a `style.css` header block
-- The active theme is stored in the `settings` DB table (`active_theme` key)
-- Per-user theme override via session (`$_SESSION['user_theme']`)
-- Template hierarchy: child theme → parent theme → index.php fallback
-- Template parts: `getHeader()`, `getFooter()`, `getSidebar()`, `getTemplatePart()`
-- `theme.json` support for advanced configuration
-- Theme upload via `.zip` files in admin panel
+### Core
+| Function | Description |
+|----------|-------------|
+| `__($message)` | Translate string |
+| `getFooterPages()` | Published pages for footer menu |
+| `getNavPages()` | Navigation pages with show_in_nav filter |
 
-### Theme style.css header
-```css
-/*
-Theme Name: My Theme
-Theme URI: https://example.com/
-Author: Name
-Author URI: https://example.com/
-Description: Description here.
-Version: 1.0.0
-License: GPL-3.0-or-later
-Template: parent-theme-dir  /* For child themes */
-Tags: one-column, two-columns
-Text Domain: my-theme
-*/
-```
+### Phase 5: Hooks, Shortcodes, Cache
+| Function | Description |
+|----------|-------------|
+| `add_action($hook, $callback, $priority)` | Register action hook |
+| `do_action($hook, ...$args)` | Execute action hooks |
+| `add_filter($hook, $callback, $priority)` | Register filter hook |
+| `apply_filters($hook, $value, ...$args)` | Apply filter hooks |
+| `add_shortcode($tag, $handler)` | Register shortcode |
+| `do_shortcode($content)` | Parse shortcodes in content |
+| `cache_get($key, $default)` | Get cached value |
+| `cache_set($key, $value, $ttl)` | Set cached value |
+| `cache_delete($key)` | Delete cached value |
+| `cache_flush()` | Clear all cached values |
 
-### Child theme example
-A child theme only needs:
-```
-themes/my-child/
-├── style.css       (with Template: xoopress-lite header)
-├── index.php       (overrides parent's index.php)
-├── header.php      (overrides parent's header.php)
-└── functions.php   (loaded in addition to parent's)
-```
+### Phase 6: Content Types, Meta, Taxonomies
+| Function | Description |
+|----------|-------------|
+| `register_post_type($type, $args)` | Register custom post type |
+| `add_meta_box($id, $title, $screens, $context, $priority)` | Register meta box |
+| `add_meta_field($metaBoxId, $key, $config)` | Add field to meta box |
+| `get_post_meta($postId, $key, $default)` | Get post meta value |
+| `get_post_meta_all($postId)` | Get all post meta values |
+| `register_taxonomy($name, $singular, $plural, $postTypes, $args)` | Register taxonomy |
+| `block_shortcode($slug)` | Get [block slug="..."] shortcode string |
 
-### Template resolution order
-1. Child theme `templates/` directory
-2. Parent theme `templates/` directory
-3. Child theme root directory
-4. Parent theme root directory
-5. `index.php` as ultimate fallback
+## Quick Reference
 
-### Theme-specific settings
-Per-theme settings are stored in `xp_theme_settings` table using:
-```php
-$theme->getSetting('key', 'default');
-$theme->setSetting('key', $value);
-```
+### Admin URLs
+| URL | Function |
+|-----|----------|
+| `/admin` | Dashboard |
+| `/admin/posts` | Manage posts |
+| `/admin/pages` | Manage pages |
+| `/admin/categories` | Manage categories |
+| `/admin/tags` | Manage tags |
+| `/admin/blocks` | Manage content blocks |
+| `/admin/users` | Manage users |
+| `/admin/modules` | Module management |
+| `/admin/themes` | Theme management |
+| `/admin/widgets` | Widget management |
+| `/admin/menus` | Menu management |
+| `/admin/settings` | Site settings |
 
-### Post Pagination
-All themes include previous/next post navigation on singular post pages (`singular.php`):
-- Previous/Next post links with titles
-- Styled navigation with hover effects
-- Responsive (stacks vertically on mobile)
-- Falls back gracefully when no adjacent posts exist
-
-## Module System (XOOPS-style)
-
-### Module structure
-```
-modules/ModuleName/
-├── module.php      (definition: name, version, routes, services, callbacks)
-├── bootstrap.php   (optional: runs on every request)
-├── routes.php      (optional: additional routes)
-├── Controllers/
-├── Models/
-├── views/
-└── locales/
-```
-
-### Module definition (`module.php`)
-```php
-return [
-    'name' => 'ModuleName',
-    'version' => '1.0.0',
-    'description' => '...',
-    'author' => '...',
-    'license' => 'GPL-3.0-or-later',
-    'dependencies' => ['System'],
-    'services' => [
-        'service.name' => fn($c) => new Service($c->get('database')),
-    ],
-    'routes' => [
-        ['method' => 'GET', 'pattern' => '/path', 'handler' => [Controller::class, 'method']],
-    ],
-    'install' => function($container) { /* create tables */ },
-    'uninstall' => function($container) { /* drop tables */ },
-    'init' => function($container) { /* run on every request after install */ },
-];
-```
-
-### Module states
-- **Not Installed**: module files exist in `modules/` but not registered in DB
-- **Installed (Active)**: DB record exists `active=1`, routes/services/translations loaded
-- **Installed (Inactive)**: DB record exists `active=0`, not loaded but data preserved
-
-### Module Lifecycle
-| Event | Trigger | What happens |
-|-------|---------|-------------|
-| **Install** | Admin clicks Install | `install` callback runs (creates tables), DB record created, module activated |
-| **Activate** | Admin clicks Activate | Routes registered, services bound, translations loaded, `init` callback runs |
-| **Deactivate** | Admin clicks Deactivate | Routes unregistered, services unbound, module state set to inactive |
-| **Uninstall** | Admin clicks Uninstall | `uninstall` callback runs (drops tables), DB record removed |
-| **Upload** | Admin uploads zip | Files extracted to `modules/`, module appears in list |
-| **Delete** | Admin clicks Delete | Module directory removed from filesystem (only if not installed) |
-
-### Dependencies
-- Modules declare dependencies via `dependencies` array in `module.php`
-- System blocks installation if a dependency is missing
-- System blocks uninstallation if another module depends on it
-- Dependencies are initialized before the dependent module
-
-## Content Renderer & Multi-Input Editor
-
-### ContentRenderer (`app/Core/ContentRenderer.php`)
-
-A server-side content rendering engine that processes post/page content based on its `content_type` field. Supports 4 formats:
-
-| Format | `content_type` | Rendering |
-|--------|---------------|-----------|
-| **Visual Editor** | `wysiwyg` | HTML output as-is (contenteditable-based WYSIWYG) |
-| **HTML** | `html` | Direct HTML output |
-| **Markdown** | `markdown` | Parsedown library converts Markdown to HTML; built-in fallback for basic syntax |
-| **PHP** | `php` | Safe `eval()` with error handling; strips `<?php` tags automatically |
-
-**Key methods:**
-```php
-$renderer = new ContentRenderer();
-$html = $renderer->render($content, $contentType);  // Returns rendered HTML
-ContentRenderer::getTypes();                         // Returns ['wysiwyg' => 'Visual Editor', ...]
-ContentRenderer::getTypeIcon($type);                 // Returns emoji icon for type
-```
-
-### Admin Post Editor (`modules/System/views/admin_post_edit.php`)
-
-The post/page editor features a tabbed interface with 4 editor modes:
-
-- **🎨 Visual** — Contenteditable WYSIWYG with formatting toolbar (B, I, U, H2, H3, blockquote, code, lists, links, images)
-- **🔤 HTML** — Code editor with HTML tag insertion helpers
-- **📝 Markdown** — Editor with Markdown formatting toolbar (bold, italic, headers, blockquotes, code, links, images, lists)
-- **⚡ PHP** — Code editor with PHP snippet helpers (echo, if, foreach, for, function, return)
-
-**Features:**
-- **Live Preview** toggle — renders HTML/WYSIWYG inline, client-side Markdown preview, shows PHP source
-- **Auto-sync** — switching tabs syncs content between editors via a hidden textarea
-- **Auto-slug** — URL slug auto-generated from title on blur
-- **Persistent mode** — the selected editor mode is saved as `content_type` per post
-
-### Database Schema
-
-The `xp_posts` table includes a `content_type` column:
-```sql
-content_type VARCHAR(20) DEFAULT 'html'
-```
-
-### Rendering Pipeline
-
-1. Admin creates/edits a post in any of the 4 editor modes
-2. `content_type` is saved alongside the raw content
-3. On front-end display, `PostController` passes content through `ContentRenderer::render()`
-4. The rendered HTML is available as `$post['rendered_content']` in templates
-5. Themes use `$post['rendered_content'] ?? $post['content']` for backward compatibility
-
-### Dependencies
-
-- `erusev/parsedown` (^1.8) — Markdown-to-HTML conversion library
-- `filp/whoops` (^2.16) — Error handling for beautiful debug pages
-
-## User Roles & Permissions
-
-| Role | Capabilities |
-|------|-------------|
-| **Admin** | Full access to all admin features |
-| **Editor** | Can manage all posts, pages, and categories |
-| **Author** | Can create and manage their own posts |
-| **Subscriber** | Can log in and manage their profile only |
+### Common template variables
+| Variable | Source | Description |
+|----------|--------|-------------|
+| `$theme` | ThemeManager | Theme helper object |
+| `$activeTheme` | ThemeManager | Active parent theme data |
+| `$childTheme` | ThemeManager | Active child theme data (or null) |
+| `$posts` | Controller | Array of post records |
+| `$post` | Controller | Single post record |
+| `$siteName` | Settings | Site name from DB |
+| `$siteDescription` | Settings | Site description from DB |
 
 ## Suggested Roadmap for Core
 
@@ -264,14 +156,83 @@ content_type VARCHAR(20) DEFAULT 'html'
 - [x] Cron/Scheduler (`app/Core/Scheduler.php`) — recurring (hourly/daily/weekly) and one-time events, `xp_cron_events` table, runs on every page load before dispatch
 - [x] Multi-Backend Cache (`app/Core/Cache.php`) — file, Redis, Memcached with auto-detect, TTL, global `cache_get()`/`cache_set()`/`cache_delete()`/`cache_flush()` helpers
 
-### Phase 6: Content Features
-- [ ] Add revision system for posts/pages
-- [ ] Add media library with image handling
-- [ ] Add WYSIWYG editor integration (TinyMCE, CKEditor, or ProseMirror)
-- [ ] Add custom post types registration API
-- [ ] Add custom fields/metaboxes API (like ACF)
-- [ ] Add taxonomy system beyond categories (tags, custom taxonomies)
-- [ ] Add content blocks/components (reusable content pieces)
+### Phase 6: Content Features ✅
+
+#### Content Types API
+- **app/Core/ContentTypes.php** — WordPress-style `register_post_type()`
+  - Register custom post types with full args (labels, supports, rewrite, menu_icon)
+  - Built-in types: `post` and `page`
+  - Methods: `register()`, `getTypes()`, `getType()`, `getArchiveSlug()`, `registerBuiltIn()`
+  - `sanitize_key()` helper function
+
+#### Meta Boxes / Custom Fields (ACF-style)
+- **app/Core/MetaBoxes.php** — Full meta box registration and rendering API
+  - `addMetaBox()`, `addField()` — register meta boxes with typed fields
+  - Field types: text, textarea, number, email, url, select, radio, checkbox, image, wysiwyg
+  - `renderMetaBoxes()` — HTML rendering for post edit screen
+  - `saveFields()`, `getValue()`, `getValues()` — CRUD on `xp_post_meta` table
+  - Auto-inserts/updates meta rows in `post_meta` table
+- **Integration in AdminController:**
+  - `postNew()` and `postEdit()` render meta boxes
+  - `postSave()` saves meta fields on create/update
+- **Post Editor view:** displays meta boxes below the content area
+
+#### Revisions System
+- **modules/Content/Models/Revision.php** — Revision model
+  - `create()`, `getByPost()`, `find()`, `restore()`, `delete()` CRUD
+  - Auto-pruning: keeps last 25 revisions per post
+  - `diff()` — field-level comparison (title, content, excerpt)
+  - `count()` — revision count helper
+- **New views:**
+  - `modules/System/views/admin_post_revisions.php` — revision listing with view/restore/delete actions
+  - `modules/System/views/admin_post_revision_view.php` — side-by-side diff comparison
+- **AdminController:** `postRevisions()`, `postRevisionView()`, `postRevisionRestore()`, `postRevisionDelete()`
+- **Integration:** `postSave()` creates a revision of the current state before each update
+- **DB table:** `xp_revisions` (post_id, title, content, excerpt, status, author_id, revision_date)
+- **Post Editor:** shows revision count link on edit page
+
+#### Taxonomy System
+- **app/Core/Taxonomies.php** — WordPress-style `register_taxonomy()`
+  - `register()` with name, labels, post types, args (hierarchical, slug, menu_icon)
+  - Built-in: `tag` taxonomy for `post` type
+  - `getForPostType()`, `getAll()`, `get()`
+- **modules/Content/Models/Tag.php** — Tag model
+  - CRUD: `getAll()`, `find()`, `findBySlug()`, `create()`, `update()`, `delete()`
+  - `getForPost()`, `setForPost()` — manage post<->term relationships
+  - `updateCounts()` — auto-maintain count column
+  - `search()` — autocomplete-friendly search
+  - Unique slug generation
+- **Admin:** Tags management page at `/admin/tags`
+  - `admin_tags.php` view — add/list/edit/delete tags with counts
+- **DB tables:** `xp_tags`, `xp_term_relationships`
+
+#### Content Blocks
+- **modules/Content/Models/ContentBlock.php** — Reusable content blocks
+  - `getAll()`, `find()`, `findBySlug()`, `create()`, `update()`, `delete()`
+  - `getCategories()` — unique category listing
+  - `render()` — render with ContentRenderer (supports html, wysiwyg, markdown, php)
+- **Admin views:**
+  - `admin_blocks.php` — table listing with copyable shortcode
+  - `admin_block_edit.php` — create/edit form with type selector
+- **Shortcode integration:** `[block slug="my-block"]` registered in Application.php
+- **Admin routes:** `/admin/blocks`, `/admin/blocks/new`, `/admin/blocks/edit/:num`, `/admin/blocks/delete/:num`
+
+#### New Helper Functions (helpers.php)
+- `register_post_type()`, `register_taxonomy()`
+- `add_meta_box()`, `add_meta_field()`
+- `get_post_meta()`, `get_post_meta_all()`
+- `block_shortcode()`
+
+#### Application Service Registration
+- `content_types`, `meta_boxes`, `taxonomies` singleton services
+- `content.revision`, `content.tag`, `content.block` model services
+- `[block]` shortcode automatically registered at boot
+
+#### Database Schema Additions (Content module)
+- `xp_revisions` — post revision history
+- `xp_tags` — taxonomy terms (tags, custom taxonomies)
+- `xp_term_relationships` — post<->term mapping
+- `xp_content_blocks` — reusable content blocks
 
 ### Phase 7: Performance & Security
 - [ ] Add query caching layer
@@ -315,33 +276,3 @@ content_type VARCHAR(20) DEFAULT 'html'
 5. **Routing**: Simple pattern matching (no Symfony Router dependency)
 6. **Container**: Custom PSR-11-like container (no Symfony DI / PHP-DI dependency)
 7. **CSS**: Plain CSS files with CSS custom properties (no build step, no Sass/Less/PostCSS)
-
-## Quick Reference
-
-### Admin URLs
-| URL | Function |
-|-----|----------|
-| `/admin` | Dashboard |
-| `/admin/posts` | Manage posts |
-| `/admin/pages` | Manage pages |
-| `/admin/categories` | Manage categories |
-| `/admin/users` | Manage users |
-| `/admin/modules` | Module management |
-| `/admin/themes` | Theme management |
-| `/admin/settings` | Site settings |
-
-### Common template variables
-| Variable | Source | Description |
-|----------|--------|-------------|
-| `$theme` | ThemeManager | Theme helper object |
-| `$activeTheme` | ThemeManager | Active parent theme data |
-| `$childTheme` | ThemeManager | Active child theme data (or null) |
-| `$posts` | Controller | Array of post records |
-| `$post` | Controller | Single post record |
-| `$siteName` | Settings | Site name from DB |
-| `$siteDescription` | Settings | Site description from DB |
-
-### Global functions
-| Function | Description |
-|----------|-------------|
-| `__($message)` | Translate string |

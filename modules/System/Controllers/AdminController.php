@@ -152,10 +152,21 @@ class AdminController extends Controller
     {
         $this->requireAuthorOrEditor();
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        
+        // Render meta boxes for this post type
+        $metaBoxesHtml = '';
+        if ($this->container->has('meta_boxes')) {
+            try {
+                $metaBoxesHtml = $this->container->get('meta_boxes')->renderMetaBoxes('post', []);
+            } catch (\Throwable $e) {}
+        }
+        
         return $this->view('system::admin_post_edit', [
             'isNew' => true, 'post' => [], 'categories' => $categories, 'type' => 'post',
             'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
+            'metaBoxesHtml' => $metaBoxesHtml,
+            'postMeta' => [],
         ]);
     }
 
@@ -169,10 +180,40 @@ class AdminController extends Controller
             return '';
         }
         $categories = $this->categoryModel ? ($this->categoryModel->all() ?: []) : [];
+        
+        // Load meta values for this post
+        $postMeta = [];
+        if ($this->container->has('meta_boxes')) {
+            try {
+                $postMeta = $this->container->get('meta_boxes')->getValues($id);
+            } catch (\Throwable $e) {}
+        }
+        
+        // Render meta boxes
+        $metaBoxesHtml = '';
+        $type = $post['type'] ?? 'post';
+        if ($this->container->has('meta_boxes')) {
+            try {
+                $postData = ($post ?? []) + ['meta' => $postMeta];
+                $metaBoxesHtml = $this->container->get('meta_boxes')->renderMetaBoxes($type, $postData);
+            } catch (\Throwable $e) {}
+        }
+        
+        // Get revision count
+        $revisionCount = 0;
+        if ($this->container->has('content.revision')) {
+            try {
+                $revisionCount = $this->container->get('content.revision')->count($id);
+            } catch (\Throwable $e) {}
+        }
+        
         return $this->view('system::admin_post_edit', [
-            'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $post['type'] ?? 'post',
+            'isNew' => false, 'post' => $post ?? [], 'categories' => $categories, 'type' => $type,
             'csrfToken' => $this->csrfToken(),
             'adminMenu' => $this->getAdminMenu(),
+            'metaBoxesHtml' => $metaBoxesHtml,
+            'postMeta' => $postMeta,
+            'revisionCount' => $revisionCount,
         ]);
     }
 
@@ -209,7 +250,16 @@ class AdminController extends Controller
                 if ($status === 'published' && empty($data['published_at'])) {
                     $postData['published_at'] = date('Y-m-d H:i:s');
                 }
-                if ($isNew) { $this->postModel->create($postData); }
+                if ($isNew) { 
+                    $postId = $this->postModel->create($postData);
+                    
+                    // Save meta fields
+                    if (!empty($data['meta']) && is_array($data['meta']) && $this->container->has('meta_boxes')) {
+                        try {
+                            $this->container->get('meta_boxes')->saveFields($postId, $data['meta'], $type);
+                        } catch (\Throwable $e) {}
+                    }
+                }
                 else {
                     if ($role === 'author') {
                         $existing = $this->postModel->find((int)$data['id']);
@@ -218,7 +268,30 @@ class AdminController extends Controller
                             return;
                         }
                     }
-                    $this->postModel->update((int)$data['id'], $postData);
+                    
+                    // Save revision before updating (Phase 6)
+                    $postId = (int)$data['id'];
+                    if ($this->container->has('content.revision')) {
+                        try {
+                            $currentPost = $this->postModel->find($postId);
+                            if ($currentPost) {
+                                $this->container->get('content.revision')->create(
+                                    $postId, $currentPost, (int)($_SESSION['user_id'] ?? 0)
+                                );
+                            }
+                        } catch (\Throwable $e) {
+                            error_log("Failed to create revision: " . $e->getMessage());
+                        }
+                    }
+                    
+                    $this->postModel->update($postId, $postData);
+                    
+                    // Save meta fields
+                    if (!empty($data['meta']) && is_array($data['meta']) && $this->container->has('meta_boxes')) {
+                        try {
+                            $this->container->get('meta_boxes')->saveFields($postId, $data['meta'], $type);
+                        } catch (\Throwable $e) {}
+                    }
                 }
             } catch (\Throwable $e) {}
         }
@@ -1236,5 +1309,329 @@ class AdminController extends Controller
             $_SESSION['modules_message_type'] = $result['success'] ? 'success' : 'error';
         }
         $this->redirect('/admin/modules');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 6: Tags Management
+    // ═══════════════════════════════════════════════════════
+
+    public function tags(): string
+    {
+        $this->requireAdmin();
+        
+        $tags = [];
+        if ($this->container->has('content.tag')) {
+            try {
+                $tagModel = $this->container->get('content.tag');
+                $tags = $tagModel->getAll('tag');
+            } catch (\Throwable $e) {}
+        }
+        
+        return $this->view('system::admin_tags', [
+            'tags' => $tags,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function tagEdit(int $id): string
+    {
+        $this->requireAdmin();
+        $tags = [];
+        $editTag = null;
+        
+        if ($this->container->has('content.tag')) {
+            try {
+                $tagModel = $this->container->get('content.tag');
+                $editTag = $tagModel->find($id);
+                $tags = $tagModel->getAll('tag');
+            } catch (\Throwable $e) {}
+        }
+        
+        if (!$editTag) {
+            $this->redirect('/admin/tags');
+            return '';
+        }
+        
+        return $this->view('system::admin_tags', [
+            'tags' => $tags,
+            'editTag' => $editTag,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function tagSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/tags');
+        
+        $data = $this->all();
+        $name = $data['name'] ?? '';
+        $slug = $data['slug'] ?? '';
+        $id = !empty($data['id']) ? (int)$data['id'] : 0;
+        
+        if (empty($name)) {
+            $this->redirect('/admin/tags');
+            return;
+        }
+        
+        if ($this->container->has('content.tag')) {
+            try {
+                $tagModel = $this->container->get('content.tag');
+                if ($id > 0) {
+                    $tagModel->update($id, ['name' => $name, 'slug' => $slug ?: $this->createSlug($name)]);
+                } else {
+                    $tagModel->create($name, 'tag', $slug);
+                }
+            } catch (\Throwable $e) {}
+        }
+        
+        $this->redirect('/admin/tags');
+    }
+
+    public function tagDelete(int $id): void
+    {
+        $this->requireAdmin();
+        
+        if ($this->container->has('content.tag')) {
+            try {
+                $this->container->get('content.tag')->delete($id);
+            } catch (\Throwable $e) {}
+        }
+        
+        $this->redirect('/admin/tags');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 6: Revisions
+    // ═══════════════════════════════════════════════════════
+
+    public function postRevisions(int $postId): string
+    {
+        $this->requireAuthorOrEditor();
+        
+        $post = $this->postModel ? $this->postModel->find($postId) : null;
+        $revisions = [];
+        
+        if ($post && $this->container->has('content.revision')) {
+            try {
+                $revModel = $this->container->get('content.revision');
+                $revisions = $revModel->getByPost($postId);
+                $currentRevisionId = $post['revision_id'] ?? 0;
+            } catch (\Throwable $e) {}
+        }
+        
+        return $this->view('system::admin_post_revisions', [
+            'post' => $post ?? [],
+            'revisions' => $revisions,
+            'currentRevisionId' => $currentRevisionId ?? 0,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function postRevisionView(int $postId, int $revisionId): string
+    {
+        $this->requireAuthorOrEditor();
+        
+        $post = $this->postModel ? $this->postModel->find($postId) : null;
+        $revision = null;
+        
+        if ($this->container->has('content.revision')) {
+            try {
+                $revModel = $this->container->get('content.revision');
+                $revision = $revModel->find($revisionId);
+                if ($revision && (int)$revision['post_id'] !== $postId) {
+                    $revision = null;
+                }
+            } catch (\Throwable $e) {}
+        }
+        
+        if (!$revision) {
+            $this->redirect('/admin/posts/revisions/' . $postId);
+            return '';
+        }
+        
+        $diff = $this->container->has('content.revision') 
+            ? $this->container->get('content.revision')->diff($revision, $post ?? []) 
+            : [];
+        
+        return $this->view('system::admin_post_revision_view', [
+            'post' => $post ?? [],
+            'revision' => $revision,
+            'diff' => $diff,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function postRevisionRestore(int $postId, int $revisionId): void
+    {
+        $this->requireAuthorOrEditor();
+        
+        if (!$this->postModel || !$this->container->has('content.revision')) {
+            $this->redirect('/admin/posts/revisions/' . $postId);
+            return;
+        }
+        
+        try {
+            $revModel = $this->container->get('content.revision');
+            $revision = $revModel->restore($postId, $revisionId);
+            
+            if ($revision) {
+                // Save current state as a revision first
+                $currentPost = $this->postModel->find($postId);
+                if ($currentPost) {
+                    $revModel->create($postId, $currentPost, (int)($_SESSION['user_id'] ?? 0));
+                }
+                
+                // Restore the revision data
+                $this->postModel->update($postId, [
+                    'title'   => $revision['title'],
+                    'content' => $revision['content'],
+                    'excerpt' => $revision['excerpt'],
+                    'status'  => $revision['status'],
+                ]);
+                
+                $_SESSION['admin_notice'] = 'Post restored to revision from ' . $revision['revision_date'];
+                $_SESSION['admin_notice_type'] = 'success';
+            }
+        } catch (\Throwable $e) {
+            error_log("Revision restore failed: " . $e->getMessage());
+        }
+        
+        $this->redirect('/admin/posts/edit/' . $postId);
+    }
+
+    public function postRevisionDelete(int $postId, int $revisionId): void
+    {
+        $this->requireAuthorOrEditor();
+        
+        if ($this->container->has('content.revision')) {
+            try {
+                $this->container->get('content.revision')->delete($revisionId);
+            } catch (\Throwable $e) {}
+        }
+        
+        $this->redirect('/admin/posts/revisions/' . $postId);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 6: Content Blocks
+    // ═══════════════════════════════════════════════════════
+
+    public function blocks(): string
+    {
+        $this->requireAdmin();
+        
+        $blocks = [];
+        $notice = $_SESSION['blocks_message'] ?? null;
+        unset($_SESSION['blocks_message']);
+        
+        if ($this->container->has('content.block')) {
+            try {
+                $blockModel = $this->container->get('content.block');
+                $blocks = $blockModel->getAll(null, false);
+            } catch (\Throwable $e) {}
+        }
+        
+        return $this->view('system::admin_blocks', [
+            'blocks' => $blocks,
+            'notice' => $notice,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function blockNew(): string
+    {
+        $this->requireAdmin();
+        
+        return $this->view('system::admin_block_edit', [
+            'isNew' => true,
+            'block' => [],
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function blockEdit(int $id): string
+    {
+        $this->requireAdmin();
+        
+        $block = null;
+        if ($this->container->has('content.block')) {
+            try {
+                $block = $this->container->get('content.block')->find($id);
+            } catch (\Throwable $e) {}
+        }
+        
+        if (!$block) {
+            $_SESSION['blocks_message'] = 'Block not found.';
+            $this->redirect('/admin/blocks');
+            return '';
+        }
+        
+        return $this->view('system::admin_block_edit', [
+            'isNew' => false,
+            'block' => $block,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function blockSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/blocks');
+        
+        $data = $this->all();
+        $id = !empty($data['id']) ? (int)$data['id'] : 0;
+        $isNew = $id <= 0;
+        
+        if (empty($data['title']) || empty($data['slug'])) {
+            $_SESSION['blocks_message'] = 'Title and slug are required.';
+            $this->redirect('/admin/blocks' . ($isNew ? '/new' : '/edit/' . $id));
+            return;
+        }
+        
+        if ($this->container->has('content.block')) {
+            try {
+                $blockModel = $this->container->get('content.block');
+                
+                $blockData = [
+                    'title'        => $data['title'],
+                    'slug'         => $data['slug'],
+                    'content'      => $data['content'] ?? '',
+                    'content_type' => $data['content_type'] ?? 'html',
+                    'category'     => $data['category'] ?? '',
+                    'is_active'    => !empty($data['is_active']) ? 1 : 0,
+                ];
+                
+                if ($isNew) {
+                    $blockModel->create($blockData);
+                } else {
+                    $blockModel->update($id, $blockData);
+                }
+                
+                $_SESSION['blocks_message'] = $isNew ? 'Block created.' : 'Block updated.';
+            } catch (\Throwable $e) {
+                $_SESSION['blocks_message'] = 'Error: ' . $e->getMessage();
+            }
+        }
+        
+        $this->redirect('/admin/blocks');
+    }
+
+    public function blockDelete(int $id): void
+    {
+        $this->requireAdmin();
+        
+        if ($this->container->has('content.block')) {
+            try {
+                $this->container->get('content.block')->delete($id);
+                $_SESSION['blocks_message'] = 'Block deleted.';
+            } catch (\Throwable $e) {}
+        }
+        
+        $this->redirect('/admin/blocks');
     }
 }

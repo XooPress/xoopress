@@ -335,6 +335,27 @@
                     </div>
                 </div>
                 <?php endif; ?>
+                
+                <?php if (!$isNew && !empty($revisionCount) && $revisionCount > 0): ?>
+                <div style="margin-top:15px;padding:10px 15px;background:#f0f6fc;border:1px solid #c8def5;border-radius:4px;">
+                    <a href="/admin/posts/revisions/<?= (int)($post['id'] ?? 0) ?>" style="color:#0073aa;text-decoration:none;">
+                        📋 <?= (int)$revisionCount ?> revision(s) available
+                    </a>
+                    <span style="color:#888;font-size:0.85rem;margin-left:8px;">(saved automatically on each update)</span>
+                </div>
+                <?php elseif (!$isNew): ?>
+                <div style="margin-top:15px;padding:10px 15px;background:#f9f9f9;border:1px solid #eee;border-radius:4px;color:#888;font-size:0.85rem;">
+                    Revisions are saved automatically each time you update this post.
+                </div>
+                <?php endif; ?>
+                
+                <!-- Meta Boxes (Phase 6) -->
+                <?php if (!empty($metaBoxesHtml)): ?>
+                <div style="margin-top:20px;">
+                    <?= $metaBoxesHtml ?>
+                </div>
+                <?php endif; ?>
+                
                 <div style="margin-top:20px;">
                     <button type="submit" class="btn btn-primary" style="padding:12px 30px;"><?= $isNew ? 'Publish' : 'Update' ?></button>
                     <a href="<?= $listUrl ?>" class="btn btn-secondary" style="padding:12px 30px;">Cancel</a>

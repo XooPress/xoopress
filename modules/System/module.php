@@ -37,34 +37,44 @@ return [
             'order' => 4,
         ],
         [
+            'label' => 'Tags',
+            'url' => '/admin/tags',
+            'order' => 5,
+        ],
+        [
+            'label' => 'Blocks',
+            'url' => '/admin/blocks',
+            'order' => 6,
+        ],
+        [
             'label' => 'Users',
             'url' => '/admin/users',
-            'order' => 5,
+            'order' => 7,
         ],
         [
             'label' => 'Modules',
             'url' => '/admin/modules',
-            'order' => 6,
+            'order' => 8,
         ],
         [
             'label' => 'Themes',
             'url' => '/admin/themes',
-            'order' => 7,
+            'order' => 9,
         ],
         [
             'label' => 'Widgets',
             'url' => '/admin/widgets',
-            'order' => 8,
+            'order' => 10,
         ],
         [
             'label' => 'Menus',
             'url' => '/admin/menus',
-            'order' => 9,
+            'order' => 11,
         ],
         [
             'label' => 'Settings',
             'url' => '/admin/settings',
-            'order' => 10,
+            'order' => 12,
         ],
     ],
     
@@ -419,6 +429,74 @@ return [
             'method' => 'GET',
             'pattern' => '/admin/categories/delete/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'categoryDelete'],
+        ],
+        // ── Phase 6: Tags ────────────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/tags',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'tags'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/tags/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'tagSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/tags/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'tagEdit'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/tags/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'tagDelete'],
+        ],
+        // ── Phase 6: Revisions ──────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/revisions/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postRevisions'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/revision/:num/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postRevisionView'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/revision/restore/:num/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postRevisionRestore'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/posts/revision/delete/:num/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postRevisionDelete'],
+        ],
+        // ── Phase 6: Content Blocks ─────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/blocks',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blocks'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/blocks/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blockNew'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/blocks/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blockSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/blocks/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blockEdit'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/blocks/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blockDelete'],
         ],
     ],
     

@@ -18,6 +18,9 @@ use XooPress\Core\Shortcodes;
 use XooPress\Core\Scheduler;
 use XooPress\Core\Cache;
 use XooPress\Core\ApiRouter;
+use XooPress\Core\ContentTypes;
+use XooPress\Core\MetaBoxes;
+use XooPress\Core\Taxonomies;
 
 class Application
 {
@@ -116,6 +119,36 @@ class Application
             $api->registerBuiltInRoutes();
             return $api;
         });
+        
+        // Phase 6: Register content services
+        $this->container->singleton('content_types', function ($container) {
+            $types = new ContentTypes();
+            $types->registerBuiltIn();
+            return $types;
+        });
+        
+        $this->container->singleton('meta_boxes', function ($container) {
+            return new MetaBoxes();
+        });
+        
+        $this->container->singleton('taxonomies', function ($container) {
+            $tax = new Taxonomies();
+            $tax->registerBuiltIn();
+            return $tax;
+        });
+        
+        // Content models for Phase 6
+        $this->container->singleton('content.revision', function ($container) {
+            return new \XooPress\Modules\Content\Models\Revision($container->get('database'));
+        });
+        
+        $this->container->singleton('content.tag', function ($container) {
+            return new \XooPress\Modules\Content\Models\Tag($container->get('database'));
+        });
+        
+        $this->container->singleton('content.block', function ($container) {
+            return new \XooPress\Modules\Content\Models\ContentBlock($container->get('database'));
+        });
     }
     
     /**
@@ -164,6 +197,30 @@ class Application
             }
         } catch (\Throwable $e) {
             error_log("API keys table creation: " . $e->getMessage());
+        }
+        
+        // Register built-in shortcodes for Phase 6 (content blocks)
+        $hooks->doAction('init_content_types', $this);
+        
+        // Register [block] shortcode for content blocks
+        if ($this->container->has('shortcodes')) {
+            $shortcodes = $this->container->get('shortcodes');
+            $shortcodes->add('block', function ($atts) {
+                $slug = $atts['slug'] ?? '';
+                if (empty($slug)) return '';
+                try {
+                    if ($this->container->has('content.block')) {
+                        $blockModel = $this->container->get('content.block');
+                        $block = $blockModel->findBySlug($slug);
+                        if ($block && !empty($block['is_active'])) {
+                            return $blockModel->render($block);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    error_log("Block shortcode '{$slug}': " . $e->getMessage());
+                }
+                return '';
+            });
         }
         
         $hooks->doAction('after_boot', $this);

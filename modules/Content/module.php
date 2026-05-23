@@ -22,6 +22,15 @@ return [
         'content.category' => function ($container) {
             return new XooPress\Modules\Content\Models\Category($container->get('database'));
         },
+        'content.revision' => function ($container) {
+            return new XooPress\Modules\Content\Models\Revision($container->get('database'));
+        },
+        'content.tag' => function ($container) {
+            return new XooPress\Modules\Content\Models\Tag($container->get('database'));
+        },
+        'content.block' => function ($container) {
+            return new XooPress\Modules\Content\Models\ContentBlock($container->get('database'));
+        },
     ],
     
     'routes' => [
@@ -94,6 +103,67 @@ return [
             INDEX idx_meta_key (meta_key)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
+        // Phase 6: Revisions table
+        $db->query("CREATE TABLE IF NOT EXISTS {$prefix}revisions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            content LONGTEXT,
+            excerpt TEXT,
+            status VARCHAR(20) DEFAULT 'draft',
+            author_id INT NOT NULL,
+            revision_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id),
+            INDEX idx_author (author_id),
+            INDEX idx_date (revision_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        // Phase 6: Tags / Terms table (supports multiple taxonomies)
+        $db->query("CREATE TABLE IF NOT EXISTS {$prefix}tags (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            slug VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            taxonomy VARCHAR(50) DEFAULT 'tag',
+            parent_id INT DEFAULT 0,
+            count INT DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_slug (slug),
+            INDEX idx_taxonomy (taxonomy),
+            INDEX idx_parent (parent_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        // Phase 6: Term relationships for post <-> term mapping
+        $db->query("CREATE TABLE IF NOT EXISTS {$prefix}term_relationships (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            term_id INT NOT NULL,
+            taxonomy VARCHAR(50) DEFAULT 'tag',
+            UNIQUE KEY unique_term (post_id, term_id, taxonomy),
+            INDEX idx_post (post_id),
+            INDEX idx_term (term_id),
+            INDEX idx_taxonomy (taxonomy)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        // Phase 6: Content Blocks table
+        $db->query("CREATE TABLE IF NOT EXISTS {$prefix}content_blocks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            content LONGTEXT,
+            content_type VARCHAR(20) DEFAULT 'html',
+            category VARCHAR(100) DEFAULT '',
+            is_active TINYINT(1) DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_slug (slug),
+            INDEX idx_category (category),
+            INDEX idx_active (is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
         $db->insert($prefix . 'categories', [
             'name' => 'Uncategorized',
             'slug' => 'uncategorized',
@@ -111,6 +181,10 @@ return [
         $db->query("DROP TABLE IF EXISTS {$prefix}posts");
         $db->query("DROP TABLE IF EXISTS {$prefix}categories");
         $db->query("DROP TABLE IF EXISTS {$prefix}post_meta");
+        $db->query("DROP TABLE IF EXISTS {$prefix}revisions");
+        $db->query("DROP TABLE IF EXISTS {$prefix}tags");
+        $db->query("DROP TABLE IF EXISTS {$prefix}term_relationships");
+        $db->query("DROP TABLE IF EXISTS {$prefix}content_blocks");
         
         return true;
     },
