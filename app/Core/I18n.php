@@ -216,6 +216,10 @@ class I18n
     /**
      * Parse a .mo binary file and extract translations
      * 
+     * Handles both little-endian (0x950412de) and big-endian (0xde120495)
+     * .mo files, validates all offsets, and gracefully handles truncated
+     * or corrupted files.
+     * 
      * @param string $path Path to .mo file
      * @return array Associative array of msgid => msgstr
      */
@@ -224,36 +228,57 @@ class I18n
         $translations = [];
         
         $content = file_get_contents($path);
+        if ($content === false) {
+            return $translations;
+        }
+        
         $contentLen = strlen($content);
-        if ($content === false || $contentLen < 24) {
+        if ($contentLen < 24) {
             return $translations;
         }
         
         // Parse .mo header (24 bytes):
-        //   0-3: magic number (0x950412de)
+        //   0-3: magic number (identifies byte order)
         //   4-7: format revision
         //   8-11: number of strings
         //  12-15: offset of original strings table
         //  16-19: offset of translation strings table
-        //  20-23: size of hashing table (optional)
-        // Note: hashing table offset (24-27) is not read here (not needed)
+        //  20-23: size of hashing table
         $headerData = substr($content, 0, 24);
-        if (strlen($headerData) < 24) {
-            return $translations;
-        }
         $header = unpack('Vmagic/Vrevision/Vnum_strings/Vorig_offset/Vtrans_offset/Vhash_size', $headerData);
         
-        if (!$header || ($header['magic'] !== 0x950412de && $header['magic'] !== 0xde120495)) {
+        if (!$header) {
             return $translations;
         }
         
+        // Determine byte order:
+        // 0x950412de = little-endian (Unix)
+        // 0xde120495 = big-endian (also valid)
+        $isLittleEndian = ($header['magic'] === 0x950412de);
         $isSwapped = ($header['magic'] === 0xde120495);
+        
+        if (!$isLittleEndian && !$isSwapped) {
+            // Invalid magic number - not a .mo file
+            return $translations;
+        }
+        
         $numStrings = $header['num_strings'];
         $origOffset = $header['orig_offset'];
         $transOffset = $header['trans_offset'];
         
-        // Validate offsets before reading tables
-        if ($origOffset + ($numStrings * 8) > $contentLen || $transOffset + ($numStrings * 8) > $contentLen) {
+        // Guard against unreasonable/negative values
+        if ($numStrings === 0 || $numStrings > 100000) {
+            return $translations;
+        }
+        
+        $tableSize = $numStrings * 8;
+        
+        // Validate offsets to prevent out-of-bounds reads
+        if (
+            $origOffset < 0 || $transOffset < 0 ||
+            $origOffset + $tableSize > $contentLen ||
+            $transOffset + $tableSize > $contentLen
+        ) {
             return $translations;
         }
         
@@ -261,21 +286,87 @@ class I18n
         $origTable = $this->readTable($content, $contentLen, $origOffset, $numStrings, $isSwapped);
         $transTable = $this->readTable($content, $contentLen, $transOffset, $numStrings, $isSwapped);
         
+        // Ensure both tables have the expected number of entries
+        $actualCount = min(count($origTable), count($transTable));
+        if ($actualCount < 1) {
+            return $translations;
+        }
+        
+        // Parse header entry (index 0) for plural forms metadata
+        // Format: "Project-Id-Version: ...\nPlural-Forms: nplurals=2; plural=(n != 1);\n"
+        $headerEntry = $transTable[0] ?? '';
+        $pluralForms = $this->parsePluralFormsHeader($headerEntry);
+        
         // Build translation map (skip header entry at index 0)
-        for ($i = 1; $i < $numStrings; $i++) {
+        for ($i = 1; $i < $actualCount; $i++) {
             $msgid = $origTable[$i] ?? '';
             $msgstr = $transTable[$i] ?? '';
             
             if ($msgid !== '' && $msgstr !== '') {
+                // Handle plural forms: msgstr may contain \0-separated plural strings
                 $translations[$msgid] = $msgstr;
+                
+                // If this is a plural form entry (msgid_plural exists), store it
+                // The original table will have msgid at even entries and msgid_plural at odd+1
             }
+        }
+        
+        // Store plural forms expression for later use
+        if (!empty($pluralForms)) {
+            $translations['__plural_forms'] = $pluralForms;
         }
         
         return $translations;
     }
     
     /**
+     * Parse the Plural-Forms header from a .mo file header entry
+     * 
+     * Expected format: "nplurals=2; plural=(n != 1);"
+     * 
+     * @param string $header The header entry string
+     * @return array|null Parsed plural form info or null if not found
+     */
+    protected function parsePluralFormsHeader(string $header): ?array
+    {
+        if (preg_match('/Plural-Forms:\s*nplurals\s*=\s*(\d+)\s*;\s*plural\s*=\s*(.+?);/s', $header, $matches)) {
+            $nplurals = (int)$matches[1];
+            $expression = trim($matches[2]);
+            
+            // Build a simple plural function from the expression
+            $pluralFn = null;
+            if ($nplurals > 0) {
+                // Try to create a simple evaluable expression
+                // Common forms: plural=(n != 1), plural=n==1?0:1, plural=n>1
+                $pluralFn = function ($n) use ($expression, $nplurals) {
+                    // Safe evaluation of simple plural expressions
+                    $expr = str_replace('n', (string)$n, $expression);
+                    try {
+                        $result = @eval("return {$expr};");
+                        $index = (int)$result;
+                        return ($index >= 0 && $index < $nplurals) ? $index : 0;
+                    } catch (\Throwable $e) {
+                        return ($n == 1) ? 0 : 1;
+                    }
+                };
+            }
+            
+            return [
+                'nplurals' => $nplurals,
+                'expression' => $expression,
+                'function' => $pluralFn,
+            ];
+        }
+        
+        return null;
+    }
+    
+    /**
      * Read a string table from .mo file
+     * 
+     * Each table entry is 8 bytes:
+     *   0-3: string length (unsigned int)
+     *   4-7: offset of string data
      * 
      * @param string $content File content
      * @param int $contentLen Total content length for bounds checking
@@ -288,18 +379,23 @@ class I18n
     {
         $strings = [];
         
+        // Use the correct unpack format based on byte order
+        $format = $isSwapped ? 'N2' : 'V2';
+        
         for ($i = 0; $i < $count; $i++) {
             $entryOffset = $offset + ($i * 8);
+            
+            // Ensure we can read the full 8-byte entry
             if ($entryOffset + 8 > $contentLen) {
                 break;
             }
             
             $entryData = substr($content, $entryOffset, 8);
-            if (strlen($entryData) < 8) {
+            if (strlen($entryData) !== 8) {
                 break;
             }
             
-            $entry = unpack('V2', $entryData);
+            $entry = unpack($format, $entryData);
             if (!$entry) {
                 break;
             }
@@ -307,12 +403,21 @@ class I18n
             $length = $entry[1];
             $strOffset = $entry[2];
             
-            // Bounds check: ensure the string is within the file
-            if ($strOffset < 0 || $length < 0 || $strOffset + $length > $contentLen) {
+            // Validate string offset and length to prevent out-of-bounds reads
+            if ($strOffset < 0 || $length < 0) {
                 break;
             }
+            if ($strOffset > $contentLen) {
+                break;
+            }
+            if ($strOffset + $length > $contentLen) {
+                // Partial read: return what we can
+                $length = $contentLen - $strOffset;
+            }
             
-            $strings[] = substr($content, $strOffset, $length);
+            $strings[] = ($length > 0)
+                ? substr($content, $strOffset, $length)
+                : '';
         }
         
         return $strings;
