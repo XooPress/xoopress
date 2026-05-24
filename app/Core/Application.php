@@ -172,6 +172,16 @@ class Application
         $this->container->singleton('debug_bar', function ($container) {
             return new \XooPress\Core\DebugBar($container);
         });
+
+        // Phase 10a: Register marketplace service
+        $this->container->singleton('marketplace', function ($container) {
+            return new \XooPress\Core\Marketplace($container);
+        });
+
+        // Phase 10c: Register translations service
+        $this->container->singleton('translations', function ($container) {
+            return new \XooPress\Core\Translations($container);
+        });
     }
     
     /**
@@ -268,6 +278,15 @@ class Application
             }
         } catch (\Throwable $e) {
             error_log("Staging table creation: " . $e->getMessage());
+        }
+        
+        // Initialize marketplace cache table (Phase 10a)
+        try {
+            if ($this->container->has('marketplace')) {
+                $this->container->get('marketplace')->ensureTable();
+            }
+        } catch (\Throwable $e) {
+            error_log("Marketplace table creation: " . $e->getMessage());
         }
         
         // Initialize multisite tables (Phase 8f)

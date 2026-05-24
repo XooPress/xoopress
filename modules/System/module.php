@@ -101,6 +101,16 @@ return [
             'url' => '/admin/staging',
             'order' => 17,
         ],
+        [
+            'label' => 'Marketplace',
+            'url' => '/admin/marketplace',
+            'order' => 18,
+        ],
+        [
+            'label' => 'Translations',
+            'url' => '/admin/translations',
+            'order' => 19,
+        ],
     ],
     
     'services' => [
@@ -674,6 +684,63 @@ return [
             'method' => 'GET',
             'pattern' => '/admin/blocks/delete/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'blockDelete'],
+        ],
+        // ── Phase 10a: Marketplace ─────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplace'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace/modules',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceModules'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace/themes',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceThemes'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace/install/module/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceModuleInstall'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace/install/theme/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceThemeInstall'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/marketplace/clear-cache',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceClearCache'],
+        ],
+        // ── Phase 10c: Translations ────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/translations',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'translations'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/translations/edit/:alpha',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'translationEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/translations/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'translationSave'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/translations/add-locale',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'translationAddLocale'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/translations/sync',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'translationSync'],
         ],
     ],
     

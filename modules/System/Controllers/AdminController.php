@@ -2428,4 +2428,364 @@ class AdminController extends Controller
         
         $this->redirect('/admin/blocks');
     }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 10: Marketplace
+    // ═══════════════════════════════════════════════════════
+
+    /**
+     * Marketplace overview page
+     */
+    public function marketplace(): string
+    {
+        $this->requireAdmin();
+
+        $notice = $_SESSION['marketplace_message'] ?? null;
+        $noticeType = $_SESSION['marketplace_message_type'] ?? 'info';
+        unset($_SESSION['marketplace_message'], $_SESSION['marketplace_message_type']);
+
+        $modules = [];
+        $themes = [];
+        $error = null;
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $modules = $mp->listModules(['per_page' => 6]);
+                $themes = $mp->listThemes(['per_page' => 6]);
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
+            }
+        }
+
+        return $this->view('system::admin_marketplace', [
+            'modules' => $modules,
+            'themes' => $themes,
+            'error' => $error,
+            'notice' => $notice,
+            'noticeType' => $noticeType,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    /**
+     * Marketplace modules listing
+     */
+    public function marketplaceModules(): string
+    {
+        $this->requireAdmin();
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $search = trim($_GET['search'] ?? '');
+
+        $items = [];
+        $total = 0;
+        $error = null;
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $filters = ['page' => $page, 'per_page' => 20];
+                if (!empty($search)) {
+                    $filters['search'] = $search;
+                }
+                $result = $mp->listModules($filters);
+                $items = $result['items'];
+                $total = $result['total'];
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
+            }
+        }
+
+        $totalPages = $total > 0 ? max(1, (int)ceil($total / 20)) : 1;
+
+        return $this->view('system::admin_marketplace_modules', [
+            'items' => $items,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'search' => $search,
+            'error' => $error,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    /**
+     * Marketplace themes listing
+     */
+    public function marketplaceThemes(): string
+    {
+        $this->requireAdmin();
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $search = trim($_GET['search'] ?? '');
+
+        $items = [];
+        $total = 0;
+        $error = null;
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $filters = ['page' => $page, 'per_page' => 20];
+                if (!empty($search)) {
+                    $filters['search'] = $search;
+                }
+                $result = $mp->listThemes($filters);
+                $items = $result['items'];
+                $total = $result['total'];
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
+            }
+        }
+
+        $totalPages = $total > 0 ? max(1, (int)ceil($total / 20)) : 1;
+
+        return $this->view('system::admin_marketplace_themes', [
+            'items' => $items,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'search' => $search,
+            'error' => $error,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    /**
+     * Install a module from the marketplace
+     */
+    public function marketplaceModuleInstall(string $name): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $result = $mp->installModule($name);
+                $_SESSION['marketplace_message'] = $result['message'];
+                $_SESSION['marketplace_message_type'] = $result['success'] ? 'success' : 'danger';
+            } catch (\Throwable $e) {
+                $_SESSION['marketplace_message'] = 'Error: ' . $e->getMessage();
+                $_SESSION['marketplace_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/marketplace/modules');
+    }
+
+    /**
+     * Install a theme from the marketplace
+     */
+    public function marketplaceThemeInstall(string $name): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $result = $mp->installTheme($name);
+                $_SESSION['marketplace_message'] = $result['message'];
+                $_SESSION['marketplace_message_type'] = $result['success'] ? 'success' : 'danger';
+            } catch (\Throwable $e) {
+                $_SESSION['marketplace_message'] = 'Error: ' . $e->getMessage();
+                $_SESSION['marketplace_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/marketplace/themes');
+    }
+
+    /**
+     * Clear marketplace cache
+     */
+    public function marketplaceClearCache(): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $this->container->get('marketplace')->clearCache();
+                $_SESSION['marketplace_message'] = 'Marketplace cache cleared.';
+                $_SESSION['marketplace_message_type'] = 'success';
+            } catch (\Throwable $e) {
+                $_SESSION['marketplace_message'] = 'Error: ' . $e->getMessage();
+                $_SESSION['marketplace_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/marketplace');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 10: Translations
+    // ═══════════════════════════════════════════════════════
+
+    /**
+     * Translations overview page
+     */
+    public function translations(): string
+    {
+        $this->requireAdmin();
+
+        $notice = $_SESSION['translation_message'] ?? null;
+        $noticeType = $_SESSION['translation_message_type'] ?? 'info';
+        unset($_SESSION['translation_message'], $_SESSION['translation_message_type']);
+
+        $locales = [];
+        $stats = [];
+
+        if ($this->container->has('translations')) {
+            try {
+                $tr = $this->container->get('translations');
+                $locales = $tr->getLocales();
+                $stats = $tr->getAllStats();
+            } catch (\Throwable $e) {}
+        }
+
+        return $this->view('system::admin_translations', [
+            'locales' => $locales,
+            'stats' => $stats,
+            'notice' => $notice,
+            'noticeType' => $noticeType,
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    /**
+     * Edit translations for a locale
+     */
+    public function translationEdit(string $locale): string
+    {
+        $this->requireAdmin();
+
+        if (!preg_match('/^[a-z]{2}_[A-Z]{2}$/', $locale)) {
+            $_SESSION['translation_message'] = 'Invalid locale code.';
+            $_SESSION['translation_message_type'] = 'danger';
+            $this->redirect('/admin/translations');
+            return '';
+        }
+
+        $entries = [];
+        $stats = [];
+
+        if ($this->container->has('translations')) {
+            try {
+                $tr = $this->container->get('translations');
+                $entries = $tr->getTranslationEntries($locale);
+                $stats = $tr->getStats($locale);
+            } catch (\Throwable $e) {}
+        }
+
+        return $this->view('system::admin_translation_edit', [
+            'locale' => $locale,
+            'entries' => $entries,
+            'stats' => $stats,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    /**
+     * Save translations for a locale
+     */
+    public function translationSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/translations');
+
+        $data = $this->all();
+        $locale = trim($data['locale'] ?? '');
+
+        if (!preg_match('/^[a-z]{2}_[A-Z]{2}$/', $locale)) {
+            $_SESSION['translation_message'] = 'Invalid locale code.';
+            $_SESSION['translation_message_type'] = 'danger';
+            $this->redirect('/admin/translations');
+            return;
+        }
+
+        $translations = [];
+        foreach ($data as $key => $value) {
+            if (str_starts_with($key, 'msg_')) {
+                $msgid = $data[$key . '_orig'] ?? '';
+                if ($msgid !== '') {
+                    $translations[] = ['msgid' => $msgid, 'msgstr' => $value];
+                }
+            }
+        }
+
+        if ($this->container->has('translations')) {
+            try {
+                $tr = $this->container->get('translations');
+                $tr->saveTranslations($locale, $translations);
+                $_SESSION['translation_message'] = 'Translations saved successfully.';
+                $_SESSION['translation_message_type'] = 'success';
+            } catch (\Throwable $e) {
+                $_SESSION['translation_message'] = 'Error: ' . $e->getMessage();
+                $_SESSION['translation_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/translations/edit/' . $locale);
+    }
+
+    /**
+     * Add a new locale
+     */
+    public function translationAddLocale(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/translations');
+
+        $locale = trim($_POST['locale'] ?? '');
+
+        if (!preg_match('/^[a-z]{2}_[A-Z]{2}$/', $locale)) {
+            $_SESSION['translation_message'] = 'Invalid locale code. Use format: de_DE, fr_FR, etc.';
+            $_SESSION['translation_message_type'] = 'danger';
+            $this->redirect('/admin/translations');
+            return;
+        }
+
+        if ($this->container->has('translations')) {
+            try {
+                $tr = $this->container->get('translations');
+                if ($tr->ensureLocale($locale)) {
+                    $_SESSION['translation_message'] = "Locale '{$locale}' created.";
+                    $_SESSION['translation_message_type'] = 'success';
+                } else {
+                    $_SESSION['translation_message'] = "Failed to create locale '{$locale}'.";
+                    $_SESSION['translation_message_type'] = 'danger';
+                }
+            } catch (\Throwable $e) {
+                $_SESSION['translation_message'] = 'Error: ' . $e->getMessage();
+                $_SESSION['translation_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/translations');
+    }
+
+    /**
+     * Sync translations from community platform
+     */
+    public function translationSync(): void
+    {
+        $this->requireAdmin();
+
+        $locale = trim($_GET['locale'] ?? '');
+
+        if ($this->container->has('translations')) {
+            try {
+                $tr = $this->container->get('translations');
+                $result = $tr->syncFromCommunity($locale);
+                $_SESSION['translation_message'] = $result['message'];
+                $_SESSION['translation_message_type'] = $result['success'] ? 'success' : 'warning';
+            } catch (\Throwable $e) {
+                $_SESSION['translation_message'] = 'Sync error: ' . $e->getMessage();
+                $_SESSION['translation_message_type'] = 'danger';
+            }
+        }
+
+        $this->redirect('/admin/translations');
+    }
 }

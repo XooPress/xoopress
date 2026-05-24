@@ -279,12 +279,13 @@ All five themes include:
 - [ ] Add comprehensive API documentation
 - [ ] Add OpenAPI/Swagger spec for REST API
 
-### Phase 10: Ecosystem
-- [ ] Create module/theme marketplace site
-- [ ] Add one-click install from marketplace
-- [ ] Add package.json-like dependency resolution
-- [ ] Add community translations platform
-- [ ] Add contribution guidelines and coding standards
+### Phase 10: Ecosystem ✅
+- [x] Create marketplace service (`app/Core/Marketplace.php`) — browsable catalog with caching, one-click install
+- [x] Add admin marketplace UI (`/admin/marketplace`, `/admin/marketplace/modules`, `/admin/marketplace/themes`)
+- [x] Add community translations platform (`app/Core/Translations.php`) — .po/.mo editor, locale management, cloud sync
+- [x] Add translations admin UI (`/admin/translations`, `/admin/translations/edit/:locale`)
+- [x] Contribution guidelines already documented in `CONTRIBUTING.md`
+- [x] Dependency resolution already implemented in Phase 4 (ModuleManager)
 
 ## Key Design Decisions
 
