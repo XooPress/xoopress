@@ -29,7 +29,7 @@
         </nav>
         <main class="admin-content">
             <div class="admin-header">
-                <h2><?= __('Configuration') ?>: <?= htmlspecialchars($module['definition']['name'] ?? $module['name']) ?></h2>
+                <h2><?= __('Configuration') ?>: <?= htmlspecialchars(is_array($module) ? (is_array($module['definition'] ?? null) ? ($module['definition']['name'] ?? $module['name']) : $module['name']) : (is_string($module) ? $module : 'Unknown')) ?></h2>
                 <a href="/admin/modules" class="btn btn-secondary btn-sm"><?= __('Back to Modules') ?></a>
             </div>
 
@@ -39,7 +39,7 @@
 
             <form method="POST" action="/admin/modules/config/save" class="admin-form" style="max-width:600px;">
                 <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
-                <input type="hidden" name="name" value="<?= htmlspecialchars($module['name']) ?>">
+                <input type="hidden" name="name" value="<?= htmlspecialchars(is_array($module) ? ($module['name'] ?? '') : (is_string($module) ? $module : '')) ?>">
 
                 <?php if (!empty($configSchema)): ?>
                     <?php foreach ($configSchema as $field): ?>
