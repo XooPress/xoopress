@@ -1382,6 +1382,153 @@ class AdminController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════
+    //  Phase 8c: Webhooks System
+    // ═══════════════════════════════════════════════════════
+
+    public function webhooks(): string
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        $webhooks = $db ? \XooPress\Core\Webhooks::getAll($db) : [];
+        $events = \XooPress\Core\Webhooks::EVENTS;
+
+        return $this->view('system::admin_webhooks', [
+            'webhooks' => $webhooks,
+            'events' => $events,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function webhookNew(): string
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+
+        $events = \XooPress\Core\Webhooks::EVENTS;
+
+        return $this->view('system::admin_webhook_edit', [
+            'isNew' => true,
+            'webhook' => [],
+            'events' => $events,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function webhookSave(): void
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+        $this->requireCsrfToken('/admin/webhooks');
+
+        $id = (int)($this->request['id'] ?? 0);
+        $event = $this->request['event'] ?? '';
+        $url = $this->request['url'] ?? '';
+        $secret = $this->request['secret'] ?? '';
+        $description = $this->request['description'] ?? '';
+        $isActive = !empty($this->request['is_active']) ? 1 : 0;
+        $timeout = (int)($this->request['timeout'] ?? 5);
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        if (!$db) {
+            $_SESSION['admin_notice'] = 'Database not available.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/webhooks');
+            return;
+        }
+
+        if ($id > 0) {
+            // Update
+            $result = \XooPress\Core\Webhooks::update($db, $id, [
+                'event' => $event,
+                'url' => $url,
+                'secret' => $secret,
+                'description' => $description,
+                'is_active' => $isActive,
+                'timeout' => $timeout,
+            ]);
+        } else {
+            // Create
+            $result = \XooPress\Core\Webhooks::register($db, $event, $url, $secret, $description, $timeout);
+        }
+
+        $_SESSION['admin_notice'] = $result['message'];
+        $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        $this->redirect('/admin/webhooks');
+    }
+
+    public function webhookEdit(int $id): string
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        $webhook = $db ? \XooPress\Core\Webhooks::getById($db, $id) : null;
+
+        if (!$webhook) {
+            $_SESSION['admin_notice'] = 'Webhook not found.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/webhooks');
+            return '';
+        }
+
+        $events = \XooPress\Core\Webhooks::EVENTS;
+
+        return $this->view('system::admin_webhook_edit', [
+            'isNew' => false,
+            'webhook' => $webhook,
+            'events' => $events,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function webhookDelete(int $id): void
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        if ($db) {
+            $result = \XooPress\Core\Webhooks::delete($db, $id);
+            $_SESSION['admin_notice'] = $result['message'];
+            $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        }
+
+        $this->redirect('/admin/webhooks');
+    }
+
+    public function webhookTest(int $id): void
+    {
+        $this->requireCapability('manage_webhooks', '/admin');
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        $webhook = $db ? \XooPress\Core\Webhooks::getById($db, $id) : null;
+
+        if (!$webhook) {
+            $_SESSION['admin_notice'] = 'Webhook not found.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/webhooks');
+            return;
+        }
+
+        $result = \XooPress\Core\Webhooks::testDispatch(
+            $webhook['url'],
+            $webhook['event'],
+            ['test' => true, 'message' => 'XooPress webhook test'],
+            $webhook['secret'] ?: null
+        );
+
+        if ($result['success']) {
+            $_SESSION['admin_notice'] = "Test dispatched to {$webhook['url']} — HTTP {$result['http_code']}";
+            $_SESSION['admin_notice_type'] = 'success';
+        } else {
+            $_SESSION['admin_notice'] = "Test failed: " . ($result['error'] ?? "HTTP {$result['http_code']}");
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+
+        $this->redirect('/admin/webhooks');
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  Phase 8b: Workflow & Approval System
     // ═══════════════════════════════════════════════════════
 

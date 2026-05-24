@@ -77,14 +77,19 @@ return [
             'order' => 12,
         ],
         [
+            'label' => 'Webhooks',
+            'url' => '/admin/webhooks',
+            'order' => 13,
+        ],
+        [
             'label' => 'Workflow',
             'url' => '/admin/workflow',
-            'order' => 13,
+            'order' => 14,
         ],
         [
             'label' => 'Performance',
             'url' => '/admin/performance',
-            'order' => 14,
+            'order' => 15,
         ],
     ],
     
@@ -523,6 +528,37 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/performance/cache-flush',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
+        ],
+        // ── Phase 8c: Webhooks ──────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/webhooks',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhooks'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/webhooks/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhookNew'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/webhooks/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhookSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/webhooks/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhookEdit'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/webhooks/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhookDelete'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/webhooks/test/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'webhookTest'],
         ],
         // ── Phase 8b: Workflow ──────────────────────────
         [

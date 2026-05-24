@@ -249,9 +249,12 @@ All five themes include:
 - [x] Add workflow/approval system for content — `app/Core/Workflow.php`, `admin_workflow.php`, `admin_workflow_review.php`
   - Draft → Pending Review → Approved → Published state machine
   - `xp_workflow_log` table, capability-gated transitions, admin review queue UI
+- [x] Add webhooks system — `app/Core/Webhooks.php`, `admin_webhooks.php`, `admin_webhook_edit.php`
+  - 8 events (post_published, post_updated, post_deleted, user_registered, etc.)
+  - `xp_webhooks` table, HMAC-SHA256 signing, concurrent cURL multi dispatch
+  - Full admin CRUD + test button UI
 - [ ] Add full-text search
 - [ ] Add content staging/preview links
-- [ ] Add webhooks system
 - [ ] Add multisite/network mode (single install, multiple sites)
 
 ### Phase 9: Developer Experience
