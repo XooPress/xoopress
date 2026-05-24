@@ -40,82 +40,107 @@ class AuthController extends Controller
 
     public function login(): string
     {
-        if (!$this->requireCsrfToken('/login')) {
-            return '';
-        }
-        
-        $username = $this->input('username');
-        $password = $this->input('password');
+        try {
+            if (!$this->requireCsrfToken('/login')) {
+                return '';
+            }
+            
+            $username = $this->input('username');
+            $password = $this->input('password');
 
-        // Rate limiting check
-        $ip = \XooPress\Core\RateLimiter::getClientIp();
-        $rateLimitKey = 'login:' . $ip;
-        
-        if ($this->container->has('rate_limiter')) {
-            $rateLimiter = $this->container->get('rate_limiter');
-            if ($rateLimiter->tooManyAttempts($rateLimitKey, 5, 1)) {
+            // Rate limiting check
+            $ip = \XooPress\Core\RateLimiter::getClientIp();
+            $rateLimitKey = 'login:' . $ip;
+            
+            if ($this->container->has('rate_limiter')) {
+                $rateLimiter = $this->container->get('rate_limiter');
+                if ($rateLimiter->tooManyAttempts($rateLimitKey, 5, 1)) {
+                    return $this->view('system::login', [
+                        'error' => 'Too many login attempts. Please try again in 1 minute.',
+                        'csrfToken' => $this->csrfToken(),
+                    ]);
+                }
+            }
+
+            // Check if user has 2FA active from a previous step
+            $twofaVerified = isset($_SESSION) && !empty($_SESSION['twofa_verified']);
+
+            if (empty($username) || empty($password)) {
                 return $this->view('system::login', [
-                    'error' => 'Too many login attempts. Please try again in 1 minute.',
+                    'error' => 'Username and password are required.',
                     'csrfToken' => $this->csrfToken(),
                 ]);
             }
-        }
 
-        // Check if user has 2FA active from a previous step
-        $twofaVerified = $_SESSION['twofa_verified'] ?? false;
+            if ($this->userModel) {
+                $user = $this->userModel->authenticate($username, $password);
+                if ($user) {
+                    // Clear login rate limit on success
+                    if ($this->container->has('rate_limiter')) {
+                        $this->container->get('rate_limiter')->clear($rateLimitKey);
+                    }
+                    
+                    if (isset($_SESSION) && session_status() === PHP_SESSION_ACTIVE) {
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['user_role'] = $user['role'];
+                        // Load user's theme preference into session
+                        if (!empty($user['user_theme'])) {
+                            $_SESSION['user_theme'] = $user['user_theme'];
+                        }
+                    } else {
+                        error_log("AuthController::login - Session not available after authentication");
+                    }
+                    
+                    // Regenerate session ID to prevent session fixation
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_regenerate_id(true);
+                    }
+                    
+                    // Check if user has 2FA enabled
+                    $twofaEnabled = $this->container->has('twofactor') && 
+                        !empty($user['twofa_secret']) && 
+                        !empty($user['twofa_enabled']);
+                    
+                    if ($twofaEnabled && !$twofaVerified) {
+                        // Store login state temporarily, redirect to 2FA verification
+                        if (isset($_SESSION) && session_status() === PHP_SESSION_ACTIVE) {
+                            $_SESSION['twofa_pending_user_id'] = $user['id'];
+                            if (isset($_SESSION['user_id'])) {
+                                unset($_SESSION['user_id']);
+                            }
+                        }
+                        $this->redirect('/login/twofa');
+                        return '';
+                    }
+                    
+                    // Redirect users to their dashboard, admins to admin panel
+                    $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
+                    $this->redirect($redirect);
+                    return '';
+                }
+            }
 
-        if (empty($username) || empty($password)) {
+            // Increment rate limit on failed login
+            if ($this->container->has('rate_limiter')) {
+                $this->container->get('rate_limiter')->hit($rateLimitKey);
+            }
+
             return $this->view('system::login', [
-                'error' => 'Username and password are required.',
+                'error' => 'Invalid username or password.',
+                'csrfToken' => $this->csrfToken(),
+            ]);
+        } catch (\Throwable $e) {
+            error_log("AuthController::login - Uncaught exception: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            http_response_code(500);
+            if ($this->container->has('config') && ($this->container->get('config')['debug'] ?? false)) {
+                throw $e;
+            }
+            return $this->view('system::login', [
+                'error' => 'An unexpected error occurred. Please try again.',
                 'csrfToken' => $this->csrfToken(),
             ]);
         }
-
-        if ($this->userModel) {
-            $user = $this->userModel->authenticate($username, $password);
-            if ($user) {
-                // Clear login rate limit on success
-                if ($this->container->has('rate_limiter')) {
-                    $this->container->get('rate_limiter')->clear($rateLimitKey);
-                }
-                
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['user_role'] = $user['role'];
-                // Load user's theme preference into session
-                if (!empty($user['user_theme'])) {
-                    $_SESSION['user_theme'] = $user['user_theme'];
-                }
-                
-                // Check if user has 2FA enabled
-                $twofaEnabled = $this->container->has('twofactor') && 
-                    !empty($user['twofa_secret']) && 
-                    !empty($user['twofa_enabled']);
-                
-                if ($twofaEnabled && !$twofaVerified) {
-                    // Store login state temporarily, redirect to 2FA verification
-                    $_SESSION['twofa_pending_user_id'] = $user['id'];
-                    unset($_SESSION['user_id']);
-                    $this->redirect('/login/twofa');
-                    return '';
-                }
-                
-                // Redirect users to their dashboard, admins to admin panel
-                $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
-                $this->redirect($redirect);
-                return '';
-            }
-        }
-
-        // Increment rate limit on failed login
-        if ($this->container->has('rate_limiter')) {
-            $this->container->get('rate_limiter')->hit($rateLimitKey);
-        }
-
-        return $this->view('system::login', [
-            'error' => 'Invalid username or password.',
-            'csrfToken' => $this->csrfToken(),
-        ]);
     }
     
     public function twofaForm(): string
@@ -485,11 +510,29 @@ class AuthController extends Controller
 
     public function logout(): void
     {
-        unset($_SESSION['user_id']);
-        unset($_SESSION['username']);
-        unset($_SESSION['user_role']);
-        unset($_SESSION['user_theme']);
-        session_destroy();
+        try {
+            // Only access session if it's active and available
+            if (isset($_SESSION) && session_status() === PHP_SESSION_ACTIVE) {
+                // Clear all auth-related session data
+                $sessionKeys = ['user_id', 'username', 'user_role', 'user_theme', 'twofa_verified', 'twofa_pending_user_id'];
+                foreach ($sessionKeys as $key) {
+                    if (isset($_SESSION[$key])) {
+                        unset($_SESSION[$key]);
+                    }
+                }
+                
+                // Destroy the session completely
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000,
+                    $params['path'], $params['domain'],
+                    $params['secure'], $params['httponly']
+                );
+                session_destroy();
+            }
+        } catch (\Throwable $e) {
+            error_log("AuthController::logout - Session error: " . $e->getMessage());
+        }
+        
         $this->redirect('/login');
     }
 }

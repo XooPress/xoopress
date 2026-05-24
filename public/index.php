@@ -100,9 +100,44 @@ $config = require $configFile;
 // Set timezone
 date_default_timezone_set($config['timezone'] ?? 'UTC');
 
-// Start session if needed
-if (session_status() === PHP_SESSION_NONE && ($config['session']['enabled'] ?? false)) {
-    session_start($config['session']['options'] ?? []);
+// Detect if the site is behind HTTPS (ISPConfig / proxy-aware)
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    || (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+
+// Force HTTPS if the site base URL uses https:// but request arrived over HTTP
+// This prevents the Apache 301 redirect from killing POST requests (login, etc.)
+$baseUrl = $config['url']['base'] ?? '';
+if (!$isHttps && str_starts_with($baseUrl, 'https://')) {
+    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    header('HTTP/1.1 301 Moved Permanently');
+    header('Location: ' . $redirect);
+    exit;
+}
+
+// Start session with full config settings
+$sessionConfig = $config['session'] ?? [];
+if (session_status() === PHP_SESSION_NONE && ($sessionConfig['enabled'] ?? false)) {
+    // Apply session name and cookie params from config (these are ignored by session_start($options))
+    if (!empty($sessionConfig['name'])) {
+        session_name($sessionConfig['name']);
+    }
+    
+    // Build cookie params from config, defaulting to secure=TRUE when behind HTTPS
+    $cookieParams = [
+        'lifetime' => $sessionConfig['lifetime'] ?? 7200,
+        'path'     => $sessionConfig['path'] ?? '/',
+        'domain'   => $sessionConfig['domain'] ?? '',
+        'secure'   => $sessionConfig['secure'] ?? $isHttps,  // Auto-detect if not explicitly set
+        'httponly' => $sessionConfig['httponly'] ?? true,
+        'samesite' => $sessionConfig['samesite'] ?? 'Lax',
+    ];
+    
+    session_set_cookie_params($cookieParams);
+    
+    // Merge any additional options from config
+    $options = $sessionConfig['options'] ?? [];
+    session_start($options);
 }
 
 // Initialize the application

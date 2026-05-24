@@ -46,7 +46,7 @@
         </nav>
         <main class="admin-content">
             <div class="admin-header">
-                <h2><?= __('Dependencies') ?>: <?= htmlspecialchars($module['definition']['name'] ?? $module['name']) ?></h2>
+                <h2><?= __('Dependencies') ?>: <?= htmlspecialchars(is_array($module['definition']) ? ($module['definition']['name'] ?? $module['name']) : $module['name']) ?></h2>
                 <a href="/admin/modules" class="btn btn-secondary btn-sm"><?= __('Back to Modules') ?></a>
             </div>
 

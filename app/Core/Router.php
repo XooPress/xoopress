@@ -248,7 +248,9 @@ class Router
                 }
                 
                 if (method_exists($controllerInstance, $method)) {
-                    return call_user_func_array([$controllerInstance, $method], $parameters);
+                    $result = call_user_func_array([$controllerInstance, $method], $parameters);
+                    // Handle void/null return from controller methods (e.g. logout(), redirect())
+                    return $result ?? '';
                 }
                 
                 throw new \Exception("Method {$method} not found in controller {$controller}");

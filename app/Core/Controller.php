@@ -181,20 +181,33 @@ abstract class Controller
         $csrfEnabled = $config['security']['csrf']['enabled'] ?? true;
         $csrfTokenName = $config['security']['csrf']['token_name'] ?? '_csrf_token';
         
-        if (!$csrfEnabled) {
+        if (!$csrfEnabled || empty(trim($html))) {
             return $html;
         }
         
         // Only inject if the form doesn't already have a CSRF token field
-        // Pattern: find <form ...> but exclude if it contains _csrf_token
+        // Pattern: find <form ...> but exclude if it already contains _csrf_token
         $csrfField = '<input type="hidden" name="' . $csrfTokenName . '" value="' . $this->csrfToken() . '" />';
         
         // Use a regex to find <form ...> tags that don't have _csrf_token inside them
-        $pattern = '/<form\b[^>]*>(?![^<]*' . preg_quote($csrfTokenName, '/') . ')/i';
+        // The lookahead checks from after the opening form tag to the closing </form> or end of string
+        $escapedName = preg_quote($csrfTokenName, '/');
+        $pattern = '/<form\b[^>]*>(?:(?!<\/form>)[^<])*?(?=' . $escapedName . '|<\/form>)/is';
         
-        $html = preg_replace_callback($pattern, function ($matches) use ($csrfField) {
+        // Only inject into forms that DON'T already have the CSRF token
+        // First pass: find all <form> tags, then check if they contain _csrf_token
+        $html = preg_replace_callback('/<form\b[^>]*>.*?<\/form>/is', function ($formMatch) use ($csrfField, $csrfTokenName) {
+            $form = $formMatch[0];
+            // If the form already contains a _csrf_token input, skip it
+            if (stripos($form, $csrfTokenName) !== false) {
+                return $form;
+            }
             // Insert CSRF token right after the opening form tag
-            return $matches[0] . "\n        " . $csrfField;
+            $pos = strpos($form, '>');
+            if ($pos !== false) {
+                return substr($form, 0, $pos + 1) . "\n        " . $csrfField . substr($form, $pos + 1);
+            }
+            return $form;
         }, $html);
         
         return $html;
@@ -259,6 +272,11 @@ abstract class Controller
      */
     protected function redirect(string $url, int $status = 302): void
     {
+        // Clean any output buffers that may have been started (e.g. by views or error handlers)
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
         http_response_code($status);
         header("Location: {$url}");
         exit;
