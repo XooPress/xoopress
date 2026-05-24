@@ -77,9 +77,14 @@ return [
             'order' => 12,
         ],
         [
+            'label' => 'Workflow',
+            'url' => '/admin/workflow',
+            'order' => 13,
+        ],
+        [
             'label' => 'Performance',
             'url' => '/admin/performance',
-            'order' => 13,
+            'order' => 14,
         ],
     ],
     
@@ -518,6 +523,22 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/performance/cache-flush',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
+        ],
+        // ── Phase 8b: Workflow ──────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/workflow',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'workflow'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/workflow/review/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'workflowReview'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/workflow/transition',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'workflowTransition'],
         ],
         // ── Phase 6: Content Blocks ─────────────────────
         [

@@ -225,6 +225,15 @@ class Application
             error_log("API keys table creation: " . $e->getMessage());
         }
         
+        // Initialize workflow_log table (Phase 8b)
+        try {
+            if ($this->container->has('database')) {
+                \XooPress\Core\Workflow::createTable($this->container->get('database'));
+            }
+        } catch (\Throwable $e) {
+            error_log("Workflow table creation: " . $e->getMessage());
+        }
+        
         // Register built-in shortcodes for Phase 6 (content blocks)
         $hooks->doAction('init_content_types', $this);
         

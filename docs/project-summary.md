@@ -246,7 +246,9 @@ All five themes include:
 
 ### Phase 8: Multi-site & Enterprise
 - [x] Add role/capability system (WP-style roles) — `app/Core/Capabilities.php`
-- [ ] Add workflow/approval system for content
+- [x] Add workflow/approval system for content — `app/Core/Workflow.php`, `admin_workflow.php`, `admin_workflow_review.php`
+  - Draft → Pending Review → Approved → Published state machine
+  - `xp_workflow_log` table, capability-gated transitions, admin review queue UI
 - [ ] Add full-text search
 - [ ] Add content staging/preview links
 - [ ] Add webhooks system

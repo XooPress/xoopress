@@ -1381,6 +1381,131 @@ class AdminController extends Controller
         $this->redirect('/admin/performance');
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  Phase 8b: Workflow & Approval System
+    // ═══════════════════════════════════════════════════════
+
+    public function workflow(): string
+    {
+        $this->requireLogin();
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $type = $_GET['type'] ?? 'post';
+        $perPage = 20;
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+
+        $pendingPosts = $db ? \XooPress\Core\Workflow::getPendingReview($db, $type, $page, $perPage) : [];
+        $stats = $db ? \XooPress\Core\Workflow::getStats($db) : [];
+
+        return $this->view('system::admin_workflow', [
+            'pendingPosts' => $pendingPosts,
+            'stats' => $stats,
+            'currentType' => $type,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function workflowReview(int $id): string
+    {
+        $this->requireCapability('review_posts', '/admin/workflow');
+
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        $post = $this->postModel ? $this->postModel->find($id) : null;
+
+        if (!$post) {
+            $this->redirect('/admin/workflow');
+            return '';
+        }
+
+        $history = $db ? \XooPress\Core\Workflow::getHistory($db, $id) : [];
+        $nextStatuses = \XooPress\Core\Workflow::getNextStatuses($post['status'] ?? 'draft');
+
+        return $this->view('system::admin_workflow_review', [
+            'post' => $post,
+            'history' => $history,
+            'nextStatuses' => $nextStatuses,
+            'statusLabels' => \XooPress\Core\Workflow::getStatusLabels(),
+            'badgeClass' => function ($status) {
+                return \XooPress\Core\Workflow::getStatusBadgeClass($status);
+            },
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function workflowTransition(): void
+    {
+        $this->requireLogin();
+        $this->requireCsrfToken('/admin/workflow');
+
+        $postId = (int)($this->request['post_id'] ?? 0);
+        $toStatus = $this->request['to_status'] ?? '';
+        $comment = $this->request['comment'] ?? '';
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+
+        if ($postId <= 0 || empty($toStatus) || !$db) {
+            $_SESSION['admin_notice'] = 'Invalid workflow transition request.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/workflow');
+            return;
+        }
+
+        $post = $this->postModel ? $this->postModel->find($postId) : null;
+        if (!$post) {
+            $this->redirect('/admin/workflow');
+            return;
+        }
+
+        $fromStatus = $post['status'] ?? 'draft';
+
+        // Check transition is valid
+        if (!\XooPress\Core\Workflow::canTransition($fromStatus, $toStatus)) {
+            $_SESSION['admin_notice'] = "Cannot transition from '{$fromStatus}' to '{$toStatus}'.";
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/workflow');
+            return;
+        }
+
+        // Check capability
+        $capMap = [
+            'pending_review' => 'edit_posts',
+            'approved' => 'approve_posts',
+            'rejected' => 'approve_posts',
+            'published' => 'publish_posts',
+        ];
+        $requiredCap = $capMap[$toStatus] ?? null;
+        if ($requiredCap && !$this->currentUserCan($requiredCap)) {
+            $_SESSION['admin_notice'] = 'You do not have permission to perform this action.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/workflow');
+            return;
+        }
+
+        $user = $this->currentUser();
+        $userId = (int)($user['id'] ?? 0);
+
+        try {
+            // Update post status
+            $this->postModel->update($postId, ['status' => $toStatus]);
+
+            // Set published_at if publishing
+            if ($toStatus === 'published' && empty($post['published_at'])) {
+                $this->postModel->update($postId, ['published_at' => date('Y-m-d H:i:s')]);
+            }
+
+            // Log the workflow transition
+            \XooPress\Core\Workflow::logTransition($db, $postId, $fromStatus, $toStatus, $userId, $comment);
+
+            $_SESSION['admin_notice'] = "Post '{$post['title']}' moved to " . (\XooPress\Core\Workflow::getStatusLabels()[$toStatus] ?? $toStatus) . '.';
+            $_SESSION['admin_notice_type'] = 'success';
+        } catch (\Throwable $e) {
+            $_SESSION['admin_notice'] = 'Workflow transition failed: ' . $e->getMessage();
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+
+        $this->redirect('/admin/workflow');
+    }
+
     private function createSlug(string $text): string
     {
         $text = mb_strtolower($text, 'UTF-8');
