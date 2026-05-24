@@ -254,6 +254,17 @@ class Application
             error_log("Search table creation: " . $e->getMessage());
         }
         
+        // Initialize staging/preview tables (Phase 8e)
+        try {
+            if ($this->container->has('database')) {
+                $staging = new \XooPress\Core\Staging($this->container->get('database'));
+                $staging->createTable();
+                $this->container->instance('staging', $staging);
+            }
+        } catch (\Throwable $e) {
+            error_log("Staging table creation: " . $e->getMessage());
+        }
+        
         // Register built-in shortcodes for Phase 6 (content blocks)
         $hooks->doAction('init_content_types', $this);
         

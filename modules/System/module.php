@@ -91,6 +91,11 @@ return [
             'url' => '/admin/performance',
             'order' => 15,
         ],
+        [
+            'label' => 'Staging',
+            'url' => '/admin/staging',
+            'order' => 16,
+        ],
     ],
     
     'services' => [
@@ -528,6 +533,32 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/performance/cache-flush',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
+        ],
+        // ── Phase 8e: Staging & Preview ─────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/staging',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'stagingOverview'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/staging/generate-token/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'stagingGenerateToken'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/staging/publish/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'stagingPublish'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/staging/discard/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'stagingDiscard'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/staging/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'stagingSave'],
         ],
         // ── Phase 8d: Search Rebuild ────────────────────
         [

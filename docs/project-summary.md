@@ -258,7 +258,12 @@ All five themes include:
   - `xp_search_index` table, auto-index on post create/update/delete
   - Boolean-mode query with prefix wildcards, highlighting, excerpt extraction
   - Paginated results, autocomplete suggestions, admin rebuild action
-- [ ] Add content staging/preview links
+- [x] Add content staging/preview links — `app/Core/Staging.php`, `/preview/:all` route, admin staging UI
+  - `xp_preview_tokens` + `xp_content_staging` tables (auto-created at boot)
+  - Cryptographically secure 64-char preview tokens with 72h expiry
+  - Stage content for existing posts or new content, preview via shareable link
+  - Publish staged → applies changes to posts table + triggers search re-index
+  - Full admin CRUD: stage, publish, discard, generate preview tokens for any post
 - [ ] Add multisite/network mode (single install, multiple sites)
 
 ### Phase 9: Developer Experience

@@ -84,6 +84,57 @@ class PostController extends Controller
         return $this->view('content::post', ['post' => $post, 'prev_post' => $adjacent['prev'], 'next_post' => $adjacent['next']]);
     }
 
+    // ── Phase 8e: Preview ──────────────────────────────
+
+    public function preview(string $token): string
+    {
+        if (!$this->container->has('staging')) {
+            http_response_code(404);
+            return 'Preview not available.';
+        }
+
+        $staging = $this->container->get('staging');
+        $data = $staging->verifyPreviewToken($token);
+
+        if (!$data || !$data['preview']) {
+            http_response_code(404);
+            return 'Preview link is invalid or has expired.';
+        }
+
+        $preview = $data['preview'];
+        $post = $data['post'];
+
+        // Render content
+        $content = $preview['content'] ?? '';
+        $rendered = $this->renderer->render($content, $preview['content_type'] ?? 'html');
+
+        // Build a preview object
+        $previewPost = [
+            'id' => $data['content_id'],
+            'title' => $preview['title'],
+            'content' => $content,
+            'rendered_content' => $rendered,
+            'excerpt' => $preview['excerpt'] ?? '',
+            'slug' => $post['slug'] ?? '',
+            'type' => $data['content_type'],
+            'author_name' => $post['author_name'] ?? 'Preview',
+            'published_at' => $post['published_at'] ?? null,
+            'status' => 'preview',
+            'is_preview' => true,
+        ];
+
+        // Try theme rendering
+        if ($this->container->has('theme')) {
+            $theme = $this->container->get('theme');
+            $themeResult = $theme->render('singular', ['post' => $previewPost, 'is_preview' => true], ['preview']);
+            if (!empty($themeResult)) {
+                return $themeResult;
+            }
+        }
+
+        return $this->view('content::post', ['post' => $previewPost, 'is_preview' => true, 'prev_post' => null, 'next_post' => null]);
+    }
+
     // ── Phase 8d: Search Results ──────────────────────────
 
     public function search(): string

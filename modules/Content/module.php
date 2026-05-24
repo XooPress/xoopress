@@ -45,6 +45,12 @@ return [
             'pattern' => '/search',
             'handler' => ['XooPress\Modules\Content\Controllers\PostController', 'search'],
         ],
+        // ── Phase 8e: Preview ─────────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/preview/:all',
+            'handler' => ['XooPress\Modules\Content\Controllers\PostController', 'preview'],
+        ],
         [
             'method' => 'GET',
             'pattern' => '/posts/:num',

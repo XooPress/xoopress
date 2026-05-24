@@ -1382,6 +1382,128 @@ class AdminController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════
+    //  Phase 8e: Content Staging & Preview Links
+    // ═══════════════════════════════════════════════════════
+
+    public function stagingOverview(): string
+    {
+        $this->requireAdmin();
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $type = $_GET['type'] ?? null;
+
+        $staging = $this->container->has('staging') ? $this->container->get('staging') : null;
+        $stagedItems = $staging ? $staging->getAllStaged($type, $page) : ['items' => [], 'total' => 0, 'page' => 1, 'totalPages' => 1];
+
+        return $this->view('system::admin_staging', [
+            'items' => $stagedItems['items'],
+            'total' => $stagedItems['total'],
+            'page' => $stagedItems['page'],
+            'totalPages' => $stagedItems['totalPages'],
+            'currentType' => $type,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function stagingSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/staging');
+
+        $contentType = $this->input('content_type', 'post');
+        $contentId = $this->input('content_id') ? (int)$this->input('content_id') : null;
+        $title = $this->input('title', '');
+        $content = $this->input('content', '');
+        $excerpt = $this->input('excerpt', '');
+        $slug = $this->input('slug', '');
+
+        if (empty($title)) {
+            $_SESSION['admin_notice'] = 'Title is required for staging.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/staging');
+            return;
+        }
+
+        $meta = [
+            'status' => $this->input('status', 'published'),
+            'category_id' => (int)$this->input('category_id', 0),
+            'language' => $this->input('language', 'en_US'),
+        ];
+
+        if ($this->container->has('staging')) {
+            $staging = $this->container->get('staging');
+            $stagedId = $staging->stageContent(
+                $contentType, $contentId, $title, $content,
+                $excerpt ?: null, $slug ?: null, $meta,
+                (int)($_SESSION['user_id'] ?? 0)
+            );
+
+            if ($stagedId) {
+                // Generate a preview token for this staged version
+                if ($contentId) {
+                    $token = $staging->generatePreviewToken($contentType, $contentId, (int)($_SESSION['user_id'] ?? 0), $stagedId);
+                    $_SESSION['admin_notice'] = 'Content staged. Preview link generated: ' . $token['preview_url'];
+                } else {
+                    $_SESSION['admin_notice'] = 'Content staged for new ' . $contentType . '.';
+                }
+                $_SESSION['admin_notice_type'] = 'success';
+            } else {
+                $_SESSION['admin_notice'] = 'Failed to stage content.';
+                $_SESSION['admin_notice_type'] = 'error';
+            }
+        }
+
+        $this->redirect('/admin/staging');
+    }
+
+    public function stagingPublish(int $stagedId): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('staging')) {
+            $staging = $this->container->get('staging');
+            $result = $staging->publishStaged($stagedId);
+            $_SESSION['admin_notice'] = $result['message'];
+            $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        }
+
+        $this->redirect('/admin/staging');
+    }
+
+    public function stagingDiscard(int $stagedId): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('staging')) {
+            $staging = $this->container->get('staging');
+            if ($staging->discardStaged($stagedId)) {
+                $_SESSION['admin_notice'] = 'Staged content discarded.';
+                $_SESSION['admin_notice_type'] = 'success';
+            } else {
+                $_SESSION['admin_notice'] = 'Failed to discard staged content.';
+                $_SESSION['admin_notice_type'] = 'error';
+            }
+        }
+
+        $this->redirect('/admin/staging');
+    }
+
+    public function stagingGenerateToken(int $postId): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('staging')) {
+            $staging = $this->container->get('staging');
+            $token = $staging->generatePreviewToken('post', $postId, (int)($_SESSION['user_id'] ?? 0));
+            $_SESSION['admin_notice'] = 'Preview link: ' . $token['preview_url'];
+            $_SESSION['admin_notice_type'] = 'success';
+        }
+
+        $this->redirect('/admin/posts/edit/' . $postId);
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  Phase 8d: Search Index Management
     // ═══════════════════════════════════════════════════════
 
