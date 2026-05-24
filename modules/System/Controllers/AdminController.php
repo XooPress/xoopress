@@ -41,7 +41,7 @@ class AdminController extends Controller
     /**
      * Require admin role, redirect if not authorized
      */
-    private function requireAdmin(): void
+    protected function requireAdmin(): void
     {
         if (empty($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'admin') {
             $this->redirect('/user/dashboard');

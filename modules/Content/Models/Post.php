@@ -316,7 +316,7 @@ class Post extends Model
         return $id;
     }
 
-    public function update(int $id, array $data): bool
+    public function update($id, array $data): int
     {
         $data['updated_at'] = $data['updated_at'] ?? date('Y-m-d H:i:s');
         $result = parent::update($id, $data);
@@ -327,7 +327,7 @@ class Post extends Model
         return $result;
     }
 
-    public function delete(int $id): bool
+    public function delete($id): int
     {
         // Remove from search index first
         try {
