@@ -72,5 +72,7 @@
     </table>
     <?php endif; ?>
 </div>
+        </main>
+    </div>
 </body>
 </html>

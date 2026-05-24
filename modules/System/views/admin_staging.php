@@ -143,5 +143,7 @@
     <?php endif; ?>
     <?php endif; ?>
 </div>
+        </main>
+    </div>
 </body>
 </html>

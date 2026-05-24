@@ -123,8 +123,8 @@ abstract class Controller
             // Try to get the actual module path from ModuleManager (preserves correct case)
             $modulePath = null;
             if ($this->container->has('modules')) {
-                $modules = $this->container->get('modules');
-                $loadedModules = $modules->getModules();
+                $moduleManager = $this->container->get('modules');
+                $loadedModules = $moduleManager->getModules();
                 foreach ($loadedModules as $loadedName => $loadedModule) {
                     if (strtolower($loadedName) === strtolower($module)) {
                         $modulePath = $loadedModule['path'] ?? null;
