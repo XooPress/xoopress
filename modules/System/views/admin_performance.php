@@ -313,17 +313,17 @@
                         <div class="two-col">
                             <div>
                                 <table>
-                                    <tr><th>PHP Version</th><td><?php echo htmlspecialchars($data['php']['version'] ?? 'N/A'); ?></td></tr>
-                                    <tr><th>SAPI</th><td><?php echo htmlspecialchars($data['php']['sapi'] ?? 'N/A'); ?></td></tr>
-                                    <tr><th>OS</th><td><?php echo htmlspecialchars($data['php']['os'] ?? 'N/A'); ?></td></tr>
-                                    <tr><th>Memory Limit</th><td><?php echo htmlspecialchars($data['memory']['limit_formatted'] ?? 'N/A'); ?></td></tr>
+                                    <tr><th>PHP Version</th><td><?php echo htmlspecialchars(PHP_VERSION); ?></td></tr>
+                                    <tr><th>SAPI</th><td><?php echo htmlspecialchars(PHP_SAPI); ?></td></tr>
+                                    <tr><th>OS</th><td><?php echo htmlspecialchars(PHP_OS); ?></td></tr>
+                                    <tr><th>Memory Limit</th><td><?php echo htmlspecialchars(ini_get('memory_limit') ?: 'Unlimited'); ?></td></tr>
                                 </table>
                             </div>
                             <div>
                                 <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Loaded Extensions</h4>
                                 <div style="font-size:12px;line-height:1.6;">
                                     <?php 
-                                    $exts = $data['php']['extensions'] ?? [];
+                                    $exts = get_loaded_extensions();
                                     sort($exts);
                                     echo htmlspecialchars(implode(', ', $exts)); 
                                     ?>
