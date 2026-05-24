@@ -529,6 +529,12 @@ return [
             'pattern' => '/admin/performance/cache-flush',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
         ],
+        // ── Phase 8d: Search Rebuild ────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/search/rebuild',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'searchRebuild'],
+        ],
         // ── Phase 8c: Webhooks ──────────────────────────
         [
             'method' => 'GET',

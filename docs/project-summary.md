@@ -253,7 +253,11 @@ All five themes include:
   - 8 events (post_published, post_updated, post_deleted, user_registered, etc.)
   - `xp_webhooks` table, HMAC-SHA256 signing, concurrent cURL multi dispatch
   - Full admin CRUD + test button UI
-- [ ] Add full-text search
+- [x] Add full-text search — `app/Core/Search.php`, `content::search` view, `/search` route
+  - MySQL FULLTEXT index with LIKE-based fallback
+  - `xp_search_index` table, auto-index on post create/update/delete
+  - Boolean-mode query with prefix wildcards, highlighting, excerpt extraction
+  - Paginated results, autocomplete suggestions, admin rebuild action
 - [ ] Add content staging/preview links
 - [ ] Add multisite/network mode (single install, multiple sites)
 

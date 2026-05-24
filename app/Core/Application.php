@@ -243,6 +243,17 @@ class Application
             error_log("Webhooks table creation: " . $e->getMessage());
         }
         
+        // Initialize search index table + FULLTEXT indexes (Phase 8d)
+        try {
+            if ($this->container->has('database')) {
+                $search = new \XooPress\Core\Search($this->container->get('database'));
+                $search->createTable();
+                $this->container->instance('search', $search);
+            }
+        } catch (\Throwable $e) {
+            error_log("Search table creation: " . $e->getMessage());
+        }
+        
         // Register built-in shortcodes for Phase 6 (content blocks)
         $hooks->doAction('init_content_types', $this);
         

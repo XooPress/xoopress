@@ -83,4 +83,87 @@ class PostController extends Controller
 
         return $this->view('content::post', ['post' => $post, 'prev_post' => $adjacent['prev'], 'next_post' => $adjacent['next']]);
     }
+
+    // ── Phase 8d: Search Results ──────────────────────────
+
+    public function search(): string
+    {
+        $query = trim($_GET['q'] ?? '');
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $type = $_GET['type'] ?? null;
+
+        $results = [
+            'items' => [],
+            'total' => 0,
+            'page' => 1,
+            'totalPages' => 1,
+            'query' => $query,
+            'mode' => 'none',
+        ];
+
+        if (!empty($query) && strlen($query) >= 2 && $this->container->has('search')) {
+            try {
+                $search = $this->container->get('search');
+                $results = $search->search($query, [
+                    'page' => $page,
+                    'per_page' => 20,
+                    'highlight' => true,
+                    'content_type' => $type,
+                ]);
+            } catch (\Throwable $e) {
+                error_log("Search error: " . $e->getMessage());
+            }
+        }
+
+        // Try theme rendering first
+        if ($this->container->has('theme')) {
+            $theme = $this->container->get('theme');
+            $themeResult = $theme->render('search', ['results' => $results], ['search']);
+            if (!empty($themeResult)) {
+                return $themeResult;
+            }
+        }
+
+        return $this->view('content::search', ['results' => $results]);
+    }
+
+    public function tagArchive(string $slug): string
+    {
+        $tag = null;
+        $posts = [];
+
+        try {
+            if ($this->container->has('content.tag')) {
+                $tagModel = $this->container->get('content.tag');
+                $tag = $tagModel->findBySlug($slug);
+                if ($tag) {
+                    $postModel = $this->get('content.post');
+                    $taggedIds = $tagModel->getForPost(0, $tag['id']);
+                    if (!empty($taggedIds)) {
+                        $ids = array_column($taggedIds, 'post_id');
+                        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                        $db = $this->container->get('database');
+                        $prefix = $db->getPrefix();
+                        $posts = $db->select(
+                            "SELECT p.*, u.display_name AS author_name 
+                             FROM {$prefix}posts p 
+                             LEFT JOIN {$prefix}users u ON p.author_id = u.id 
+                             WHERE p.id IN ({$placeholders}) AND p.status = 'published' 
+                             ORDER BY p.published_at DESC",
+                            $ids
+                        );
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Tag archive error: " . $e->getMessage());
+        }
+
+        if ($this->container->has('theme') && $tag) {
+            $theme = $this->container->get('theme');
+            return $theme->render('archive', ['posts' => $posts, 'tag' => $tag], ['tags']);
+        }
+
+        return $this->view('content::posts', ['posts' => $posts, 'tag' => $tag]);
+    }
 }

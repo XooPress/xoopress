@@ -36,8 +36,14 @@ return [
     'routes' => [
         [
             'method' => 'GET',
-            'pattern' => '/posts',
-            'handler' => ['XooPress\Modules\Content\Controllers\PostController', 'index'],
+            'pattern' => '/tag/:all',
+            'handler' => ['XooPress\Modules\Content\Controllers\PostController', 'tagArchive'],
+        ],
+        // ── Phase 8d: Search ──────────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/search',
+            'handler' => ['XooPress\Modules\Content\Controllers\PostController', 'search'],
         ],
         [
             'method' => 'GET',

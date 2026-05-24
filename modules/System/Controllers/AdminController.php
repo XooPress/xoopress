@@ -1382,6 +1382,27 @@ class AdminController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════
+    //  Phase 8d: Search Index Management
+    // ═══════════════════════════════════════════════════════
+
+    public function searchRebuild(): void
+    {
+        $this->requireAdmin();
+
+        if ($this->container->has('search')) {
+            $search = $this->container->get('search');
+            $count = $search->rebuildIndex();
+            $_SESSION['admin_notice'] = "Search index rebuilt: {$count} items indexed.";
+            $_SESSION['admin_notice_type'] = 'success';
+        } else {
+            $_SESSION['admin_notice'] = 'Search service not available.';
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+
+        $this->redirect('/admin/performance');
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  Phase 8c: Webhooks System
     // ═══════════════════════════════════════════════════════
 

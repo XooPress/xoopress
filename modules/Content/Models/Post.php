@@ -301,4 +301,79 @@ class Post extends Model
             'totalPages' => $totalPages,
         ];
     }
+
+    // ── Phase 8d: Search Index Integration ────────────────
+
+    public function create(array $data): int
+    {
+        $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
+        $data['updated_at'] = $data['updated_at'] ?? date('Y-m-d H:i:s');
+        $id = parent::create($data);
+        
+        // Auto-index for search
+        $this->indexForSearch($id);
+        
+        return $id;
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $data['updated_at'] = $data['updated_at'] ?? date('Y-m-d H:i:s');
+        $result = parent::update($id, $data);
+        
+        // Re-index for search
+        $this->indexForSearch($id);
+        
+        return $result;
+    }
+
+    public function delete(int $id): bool
+    {
+        // Remove from search index first
+        try {
+            if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('search')) {
+                $search = $GLOBALS['xoopress_container']->get('search');
+                $post = $this->find($id);
+                $contentType = $post['type'] ?? 'post';
+                $search->remove($contentType, (int)$id);
+            }
+        } catch (\Throwable $e) {}
+        
+        return parent::delete($id);
+    }
+
+    /**
+     * Index or re-index a post in the search engine
+     *
+     * @param int $id
+     * @return void
+     */
+    protected function indexForSearch(int $id): void
+    {
+        try {
+            if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('search')) {
+                $search = $GLOBALS['xoopress_container']->get('search');
+                $post = $this->find($id);
+                if ($post) {
+                    $meta = [
+                        'status' => $post['status'] ?? 'draft',
+                        'author_id' => $post['author_id'] ?? 0,
+                        'category_id' => $post['category_id'] ?? 0,
+                        'language' => $post['language'] ?? '',
+                        'type' => $post['type'] ?? 'post',
+                    ];
+                    $search->index(
+                        $post['type'] ?? 'post',
+                        $id,
+                        $post['title'] ?? '',
+                        $post['content'] ?? '',
+                        $post['excerpt'] ?? null,
+                        $meta
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Search index for post #{$id}: " . $e->getMessage());
+        }
+    }
 }
