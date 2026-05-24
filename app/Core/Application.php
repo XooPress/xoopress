@@ -241,16 +241,6 @@ class Application
             });
         }
         
-        // Phase 7: Warm OPCache for core and module paths on boot (if available)
-        if (Opcache::isAvailable()) {
-            try {
-                Opcache::warmPath(XOO_PRESS_ROOT . '/app/Core');
-                Opcache::warmPath(XOO_PRESS_ROOT . '/modules');
-            } catch (\Throwable $e) {
-                error_log("OPCache warming: " . $e->getMessage());
-            }
-        }
-        
         $hooks->doAction('after_boot', $this);
         
         $this->booted = true;
@@ -498,6 +488,15 @@ class Application
      */
     protected function sendResponse($response): void
     {
+        // Handle empty/null responses — redirect controllers (logout, etc.) already called exit
+        if ($response === null || $response === '') {
+            // Ensure at least a valid response status
+            if (!headers_sent() && http_response_code() === 200) {
+                http_response_code(204); // No Content
+            }
+            return;
+        }
+
         // Set security headers before output
         $this->setSecurityHeaders();
 
