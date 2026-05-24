@@ -1138,6 +1138,249 @@ class AdminController extends Controller
         $this->redirect('/admin/settings');
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  Phase 7: 2FA Setup
+    // ═══════════════════════════════════════════════════════
+
+    public function twofaSetup(): string
+    {
+        $this->requireAdmin();
+        
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $user = $this->userModel ? $this->userModel->find($userId) : null;
+        
+        if (!$user) {
+            $this->redirect('/admin');
+            return '';
+        }
+        
+        $isEnabled = !empty($user['twofa_enabled']) && !empty($user['twofa_secret']);
+        
+        $qrCodeUrl = '';
+        $secret = '';
+        $recoveryCodes = [];
+        
+        // Handle POST: generate new setup
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isEnabled) {
+            $this->requireCsrfToken('/admin/twofa/setup');
+            
+            $twoFactor = $this->container->has('twofactor') ? $this->container->get('twofactor') : null;
+            if ($twoFactor) {
+                // Generate new secret
+                $secret = $twoFactor->generateSecret();
+                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret);
+                
+                // Generate recovery codes
+                $recoveryCodes = $twoFactor->generateRecoveryCodes(10);
+                $hashedCodes = $twoFactor->hashRecoveryCodes($recoveryCodes);
+                
+                // Store secret and recovery codes temporarily in session
+                $_SESSION['twofa_pending_secret'] = $secret;
+                $_SESSION['twofa_pending_codes'] = $hashedCodes;
+                
+                $message = 'Setup code generated. Scan the QR code with your authenticator app, then enter the verification code to enable.';
+                $messageType = 'info';
+            }
+        }
+        
+        // If we have a pending secret and no new generation, restore from session
+        if (empty($secret) && !empty($_SESSION['twofa_pending_secret'])) {
+            $secret = $_SESSION['twofa_pending_secret'];
+            $twoFactor = $this->container->has('twofactor') ? $this->container->get('twofactor') : null;
+            if ($twoFactor) {
+                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret);
+            }
+        }
+        
+        return $this->view('system::admin_twofa_setup', [
+            'qrCodeUrl' => $qrCodeUrl,
+            'secret' => $secret,
+            'recoveryCodes' => $recoveryCodes,
+            'isEnabled' => $isEnabled,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+            'message' => $message ?? null,
+            'messageType' => $messageType ?? null,
+        ]);
+    }
+
+    public function twofaEnable(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/twofa/setup');
+        
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $code = $this->input('code', '');
+        $secret = $_SESSION['twofa_pending_secret'] ?? '';
+        $hashedCodes = $_SESSION['twofa_pending_codes'] ?? [];
+        
+        if (empty($secret) || empty($code)) {
+            $_SESSION['admin_notice'] = 'Missing setup data. Please regenerate the QR code.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/twofa/setup');
+            return;
+        }
+        
+        $twoFactor = $this->container->has('twofactor') ? $this->container->get('twofactor') : null;
+        if (!$twoFactor) {
+            $_SESSION['admin_notice'] = 'Two-factor authentication service not available.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/twofa/setup');
+            return;
+        }
+        
+        // Verify the code
+        if ($twoFactor->verify($secret, $code)) {
+            // Save to user
+            if ($this->userModel) {
+                try {
+                    $this->userModel->update($userId, [
+                        'twofa_secret' => $secret,
+                        'twofa_enabled' => 1,
+                        'twofa_recovery_codes' => json_encode($hashedCodes),
+                    ]);
+                    
+                    // Clear pending session data
+                    unset($_SESSION['twofa_pending_secret']);
+                    unset($_SESSION['twofa_pending_codes']);
+                    
+                    $_SESSION['admin_notice'] = 'Two-factor authentication has been enabled successfully.';
+                    $_SESSION['admin_notice_type'] = 'success';
+                } catch (\Throwable $e) {
+                    $_SESSION['admin_notice'] = 'Failed to enable 2FA: ' . $e->getMessage();
+                    $_SESSION['admin_notice_type'] = 'error';
+                }
+            }
+        } else {
+            $_SESSION['admin_notice'] = 'Invalid verification code. Please try again.';
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+        
+        $this->redirect('/admin/twofa/setup');
+    }
+
+    public function twofaDisable(): void
+    {
+        $this->requireAdmin();
+        
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        
+        if ($this->userModel) {
+            try {
+                $this->userModel->update($userId, [
+                    'twofa_secret' => '',
+                    'twofa_enabled' => 0,
+                    'twofa_recovery_codes' => '',
+                ]);
+                
+                unset($_SESSION['twofa_pending_secret']);
+                unset($_SESSION['twofa_pending_codes']);
+                
+                $_SESSION['admin_notice'] = 'Two-factor authentication has been disabled.';
+                $_SESSION['admin_notice_type'] = 'success';
+            } catch (\Throwable $e) {
+                $_SESSION['admin_notice'] = 'Failed to disable 2FA: ' . $e->getMessage();
+                $_SESSION['admin_notice_type'] = 'error';
+            }
+        }
+        
+        $this->redirect('/admin/twofa/setup');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Phase 7: Performance Dashboard
+    // ═══════════════════════════════════════════════════════
+
+    public function performance(): string
+    {
+        $this->requireAdmin();
+
+        // Collect profiler data
+        $profiler = new \XooPress\Core\Profiler();
+        $db = $this->container->has('database') ? $this->container->get('database') : null;
+        if ($db !== null) {
+            $profiler->loadFromDatabase($db);
+        }
+        $data = $profiler->getAllData();
+        $suggestions = $profiler->getSuggestions();
+
+        // Collect OPCache data
+        $opcache = null;
+        if (\XooPress\Core\Opcache::isAvailable()) {
+            $opcache = [
+                'cached_files' => \XooPress\Core\Opcache::getCachedFilesCount(),
+                'hit_rate' => \XooPress\Core\Opcache::getHitRate(),
+                'memory_percent' => \XooPress\Core\Opcache::getMemoryUsagePercent(),
+                'used_memory' => \XooPress\Core\Opcache::getUsedMemoryFormatted(),
+                'total_memory' => \XooPress\Core\Opcache::getTotalMemoryFormatted(),
+            ];
+        }
+
+        // Collect cache stats
+        $cache = null;
+        if ($this->container->has('query_cache')) {
+            $queryCache = $this->container->get('query_cache');
+            try {
+                $cache = [
+                    'driver' => $this->container->has('cache') ? $this->container->get('cache')->getDriver() : 'none',
+                    'available' => $queryCache->isEnabled(),
+                    'hits' => $queryCache->getHits(),
+                    'misses' => $queryCache->getMisses(),
+                    'hit_ratio' => $queryCache->getHitRatio(),
+                ];
+            } catch (\Throwable $e) {
+                $cache = null;
+            }
+        }
+
+        return $this->view('system::admin_performance', [
+            'data' => $data,
+            'opcache' => $opcache,
+            'cache' => $cache,
+            'suggestions' => $suggestions,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function performanceOpcacheReset(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/performance');
+
+        if (\XooPress\Core\Opcache::reset()) {
+            $_SESSION['admin_notice'] = 'OPCache has been reset successfully.';
+            $_SESSION['admin_notice_type'] = 'success';
+        } else {
+            $_SESSION['admin_notice'] = 'Failed to reset OPCache. It may not be enabled.';
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+
+        $this->redirect('/admin/performance');
+    }
+
+    public function performanceCacheFlush(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/performance');
+
+        if ($this->container->has('query_cache')) {
+            $queryCache = $this->container->get('query_cache');
+            if ($queryCache->flush()) {
+                $_SESSION['admin_notice'] = 'Cache flushed successfully.';
+                $_SESSION['admin_notice_type'] = 'success';
+            } else {
+                $_SESSION['admin_notice'] = 'Failed to flush cache.';
+                $_SESSION['admin_notice_type'] = 'error';
+            }
+        } else {
+            $_SESSION['admin_notice'] = 'Query cache service not available.';
+            $_SESSION['admin_notice_type'] = 'error';
+        }
+
+        $this->redirect('/admin/performance');
+    }
+
     private function createSlug(string $text): string
     {
         $text = mb_strtolower($text, 'UTF-8');

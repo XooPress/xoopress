@@ -159,7 +159,45 @@ abstract class Controller
         include $viewPath;
         
         // Get the buffered content
-        return ob_get_clean();
+        $content = ob_get_clean();
+        
+        // Auto-inject CSRF token into forms if the config enables it
+        $content = $this->autoInjectCsrf($content);
+        
+        return $content;
+    }
+    
+    /**
+     * Auto-inject CSRF token hidden fields into HTML forms.
+     * Finds <form> tags without an existing CSRF field and adds one.
+     *
+     * @param string $html The rendered HTML content
+     * @return string HTML with CSRF tokens auto-injected
+     */
+    protected function autoInjectCsrf(string $html): string
+    {
+        // Check if CSRF auto-injection is enabled in config
+        $config = $this->container->has('config') ? $this->container->get('config') : [];
+        $csrfEnabled = $config['security']['csrf']['enabled'] ?? true;
+        $csrfTokenName = $config['security']['csrf']['token_name'] ?? '_csrf_token';
+        
+        if (!$csrfEnabled) {
+            return $html;
+        }
+        
+        // Only inject if the form doesn't already have a CSRF token field
+        // Pattern: find <form ...> but exclude if it contains _csrf_token
+        $csrfField = '<input type="hidden" name="' . $csrfTokenName . '" value="' . $this->csrfToken() . '" />';
+        
+        // Use a regex to find <form ...> tags that don't have _csrf_token inside them
+        $pattern = '/<form\b[^>]*>(?![^<]*' . preg_quote($csrfTokenName, '/') . ')/i';
+        
+        $html = preg_replace_callback($pattern, function ($matches) use ($csrfField) {
+            // Insert CSRF token right after the opening form tag
+            return $matches[0] . "\n        " . $csrfField;
+        }, $html);
+        
+        return $html;
     }
     
     /**

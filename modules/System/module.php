@@ -76,6 +76,11 @@ return [
             'url' => '/admin/settings',
             'order' => 12,
         ],
+        [
+            'label' => 'Performance',
+            'url' => '/admin/performance',
+            'order' => 13,
+        ],
     ],
     
     'services' => [
@@ -472,6 +477,48 @@ return [
             'pattern' => '/admin/posts/revision/delete/:num/:num',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'postRevisionDelete'],
         ],
+        // ── Phase 7: 2FA ────────────────────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/login/twofa',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'twofaForm'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/login/twofa',
+            'handler' => ['XooPress\Modules\System\Controllers\AuthController', 'twofaVerify'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/twofa/setup',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'twofaSetup'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/twofa/enable',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'twofaEnable'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/twofa/disable',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'twofaDisable'],
+        ],
+        // ── Phase 7: Performance & Security ─────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/performance',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performance'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/performance/opcache-reset',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceOpcacheReset'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/performance/cache-flush',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
+        ],
         // ── Phase 6: Content Blocks ─────────────────────
         [
             'method' => 'GET',
@@ -516,6 +563,9 @@ return [
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             last_login DATETIME NULL,
             user_theme VARCHAR(100) DEFAULT '' COMMENT 'Per-user theme override',
+            twofa_secret VARCHAR(100) DEFAULT '' COMMENT 'TOTP secret for 2FA',
+            twofa_enabled TINYINT(1) DEFAULT 0 COMMENT '2FA enabled flag',
+            twofa_recovery_codes TEXT COMMENT 'Hashed recovery codes',
             INDEX idx_email (email),
             INDEX idx_username (username)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");

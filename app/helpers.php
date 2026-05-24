@@ -526,3 +526,81 @@ function block_shortcode(string $slug): string
 {
     return '[block slug="' . htmlspecialchars($slug, ENT_QUOTES) . '"]';
 }
+
+// ═══════════════════════════════════════════════════════════
+//  Phase 7: Form & Security Helpers
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Generate an opening HTML form tag with CSRF token auto-included.
+ * WordPress-style: form_open('/login', 'POST', ['class' => 'login-form'])
+ *
+ * @param string $action Form action URL
+ * @param string $method HTTP method (GET or POST)
+ * @param array $attrs Additional HTML attributes for the form tag
+ * @return string HTML form open tag + CSRF hidden input
+ */
+function form_open(string $action = '', string $method = 'POST', array $attrs = []): string
+{
+    $method = strtoupper($method);
+    $attrsStr = '';
+    foreach ($attrs as $key => $value) {
+        $attrsStr .= ' ' . htmlspecialchars($key, ENT_QUOTES) . '="' . htmlspecialchars($value, ENT_QUOTES) . '"';
+    }
+    
+    $html = '<form action="' . htmlspecialchars($action) . '" method="' . ($method === 'GET' ? 'GET' : 'POST') . '"' . $attrsStr . '>' . "\n";
+    
+    // Add CSRF token for non-GET forms
+    if ($method !== 'GET') {
+        $csrfToken = '';
+        if (isset($GLOBALS['xoopress_container'])) {
+            try {
+                $config = $GLOBALS['xoopress_container']->get('config');
+                $csrfEnabled = $config['security']['csrf']['enabled'] ?? true;
+                $csrfTokenName = $config['security']['csrf']['token_name'] ?? '_csrf_token';
+                if ($csrfEnabled && isset($_SESSION['csrf_token'])) {
+                    $csrfToken = $_SESSION['csrf_token'];
+                }
+            } catch (\Throwable $e) {}
+        }
+        
+        if (empty($csrfToken) && isset($_SESSION['csrf_token'])) {
+            $csrfToken = $_SESSION['csrf_token'];
+        } elseif (empty($csrfToken)) {
+            $csrfToken = bin2hex(random_bytes(32));
+            $_SESSION['csrf_token'] = $csrfToken;
+        }
+        
+        $html .= '    <input type="hidden" name="_csrf_token" value="' . htmlspecialchars($csrfToken, ENT_QUOTES) . '" />' . "\n";
+    }
+    
+    return $html;
+}
+
+/**
+ * Check if the current request passes rate limiting.
+ * Returns true if the request is allowed, false if rate limited.
+ *
+ * @param string $key Rate limit key (e.g., 'api:user:123')
+ * @param int $maxAttempts Max attempts allowed
+ * @param int $decayMinutes Decay window in minutes
+ * @return bool
+ */
+function rate_limit_check(string $key, int $maxAttempts = 60, int $decayMinutes = 1): bool
+{
+    if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('rate_limiter')) {
+        $rateLimiter = $GLOBALS['xoopress_container']->get('rate_limiter');
+        return $rateLimiter->check($key, $maxAttempts, $decayMinutes);
+    }
+    return true; // Allow if no rate limiter available
+}
+
+/**
+ * Get the client IP address for rate limiting
+ *
+ * @return string
+ */
+function get_client_ip(): string
+{
+    return \XooPress\Core\RateLimiter::getClientIp();
+}

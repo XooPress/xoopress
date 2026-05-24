@@ -66,6 +66,36 @@ return [
             'token_name' => '_csrf_token',
         ],
         'xss_protection' => true,
+        
+        // HTTP security headers
+        'frame_options' => 'SAMEORIGIN',
+        'referrer_policy' => 'strict-origin-when-cross-origin',
+        'permissions_policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
+        
+        // Content Security Policy directives
+        'csp' => [
+            'default-src' => ["'self'"],
+            'script-src' => ["'self'", "'unsafe-inline'"],
+            'style-src' => ["'self'", "'unsafe-inline'"],
+            'img-src' => ["'self'", 'data:', 'https:'],
+            'font-src' => ["'self'"],
+            'connect-src' => ["'self'"],
+            'frame-ancestors' => ["'self'"],
+        ],
+        
+        // HSTS (only applies when using HTTPS)
+        'hsts_max_age' => 31536000,
+        'hsts_include_subdomains' => false,
+        
+        // Rate limiting defaults
+        'rate_limiting' => [
+            'login_max_attempts' => 5,
+            'login_decay_minutes' => 1,
+            'register_max_attempts' => 3,
+            'register_decay_minutes' => 10,
+            'api_max_attempts' => 60,
+            'api_decay_minutes' => 1,
+        ],
     ],
     
     // Cache

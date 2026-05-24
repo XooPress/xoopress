@@ -47,6 +47,23 @@ class AuthController extends Controller
         $username = $this->input('username');
         $password = $this->input('password');
 
+        // Rate limiting check
+        $ip = \XooPress\Core\RateLimiter::getClientIp();
+        $rateLimitKey = 'login:' . $ip;
+        
+        if ($this->container->has('rate_limiter')) {
+            $rateLimiter = $this->container->get('rate_limiter');
+            if ($rateLimiter->tooManyAttempts($rateLimitKey, 5, 1)) {
+                return $this->view('system::login', [
+                    'error' => 'Too many login attempts. Please try again in 1 minute.',
+                    'csrfToken' => $this->csrfToken(),
+                ]);
+            }
+        }
+
+        // Check if user has 2FA active from a previous step
+        $twofaVerified = $_SESSION['twofa_verified'] ?? false;
+
         if (empty($username) || empty($password)) {
             return $this->view('system::login', [
                 'error' => 'Username and password are required.',
@@ -57,6 +74,11 @@ class AuthController extends Controller
         if ($this->userModel) {
             $user = $this->userModel->authenticate($username, $password);
             if ($user) {
+                // Clear login rate limit on success
+                if ($this->container->has('rate_limiter')) {
+                    $this->container->get('rate_limiter')->clear($rateLimitKey);
+                }
+                
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['user_role'] = $user['role'];
@@ -64,6 +86,20 @@ class AuthController extends Controller
                 if (!empty($user['user_theme'])) {
                     $_SESSION['user_theme'] = $user['user_theme'];
                 }
+                
+                // Check if user has 2FA enabled
+                $twofaEnabled = $this->container->has('twofactor') && 
+                    !empty($user['twofa_secret']) && 
+                    !empty($user['twofa_enabled']);
+                
+                if ($twofaEnabled && !$twofaVerified) {
+                    // Store login state temporarily, redirect to 2FA verification
+                    $_SESSION['twofa_pending_user_id'] = $user['id'];
+                    unset($_SESSION['user_id']);
+                    $this->redirect('/login/twofa');
+                    return '';
+                }
+                
                 // Redirect users to their dashboard, admins to admin panel
                 $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
                 $this->redirect($redirect);
@@ -71,8 +107,91 @@ class AuthController extends Controller
             }
         }
 
+        // Increment rate limit on failed login
+        if ($this->container->has('rate_limiter')) {
+            $this->container->get('rate_limiter')->hit($rateLimitKey);
+        }
+
         return $this->view('system::login', [
             'error' => 'Invalid username or password.',
+            'csrfToken' => $this->csrfToken(),
+        ]);
+    }
+    
+    public function twofaForm(): string
+    {
+        // Must have a pending 2FA verification
+        if (empty($_SESSION['twofa_pending_user_id'])) {
+            $this->redirect('/login');
+            return '';
+        }
+        
+        return $this->view('system::login_twofa', [
+            'csrfToken' => $this->csrfToken(),
+        ]);
+    }
+    
+    public function twofaVerify(): string
+    {
+        if (!$this->requireCsrfToken('/login/twofa')) {
+            return '';
+        }
+        
+        $userId = $_SESSION['twofa_pending_user_id'] ?? 0;
+        $code = $this->input('code', '');
+        
+        if (empty($userId) || empty($code)) {
+            $this->redirect('/login');
+            return '';
+        }
+        
+        if ($this->userModel && $this->container->has('twofactor')) {
+            $user = $this->userModel->find($userId);
+            $twoFactor = $this->container->get('twofactor');
+            
+            if ($user && !empty($user['twofa_secret'])) {
+                // Try TOTP code
+                if ($twoFactor->verify($user['twofa_secret'], $code)) {
+                    $_SESSION['twofa_verified'] = true;
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['user_role'] = $user['role'];
+                    unset($_SESSION['twofa_pending_user_id']);
+                    
+                    $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
+                    $this->redirect($redirect);
+                    return '';
+                }
+                
+                // Try recovery code
+                $recoveryCodes = json_decode($user['twofa_recovery_codes'] ?? '[]', true);
+                if (!empty($recoveryCodes)) {
+                    $matchedHash = $twoFactor->verifyRecoveryCode($code, $recoveryCodes);
+                    if ($matchedHash !== false) {
+                        // Remove the used recovery code
+                        $remaining = array_values(array_filter($recoveryCodes, function($h) use ($matchedHash) {
+                            return $h !== $matchedHash;
+                        }));
+                        $this->userModel->update($userId, [
+                            'twofa_recovery_codes' => json_encode($remaining),
+                        ]);
+                        
+                        $_SESSION['twofa_verified'] = true;
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['user_role'] = $user['role'];
+                        unset($_SESSION['twofa_pending_user_id']);
+                        
+                        $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
+                        $this->redirect($redirect);
+                        return '';
+                    }
+                }
+            }
+        }
+        
+        return $this->view('system::login_twofa', [
+            'error' => 'Invalid verification code. Please try again.',
             'csrfToken' => $this->csrfToken(),
         ]);
     }

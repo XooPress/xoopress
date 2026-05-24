@@ -149,6 +149,24 @@ class Application
         $this->container->singleton('content.block', function ($container) {
             return new \XooPress\Modules\Content\Models\ContentBlock($container->get('database'));
         });
+        
+        // Phase 7: Register performance & security services
+        $this->container->singleton('query_cache', function ($container) {
+            $db = $container->get('database');
+            $cache = $container->has('cache') ? $container->get('cache') : null;
+            return new QueryCache($db, $cache);
+        });
+        
+        $this->container->singleton('rate_limiter', function ($container) {
+            $cache = $container->has('cache') ? $container->get('cache') : null;
+            return new RateLimiter($cache);
+        });
+        
+        $this->container->singleton('twofactor', function ($container) {
+            $config = $container->get('config');
+            $twoFactor = new TwoFactor();
+            return $twoFactor;
+        });
     }
     
     /**
@@ -221,6 +239,16 @@ class Application
                 }
                 return '';
             });
+        }
+        
+        // Phase 7: Warm OPCache for core and module paths on boot (if available)
+        if (Opcache::isAvailable()) {
+            try {
+                Opcache::warmPath(XOO_PRESS_ROOT . '/app/Core');
+                Opcache::warmPath(XOO_PRESS_ROOT . '/modules');
+            } catch (\Throwable $e) {
+                error_log("OPCache warming: " . $e->getMessage());
+            }
         }
         
         $hooks->doAction('after_boot', $this);
@@ -412,6 +440,57 @@ class Application
     }
     
     /**
+     * Set security HTTP headers
+     *
+     * @return void
+     */
+    protected function setSecurityHeaders(): void
+    {
+        $config = $this->config['security'] ?? [];
+
+        // X-Content-Type-Options: prevent MIME sniffing
+        header('X-Content-Type-Options: nosniff');
+
+        // X-Frame-Options: prevent clickjacking
+        $frameOptions = $config['frame_options'] ?? 'SAMEORIGIN';
+        header('X-Frame-Options: ' . $frameOptions);
+
+        // Referrer-Policy
+        $referrerPolicy = $config['referrer_policy'] ?? 'strict-origin-when-cross-origin';
+        header('Referrer-Policy: ' . $referrerPolicy);
+
+        // X-XSS-Protection (legacy, but still useful for older browsers)
+        header('X-XSS-Protection: 1; mode=block');
+
+        // Permissions-Policy: restrict sensitive features
+        $permissionsPolicy = $config['permissions_policy'] ?? 'camera=(), microphone=(), geolocation=(), payment=()';
+        header('Permissions-Policy: ' . $permissionsPolicy);
+
+        // Content-Security-Policy
+        $cspConfig = $config['csp'] ?? [];
+        if (!empty($cspConfig)) {
+            $csp = [];
+            foreach ($cspConfig as $directive => $sources) {
+                if (is_array($sources)) {
+                    $csp[] = $directive . ' ' . implode(' ', $sources);
+                } else {
+                    $csp[] = $directive . ' ' . $sources;
+                }
+            }
+            if (!empty($csp)) {
+                header('Content-Security-Policy: ' . implode('; ', $csp));
+            }
+        }
+
+        // Strict-Transport-Security (only if HTTPS)
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $hstsMaxAge = $config['hsts_max_age'] ?? 31536000;
+            $hstsIncludeSubdomains = !empty($config['hsts_include_subdomains']) ? '; includeSubDomains' : '';
+            header('Strict-Transport-Security: max-age=' . $hstsMaxAge . $hstsIncludeSubdomains);
+        }
+    }
+    
+    /**
      * Send HTTP response
      * 
      * @param mixed $response
@@ -419,6 +498,26 @@ class Application
      */
     protected function sendResponse($response): void
     {
+        // Set security headers before output
+        $this->setSecurityHeaders();
+
+        // Append inline profiler when debug mode is on and response is HTML
+        $debug = $this->config['debug'] ?? false;
+        if ($debug && is_string($response) && $this->container->has('profiler')) {
+            // Check if response looks like HTML
+            if (str_contains($response, '<html') || str_contains($response, '<!DOCTYPE')) {
+                $profiler = $this->container->get('profiler');
+                $db = $this->container->has('database') ? $this->container->get('database') : null;
+                if ($db !== null) {
+                    $profiler->loadFromDatabase($db);
+                }
+                $profilerHtml = $profiler->renderInline();
+                if (str_contains($response, '</body>')) {
+                    $response = str_replace('</body>', $profilerHtml . '</body>', $response);
+                }
+            }
+        }
+
         if (is_string($response)) {
             echo $response;
         } elseif (is_array($response) || is_object($response)) {
