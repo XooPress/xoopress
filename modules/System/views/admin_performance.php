@@ -153,16 +153,17 @@
                                     <tr><th>Cached Files</th><td><?php echo (int)$opcache['cached_files']; ?></td></tr>
                                     <tr><th>Hit Rate</th><td><?php echo htmlspecialchars(number_format($opcache['hit_rate'], 1)); ?>%</td></tr>
                                     <tr><th>Memory Used</th><td><?php echo htmlspecialchars($opcache['used_memory']); ?> / <?php echo htmlspecialchars($opcache['total_memory']); ?></td></tr>
-                                    <tr><th>Memory Usage</th><td><?php echo htmlspecialchars(number_format($opcache['memory_percent'], 1)); ?>%</td></tr>
+                                    <tr><th>Memory Usage</th><td><?php $memPct = is_finite($opcache['memory_percent'] ?? 0) ? $opcache['memory_percent'] : 0; echo htmlspecialchars(number_format($memPct, 1)); ?>%</td></tr>
                                 </table>
                             </div>
                             <div>
                                 <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Memory Usage</h4>
                                 <div class="progress-bar">
-                                    <div class="progress-bar-fill <?php echo $opcache['memory_percent'] > 80 ? 'progress-red' : ($opcache['memory_percent'] > 60 ? 'progress-yellow' : 'progress-green'); ?>" 
-                                         style="width: <?php echo min(100, $opcache['memory_percent']); ?>%"></div>
+                                    <?php $memPercent = is_finite($opcache['memory_percent'] ?? 0) ? min(100, max(0, $opcache['memory_percent'])) : 0; ?>
+                                    <div class="progress-bar-fill <?php echo $memPercent > 80 ? 'progress-red' : ($memPercent > 60 ? 'progress-yellow' : 'progress-green'); ?>" 
+                                         style="width: <?php echo $memPercent; ?>%"></div>
                                 </div>
-                                <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($opcache['memory_percent'], 1)); ?>% of <?php echo htmlspecialchars(ini_get('opcache.memory_consumption')); ?>MB</p>
+                                <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($memPercent, 1)); ?>% of <?php echo htmlspecialchars(ini_get('opcache.memory_consumption') ?: 'N/A'); ?>MB</p>
                             </div>
                         </div>
                         <form method="post" action="/admin/performance/opcache-reset" style="margin-top:12px;">

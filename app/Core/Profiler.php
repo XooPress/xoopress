@@ -233,7 +233,10 @@ class Profiler
     protected function getMemoryLimit(): int
     {
         $limit = ini_get('memory_limit');
-        if ($limit === '-1' || $limit === false) {
+        if ($limit === false || $limit === '' || $limit === null) {
+            return PHP_INT_MAX;
+        }
+        if ($limit === '-1') {
             return PHP_INT_MAX;
         }
 

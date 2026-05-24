@@ -112,9 +112,12 @@ class Opcache
         if (!$mem) return 0;
 
         $used = $mem['used_memory'] ?? 0;
-        $total = $mem['total_memory'] ?? 1;
+        $total = $mem['total_memory'] ?? 0;
 
-        return round(($used / $total) * 100, 2);
+        if ($total <= 0) return 0;
+
+        $percent = ($used / $total) * 100;
+        return is_finite($percent) ? round($percent, 2) : 0;
     }
 
     /**
