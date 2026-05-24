@@ -125,7 +125,7 @@ All five themes include:
 - [x] Integration tests for module lifecycle (9 tests) and theme lifecycle (8 tests)
 - **Total: 57 test methods across 6 test files**
 
-### Phase 2: Admin UX
+### Phase 2: Admin UX ✅
 - [x] Build admin menu system (register_admin_menu hook/event)
 - [x] Add bulk actions to admin tables (delete, publish, unpublish)
 - [x] Add pagination to admin listings
@@ -133,7 +133,7 @@ All five themes include:
 - [x] Add responsive admin layout
 - [x] Add admin notices system (success/error/warning banners)
 
-### Phase 3: Theme Enhancements
+### Phase 3: Theme Enhancements ✅
 - [x] Add widget system (register_sidebar, dynamic_sidebar like WP)
 - [x] Add menu system (register_nav_menus, wp_nav_menu like WP)
 - [x] Add theme customizer (live preview, color picker, layout options)
@@ -244,7 +244,7 @@ All five themes include:
 - [x] Add database query profiler (`app/Core/Profiler.php`)
 - [x] Add performance monitoring dashboard (`admin_performance.php` view)
 
-### Phase 8: Multi-site & Enterprise
+### Phase 8: Multi-site & Enterprise ✅
 - [x] Add role/capability system (WP-style roles) — `app/Core/Capabilities.php`
 - [x] Add workflow/approval system for content — `app/Core/Workflow.php`, `admin_workflow.php`, `admin_workflow_review.php`
   - Draft → Pending Review → Approved → Published state machine
@@ -271,13 +271,13 @@ All five themes include:
   - Sub-site theme/language overrides applied at boot
   - Full admin CRUD: list, create, edit, delete sites with domain uniqueness validation
 
-### Phase 9: Developer Experience
-- [ ] Add CLI tool (xoops CLI: generate module, list routes, etc.)
-- [ ] Add debug bar for development
-- [ ] Add code generation scaffolding
-- [ ] Add migration system for schema changes
-- [ ] Add comprehensive API documentation
-- [ ] Add OpenAPI/Swagger spec for REST API
+### Phase 9: Developer Experience ✅
+- [x] Add CLI tool (`xps`, `app/Core/Console.php`) — module/theme commands, route listing, cache clear, migrations, scaffolding
+- [x] Add debug bar (`app/Core/DebugBar.php`) — SQL query log, route info, request/session data, memory usage
+- [x] Add code generation scaffolding (`app/Core/Scaffold.php`, `stubs/`) — module, controller, model, view, theme generators
+- [x] Add migration system (`app/Core/Migration.php`, `storage/migrations/`) — up/down methods, status/run/rollback CLI commands
+- [x] Add comprehensive API documentation (`app/Core/ApiDocs.php`) — auto-generated OpenAPI 3.0.3 spec from registered routes
+- [x] Add OpenAPI/Swagger spec — Swagger UI at `/api/docs` with interactive endpoint documentation
 
 ### Phase 10: Ecosystem ✅
 - [x] Create marketplace service (`app/Core/Marketplace.php`) — browsable catalog with caching, one-click install
