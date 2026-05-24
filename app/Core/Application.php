@@ -182,6 +182,14 @@ class Application
         
         // Register container globally so the __() function in views can access i18n
         $GLOBALS['xoopress_container'] = $this->container;
+
+        // Initialize the Role & Capability system (Phase 8a)
+        try {
+            $db = $this->container->has('database') ? $this->container->get('database') : null;
+            \XooPress\Core\Capabilities::init($db);
+        } catch (\Throwable $e) {
+            error_log("Capabilities init: " . $e->getMessage());
+        }
         
         // Initialize internationalization
         $this->container->get('i18n')->initialize();
