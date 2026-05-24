@@ -245,12 +245,12 @@ All five themes include:
 - [x] Add performance monitoring dashboard (`admin_performance.php` view)
 
 ### Phase 8: Multi-site & Enterprise
-- [ ] Add multisite/network mode (single install, multiple sites)
-- [ ] Add role/capability system (WP-style roles)
+- [x] Add role/capability system (WP-style roles) — `app/Core/Capabilities.php`
 - [ ] Add workflow/approval system for content
 - [ ] Add full-text search
 - [ ] Add content staging/preview links
 - [ ] Add webhooks system
+- [ ] Add multisite/network mode (single install, multiple sites)
 
 ### Phase 9: Developer Experience
 - [ ] Add CLI tool (xoops CLI: generate module, list routes, etc.)
