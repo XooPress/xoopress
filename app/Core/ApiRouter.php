@@ -220,6 +220,14 @@ class ApiRouter
      */
     public function registerBuiltInRoutes(): void
     {
+        // ── API Documentation ────────────────────────────
+        $this->get('/docs', function () {
+            $apiDocs = new \XooPress\Core\ApiDocs($this, $this->container);
+            header('Content-Type: text/html; charset=utf-8');
+            echo $apiDocs->renderDocsPage();
+            exit;
+        });
+
         // GET /api/posts — list published posts
         $this->get('/posts', function () {
             try {

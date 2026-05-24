@@ -1,0 +1,40 @@
+#!/usr/bin/env php
+<?php
+/**
+ * XooPress CLI — xps
+ *
+ * Command-line interface for XooPress operations.
+ *
+ * Usage:
+ *   php xps <command> [args]
+ *   chmod +x xps && ./xps <command> [args]
+ *
+ * @package XooPress
+ */
+
+// Bootstrap: define constants and load autoloader
+defined('XOO_PRESS_ROOT') or define('XOO_PRESS_ROOT', __DIR__);
+defined('XOO_PRESS_MODULES') or define('XOO_PRESS_MODULES', __DIR__ . '/modules');
+defined('XOO_PRESS_THEMES') or define('XOO_PRESS_THEMES', __DIR__ . '/themes');
+defined('XOO_PRESS_STORAGE') or define('XOO_PRESS_STORAGE', __DIR__ . '/storage');
+defined('XOO_PRESS_DEBUG') or define('XOO_PRESS_DEBUG', false);
+
+// Load composer autoloader
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoload)) {
+    require_once $autoload;
+}
+
+// Load helpers
+$helpers = __DIR__ . '/app/helpers.php';
+if (file_exists($helpers)) {
+    require_once $helpers;
+}
+
+// Dispatch the command
+use XooPress\Core\Console;
+
+$console = new Console();
+$console->registerBuiltIn();
+$exitCode = $console->dispatch($argv);
+exit($exitCode);

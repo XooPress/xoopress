@@ -167,6 +167,11 @@ class Application
             $twoFactor = new TwoFactor();
             return $twoFactor;
         });
+        
+        // Phase 9b: Register debug bar service
+        $this->container->singleton('debug_bar', function ($container) {
+            return new \XooPress\Core\DebugBar($container);
+        });
     }
     
     /**
@@ -580,20 +585,29 @@ class Application
         // Set security headers before output
         $this->setSecurityHeaders();
 
-        // Append inline profiler when debug mode is on and response is HTML
+        // Append debug bar when debug mode is on and response is HTML
         $debug = $this->config['debug'] ?? false;
-        if ($debug && is_string($response) && $this->container->has('profiler')) {
-            // Check if response looks like HTML
-            if (str_contains($response, '<html') || str_contains($response, '<!DOCTYPE')) {
-                $profiler = $this->container->get('profiler');
-                $db = $this->container->has('database') ? $this->container->get('database') : null;
-                if ($db !== null) {
-                    $profiler->loadFromDatabase($db);
-                }
-                $profilerHtml = $profiler->renderInline();
-                if (str_contains($response, '</body>')) {
-                    $response = str_replace('</body>', $profilerHtml . '</body>', $response);
-                }
+        if ($debug && is_string($response) && $this->container->has('profiler') && 
+            (str_contains($response, '<html') || str_contains($response, '<!DOCTYPE'))) {
+            
+            $profiler = $this->container->get('profiler');
+            $db = $this->container->has('database') ? $this->container->get('database') : null;
+            if ($db !== null) {
+                $profiler->loadFromDatabase($db);
+            }
+            
+            // Render full debug bar
+            if ($this->container->has('debug_bar')) {
+                $debugBar = $this->container->get('debug_bar');
+                $debugBar->setProfiler($profiler);
+                $debugBarHtml = $debugBar->render();
+            } else {
+                // Fallback to inline profiler
+                $debugBarHtml = $profiler->renderInline();
+            }
+            
+            if (str_contains($response, '</body>')) {
+                $response = str_replace('</body>', $debugBarHtml . '</body>', $response);
             }
         }
 
