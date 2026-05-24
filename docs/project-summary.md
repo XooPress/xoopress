@@ -234,15 +234,15 @@ All five themes include:
 - `xp_term_relationships` — post<->term mapping
 - `xp_content_blocks` — reusable content blocks
 
-### Phase 7: Performance & Security
-- [ ] Add query caching layer
-- [ ] Add opcode caching support
-- [ ] Add rate limiting middleware
-- [ ] Add two-factor authentication
-- [ ] Add CSRF token auto-injection in forms
-- [ ] Add content security policy headers
-- [ ] Add database query profiler
-- [ ] Add performance monitoring dashboard
+### Phase 7: Performance & Security ✅
+- [x] Add query caching layer (`app/Core/QueryCache.php`)
+- [x] Add opcode caching support (`app/Core/Opcache.php`)
+- [x] Add rate limiting middleware (`app/Core/RateLimiter.php`)
+- [x] Add two-factor authentication (`app/Core/TwoFactor.php`)
+- [x] Add CSRF token auto-injection in forms (`Controller.php` methods)
+- [x] Add content security policy headers (`Application.php::setSecurityHeaders()`)
+- [x] Add database query profiler (`app/Core/Profiler.php`)
+- [x] Add performance monitoring dashboard (`admin_performance.php` view)
 
 ### Phase 8: Multi-site & Enterprise
 - [ ] Add multisite/network mode (single install, multiple sites)
