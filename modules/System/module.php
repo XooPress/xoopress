@@ -92,9 +92,14 @@ return [
             'order' => 15,
         ],
         [
+            'label' => 'Sites',
+            'url' => '/admin/sites',
+            'order' => 16,
+        ],
+        [
             'label' => 'Staging',
             'url' => '/admin/staging',
-            'order' => 16,
+            'order' => 17,
         ],
     ],
     
@@ -533,6 +538,37 @@ return [
             'method' => 'POST',
             'pattern' => '/admin/performance/cache-flush',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'performanceCacheFlush'],
+        ],
+        // ── Phase 8f: Multisite Sites ───────────────────
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/sites',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'sitesOverview'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/sites/new',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'siteNew'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/sites/create',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'siteCreate'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/sites/edit/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'siteEdit'],
+        ],
+        [
+            'method' => 'POST',
+            'pattern' => '/admin/sites/save',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'siteSave'],
+        ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/sites/delete/:num',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'siteDelete'],
         ],
         // ── Phase 8e: Staging & Preview ─────────────────
         [

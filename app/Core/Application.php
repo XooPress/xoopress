@@ -265,6 +265,38 @@ class Application
             error_log("Staging table creation: " . $e->getMessage());
         }
         
+        // Initialize multisite tables (Phase 8f)
+        try {
+            if ($this->container->has('database')) {
+                $multisite = new \XooPress\Core\Multisite($this->container->get('database'));
+                $multisite->createTable();
+                $this->container->instance('multisite', $multisite);
+                
+                // Detect current site from host header
+                $multisite->detectCurrentSite();
+                
+                // Apply site-specific overrides if on a sub-site
+                if ($multisite->isSubSite()) {
+                    // Override theme if site has a specific theme
+                    $siteTheme = $multisite->getEffectiveTheme();
+                    if ($siteTheme && $this->container->has('theme')) {
+                        $themeManager = $this->container->get('theme');
+                        $themeManager->setActiveTheme($siteTheme);
+                    }
+                    
+                    // Override language if site has a specific language
+                    $siteLang = $multisite->getEffectiveLanguage();
+                    if ($siteLang && $this->container->has('i18n')) {
+                        $i18n = $this->container->get('i18n');
+                        // Override the configured locale
+                        $_SESSION['xp_locale'] = $siteLang;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Multisite table creation: " . $e->getMessage());
+        }
+        
         // Register built-in shortcodes for Phase 6 (content blocks)
         $hooks->doAction('init_content_types', $this);
         

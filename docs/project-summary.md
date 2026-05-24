@@ -264,7 +264,12 @@ All five themes include:
   - Stage content for existing posts or new content, preview via shareable link
   - Publish staged → applies changes to posts table + triggers search re-index
   - Full admin CRUD: stage, publish, discard, generate preview tokens for any post
-- [ ] Add multisite/network mode (single install, multiple sites)
+- [x] Add multisite/network mode — `app/Core/Multisite.php`, `/admin/sites` admin UI
+  - `xp_sites` table (domain, aliases, name, status, theme, language, settings)
+  - `xp_site_meta` table (key-value metadata per site, cascading FK delete)
+  - Auto-detect current site from `HTTP_HOST`, supports domain alias lookup
+  - Sub-site theme/language overrides applied at boot
+  - Full admin CRUD: list, create, edit, delete sites with domain uniqueness validation
 
 ### Phase 9: Developer Experience
 - [ ] Add CLI tool (xoops CLI: generate module, list routes, etc.)

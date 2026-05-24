@@ -1382,6 +1382,142 @@ class AdminController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════
+    //  Phase 8f: Multisite / Network Sites
+    // ═══════════════════════════════════════════════════════
+
+    public function sitesOverview(): string
+    {
+        $this->requireAdmin();
+        
+        $sites = $this->container->has('multisite') ? $this->container->get('multisite')->getAllSites() : [];
+        
+        return $this->view('system::admin_sites', [
+            'sites' => $sites,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function siteNew(): string
+    {
+        $this->requireAdmin();
+        
+        return $this->view('system::admin_site_edit', [
+            'isNew' => true,
+            'site' => [],
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function siteCreate(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/sites');
+        
+        $domain = $this->input('domain', '');
+        $name = $this->input('name', '');
+        $description = $this->input('description', '');
+        $theme = $this->input('theme', '');
+        $language = $this->input('language', '');
+        $status = $this->input('status', 'active');
+        $aliasesInput = $this->input('aliases', '');
+        $aliases = !empty($aliasesInput) ? array_map('trim', explode("\n", $aliasesInput)) : [];
+        
+        if (empty($domain)) {
+            $_SESSION['admin_notice'] = 'Domain is required.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/sites/new');
+            return;
+        }
+        
+        $options = [
+            'status' => $status,
+            'theme' => $theme ?: null,
+            'language' => $language ?: null,
+            'aliases' => $aliases,
+        ];
+        
+        if ($this->container->has('multisite')) {
+            $multisite = $this->container->get('multisite');
+            $result = $multisite->createSite($domain, $name, $description, $options);
+            $_SESSION['admin_notice'] = $result['message'];
+            $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect('/admin/sites');
+    }
+
+    public function siteEdit(int $id): string
+    {
+        $this->requireAdmin();
+        
+        $site = $this->container->has('multisite') ? $this->container->get('multisite')->getSite($id) : null;
+        if (!$site) {
+            $_SESSION['admin_notice'] = 'Site not found.';
+            $_SESSION['admin_notice_type'] = 'error';
+            $this->redirect('/admin/sites');
+            return '';
+        }
+        
+        return $this->view('system::admin_site_edit', [
+            'isNew' => false,
+            'site' => $site,
+            'csrfToken' => $this->csrfToken(),
+            'adminMenu' => $this->getAdminMenu(),
+        ]);
+    }
+
+    public function siteSave(): void
+    {
+        $this->requireAdmin();
+        $this->requireCsrfToken('/admin/sites');
+        
+        $id = (int)$this->input('id', 0);
+        $domain = $this->input('domain', '');
+        $name = $this->input('name', '');
+        $description = $this->input('description', '');
+        $theme = $this->input('theme', '');
+        $language = $this->input('language', '');
+        $status = $this->input('status', 'active');
+        $aliasesInput = $this->input('aliases', '');
+        $aliases = !empty($aliasesInput) ? array_map('trim', explode("\n", $aliasesInput)) : [];
+        
+        $data = [
+            'domain' => $domain,
+            'name' => $name,
+            'description' => $description,
+            'status' => $status,
+            'theme' => $theme ?: null,
+            'language' => $language ?: null,
+            'aliases' => $aliases,
+        ];
+        
+        if ($this->container->has('multisite')) {
+            $multisite = $this->container->get('multisite');
+            $result = $multisite->updateSite($id, $data);
+            $_SESSION['admin_notice'] = $result['message'];
+            $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect('/admin/sites');
+    }
+
+    public function siteDelete(int $id): void
+    {
+        $this->requireAdmin();
+        
+        if ($this->container->has('multisite')) {
+            $multisite = $this->container->get('multisite');
+            $result = $multisite->deleteSite($id);
+            $_SESSION['admin_notice'] = $result['message'];
+            $_SESSION['admin_notice_type'] = $result['success'] ? 'success' : 'error';
+        }
+        
+        $this->redirect('/admin/sites');
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  Phase 8e: Content Staging & Preview Links
     // ═══════════════════════════════════════════════════════
 
