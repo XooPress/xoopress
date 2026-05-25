@@ -8,7 +8,7 @@
 - **Extensions** PDO, PDO MySQL, mbstring, intl, zip (for uploads), gettext (for i18n)
 - **Composer** (for dependency management)
 
-## Quick Install
+## Quick Start (Composer + CLI)
 
 ### 1. Download
 
@@ -85,20 +85,101 @@ server {
 }
 ```
 
-### 5. Run the Installer
+### 5. Run the Database Migration
 
-Navigate to `http://your-server/install.php` in your browser.
+XooPress provides a CLI command to initialize the database:
 
-The installer will:
-1. Verify system requirements (PHP version, extensions, database connection)
-2. Create the database tables (settings, users, sessions, modules, posts, categories, post_meta, theme_settings)
-3. Create the admin user account
-4. Set up default settings (site name, default theme, available locales)
-5. Install default modules (System, Content)
+```bash
+php xps migrate:run
+```
+
+This creates all required database tables (settings, users, sessions, modules, posts, categories, post_meta, theme_settings) and inserts default data.
 
 ### 6. Login
 
 Navigate to `/login` and sign in with the admin credentials you created during installation.
+
+---
+
+## Web-Based UI Installer (Recommended)
+
+XooPress includes a **graphical web installer** at `public/install.php` that guides you through setup step-by-step, handling database creation, table setup, admin account creation, and configuration file generation automatically.
+
+### Using the UI Installer
+
+1. **Download & extract** XooPress to your web server's document root, pointing the document root to the `public/` directory.
+
+2. **Install dependencies** via Composer:
+
+   ```bash
+   composer install --no-dev
+   ```
+
+3. **Verify permissions** — Ensure these directories are writable by the web server:
+   - `config/` (for `app.local.php` creation)
+   - `storage/cache/`
+   - `storage/logs/`
+
+4. **Navigate** to `http://your-server/install.php` in your browser.
+
+### Installer Steps
+
+#### Step 1 — Requirements Check
+The installer verifies:
+- **PHP 8.2+** — Checks minimum version
+- **6 PHP extensions** — PDO, pdo_mysql, gettext, mbstring, json, session
+- **3 writable directories** — `config/`, `storage/cache/`, `storage/logs/`
+
+All requirements must pass with a ✅ indicator before proceeding. Non-critical warnings display as ⚠️ but do not block installation.
+
+#### Step 2 — Database Configuration
+Enter your MySQL database connection details:
+- **Host** — Server hostname (default: `localhost`)
+- **Port** — Server port (default: `3306`)
+- **Database Name** — The database to use (created automatically if it does not exist)
+- **Username & Password** — MySQL credentials
+
+The installer validates connectivity by:
+1. Attempting a TCP connection to the specified host and port
+2. Falling back to 4 common Unix socket paths if TCP fails
+3. Testing database selection and auto-creating if necessary
+
+Credentials are stored in the session for subsequent steps.
+
+#### Step 3 — Admin Account
+Create your initial administrator account:
+- **Username** — Minimum 3 characters
+- **Email** — Valid email address
+- **Password** — Minimum 8 characters with confirmation
+
+All fields are validated before proceeding.
+
+#### Step 4 — Installation
+The installation auto-starts and performs the following operations:
+1. **Creates database tables**: `users`, `settings`, `sessions`, `modules`, `posts`, `categories`, `post_meta`, `module_config`, `theme_settings`
+2. **Inserts admin user** with bcrypt-hashed password
+3. **Creates default settings**: site name, site description, default theme (`xoopress-lite`), available locales, etc.
+4. **Creates default category**: "Uncategorized"
+5. **Registers built-in modules**: System module and Content module
+6. **Writes configuration**: Generates `config/app.local.php` with full database credentials, encryption key, and all required settings
+7. **Creates installed.lock**: Prevents re-installation
+
+#### Step 5 — Success
+The success screen displays:
+- Your admin username (email masked for security)
+- A link to log into the admin panel
+- Quick-start guidance for next steps
+
+Navigate to `/login` to sign in.
+
+### Post-Installation (UI Installer)
+
+- Visit `/admin` to access the dashboard
+- Go to `/admin/settings` to configure your site name and description
+- Check `/admin/modules` to see installed modules
+- Visit `/admin/themes` to manage your active theme (5 built-in themes available)
+- Explore `/admin/marketplace` for additional modules and themes
+- Visit `/admin/translations` to manage language files
 
 ## Post-Installation
 
