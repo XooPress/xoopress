@@ -17,6 +17,7 @@ Thumbs.db
 *~
 .env
 .phpunit.result.cache
+.phpunit.cache
 /.php_cs
 /.php_cs.cache
 /node_modules/
