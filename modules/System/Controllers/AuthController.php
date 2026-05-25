@@ -84,6 +84,15 @@ class AuthController extends Controller
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['user_role'] = $user['role'];
+                        // Set full user object for currentUser() compatibility
+                        $_SESSION['user'] = [
+                            'id' => (int)$user['id'],
+                            'username' => $user['username'],
+                            'email' => $user['email'] ?? '',
+                            'display_name' => $user['display_name'] ?? $user['username'],
+                            'role' => $user['role'],
+                            'status' => $user['status'] ?? 'active',
+                        ];
                         // Load user's theme preference into session
                         if (!empty($user['user_theme'])) {
                             $_SESSION['user_theme'] = $user['user_theme'];
@@ -181,6 +190,14 @@ class AuthController extends Controller
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user'] = [
+                        'id' => (int)$user['id'],
+                        'username' => $user['username'],
+                        'email' => $user['email'] ?? '',
+                        'display_name' => $user['display_name'] ?? $user['username'],
+                        'role' => $user['role'],
+                        'status' => $user['status'] ?? 'active',
+                    ];
                     unset($_SESSION['twofa_pending_user_id']);
                     
                     $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
@@ -205,6 +222,14 @@ class AuthController extends Controller
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['user_role'] = $user['role'];
+                        $_SESSION['user'] = [
+                            'id' => (int)$user['id'],
+                            'username' => $user['username'],
+                            'email' => $user['email'] ?? '',
+                            'display_name' => $user['display_name'] ?? $user['username'],
+                            'role' => $user['role'],
+                            'status' => $user['status'] ?? 'active',
+                        ];
                         unset($_SESSION['twofa_pending_user_id']);
                         
                         $redirect = ($user['role'] === 'admin') ? '/admin' : '/user/dashboard';
@@ -300,6 +325,14 @@ class AuthController extends Controller
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user'] = [
+                        'id' => (int)$user['id'],
+                        'username' => $user['username'],
+                        'email' => $user['email'] ?? '',
+                        'display_name' => $user['display_name'] ?? $user['username'],
+                        'role' => $user['role'],
+                        'status' => $user['status'] ?? 'active',
+                    ];
                 }
 
                 // Redirect users to their dashboard, admins to admin panel
@@ -514,7 +547,7 @@ class AuthController extends Controller
             // Only access session if it's active and available
             if (isset($_SESSION) && session_status() === PHP_SESSION_ACTIVE) {
                 // Clear all auth-related session data
-                $sessionKeys = ['user_id', 'username', 'user_role', 'user_theme', 'twofa_verified', 'twofa_pending_user_id'];
+                $sessionKeys = ['user_id', 'username', 'user_role', 'user', 'user_theme', 'twofa_verified', 'twofa_pending_user_id'];
                 foreach ($sessionKeys as $key) {
                     if (isset($_SESSION[$key])) {
                         unset($_SESSION[$key]);

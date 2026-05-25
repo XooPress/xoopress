@@ -406,11 +406,28 @@ abstract class Controller
     /**
      * Get the current user (from session)
      *
+     * Checks $_SESSION['user'] first (the full user object set on login),
+     * then falls back to individual session fields for backward compatibility
+     * with controllers that set user_id/username/user_role separately.
+     *
      * @return array|null
      */
     protected function currentUser(): ?array
     {
-        return $_SESSION['user'] ?? null;
+        if (isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+            return $_SESSION['user'];
+        }
+
+        // Fallback: reconstruct user from individual session fields
+        if (!empty($_SESSION['user_id'])) {
+            return [
+                'id' => (int)$_SESSION['user_id'],
+                'username' => $_SESSION['username'] ?? '',
+                'role' => $_SESSION['user_role'] ?? 'subscriber',
+            ];
+        }
+
+        return null;
     }
 
     /**

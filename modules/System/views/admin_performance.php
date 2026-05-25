@@ -19,6 +19,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Performance Dashboard - XooPress Admin</title>
+    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
+    <link rel="shortcut icon" href="/images/xp-favicon.ico">
+    <link rel="stylesheet" href="/css/xoopress.css">
     <style>
         :root {
             --xp-primary: #2271b1;
@@ -35,12 +38,6 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--xp-bg); color: var(--xp-text); }
         .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
         h1 { font-size: 23px; font-weight: 400; margin: 0 0 20px; padding: 9px 0 4px; line-height: 1.3; }
-        .admin-layout { display: flex; gap: 20px; }
-        .admin-menu { width: 200px; background: #1d2327; border-radius: 4px; padding: 10px 0; min-height: 400px; }
-        .admin-menu a { display: block; padding: 8px 16px; color: #bbc8d4; text-decoration: none; font-size: 14px; }
-        .admin-menu a:hover, .admin-menu a.active { color: #fff; background: rgba(255,255,255,0.07); }
-        .admin-menu a.active { font-weight: 600; }
-        .admin-content { flex: 1; min-width: 0; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
         .stat-card { background: var(--xp-card-bg); border: 1px solid var(--xp-border); border-radius: 4px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .stat-card h3 { font-size: 12px; text-transform: uppercase; color: var(--xp-text-light); margin-bottom: 8px; letter-spacing: 1px; }
@@ -85,255 +82,259 @@
         .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
     </style>
 </head>
-<body>
-    <div class="wrap">
-        <h1>Performance Dashboard</h1>
-        <div class="admin-layout">
-            <?php if (!empty($adminMenu)): ?>
-            <div class="admin-menu">
-                <?php foreach ($adminMenu as $item): ?>
-                <a href="<?php echo htmlspecialchars($item['url'] ?? '#'); ?>" 
-                   class="<?php echo ($item['active'] ?? false) ? 'active' : ''; ?>">
-                    <?php echo htmlspecialchars($item['title'] ?? $item['name'] ?? ''); ?>
-                </a>
+<body class="admin-page">
+    <div class="admin-layout">
+        <nav class="admin-sidebar">
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
+            <ul class="admin-nav">
+                <?php if (!empty($adminMenu)): ?>
+                <?php foreach ($adminMenu as $menuItem): ?>
+                <?php
+                    $menuUrl = $menuItem['url'] ?? '';
+                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
+                ?>
+                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
                 <?php endforeach; ?>
-                <a href="/admin/performance" class="active">⚡ Performance</a>
+                <?php endif; ?>
+                <li><a href="/">View Site</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="admin-content">
+            <header class="admin-header">
+                <h1>⚡ Performance Dashboard</h1>
+            </header>
+
+            <?php $message = $_SESSION['admin_notice'] ?? null; $messageType = $_SESSION['admin_notice_type'] ?? null; include __DIR__ . '/_notices.php'; ?>
+
+            <!-- Summary Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Request Time</h3>
+                    <div class="value"><?php echo htmlspecialchars(number_format($data['request_time_ms'] ?? 0, 1)); ?>ms</div>
+                    <div class="sub">Total page load time</div>
+                </div>
+                <div class="stat-card <?php echo ($data['total_queries'] ?? 0) > 50 ? 'warning' : 'success'; ?>">
+                    <h3>Total Queries</h3>
+                    <div class="value"><?php echo (int)($data['total_queries'] ?? 0); ?></div>
+                    <div class="sub"><?php echo htmlspecialchars(number_format($data['average_time_ms'] ?? 0, 2)); ?>ms avg</div>
+                </div>
+                <div class="stat-card <?php echo ($data['slow_query_count'] ?? 0) > 0 ? 'error' : 'success'; ?>">
+                    <h3>Slow Queries</h3>
+                    <div class="value"><?php echo (int)($data['slow_query_count'] ?? 0); ?></div>
+                    <div class="sub">>100ms threshold</div>
+                </div>
+                <div class="stat-card <?php echo ($data['n_plus_one_count'] ?? 0) > 0 ? 'warning' : 'success'; ?>">
+                    <h3>N+1 Patterns</h3>
+                    <div class="value"><?php echo (int)($data['n_plus_one_count'] ?? 0); ?></div>
+                    <div class="sub">Potential query optimization</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Memory Usage</h3>
+                    <div class="value"><?php echo htmlspecialchars($data['memory']['current_formatted'] ?? 'N/A'); ?></div>
+                    <div class="sub">Peak: <?php echo htmlspecialchars($data['memory']['peak_formatted'] ?? 'N/A'); ?></div>
+                </div>
+                <div class="stat-card">
+                    <h3>PHP Version</h3>
+                    <div class="value" style="font-size:22px;"><?php echo htmlspecialchars($data['php']['version'] ?? 'N/A'); ?></div>
+                    <div class="sub"><?php echo htmlspecialchars($data['php']['sapi'] ?? ''); ?></div>
+                </div>
+            </div>
+
+            <!-- OPCache Status -->
+            <?php if ($opcache): ?>
+            <div class="section">
+                <div class="section-header">⚡ OPCache Status</div>
+                <div class="section-body">
+                    <div class="two-col">
+                        <div>
+                            <table>
+                                <tr><th>Cached Files</th><td><?php echo (int)$opcache['cached_files']; ?></td></tr>
+                                <tr><th>Hit Rate</th><td><?php echo htmlspecialchars(number_format($opcache['hit_rate'], 1)); ?>%</td></tr>
+                                <tr><th>Memory Used</th><td><?php echo htmlspecialchars($opcache['used_memory']); ?> / <?php echo htmlspecialchars($opcache['total_memory']); ?></td></tr>
+                                <tr><th>Memory Usage</th><td><?php $memPct = is_finite($opcache['memory_percent'] ?? 0) ? $opcache['memory_percent'] : 0; echo htmlspecialchars(number_format($memPct, 1)); ?>%</td></tr>
+                            </table>
+                        </div>
+                        <div>
+                            <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Memory Usage</h4>
+                            <div class="progress-bar">
+                                <?php $memPercent = is_finite($opcache['memory_percent'] ?? 0) ? min(100, max(0, $opcache['memory_percent'])) : 0; ?>
+                                <div class="progress-bar-fill <?php echo $memPercent > 80 ? 'progress-red' : ($memPercent > 60 ? 'progress-yellow' : 'progress-green'); ?>" 
+                                     style="width: <?php echo $memPercent; ?>%"></div>
+                            </div>
+                            <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($memPercent, 1)); ?>% of <?php echo htmlspecialchars(ini_get('opcache.memory_consumption') ?: 'N/A'); ?>MB</p>
+                        </div>
+                    </div>
+                    <form method="post" action="/admin/performance/opcache-reset" style="margin-top:12px;">
+                        <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <button type="submit" class="action-btn" onclick="return confirm('Reset OPCache? This may temporarily slow down requests.');">🔄 Reset OPCache</button>
+                    </form>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="section">
+                <div class="section-header">⚡ OPCache Status</div>
+                <div class="section-body">
+                    <div class="empty-state">
+                        <p>🔴 OPCache is not enabled</p>
+                        <p style="font-size:12px;">Enable <span class="inline-code">opcache.enable=1</span> in php.ini for significant performance improvements.</p>
+                    </div>
+                </div>
             </div>
             <?php endif; ?>
-            
-            <div class="admin-content">
-                <?php if (!empty($message)): ?>
-                <div class="notice notice-<?php echo htmlspecialchars($messageType ?? 'info'); ?>">
-                    <p><?php echo htmlspecialchars($message); ?></p>
-                </div>
-                <?php endif; ?>
 
-                <!-- Summary Stats -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Request Time</h3>
-                        <div class="value"><?php echo htmlspecialchars(number_format($data['request_time_ms'] ?? 0, 1)); ?>ms</div>
-                        <div class="sub">Total page load time</div>
-                    </div>
-                    <div class="stat-card <?php echo ($data['total_queries'] ?? 0) > 50 ? 'warning' : 'success'; ?>">
-                        <h3>Total Queries</h3>
-                        <div class="value"><?php echo (int)($data['total_queries'] ?? 0); ?></div>
-                        <div class="sub"><?php echo htmlspecialchars(number_format($data['average_time_ms'] ?? 0, 2)); ?>ms avg</div>
-                    </div>
-                    <div class="stat-card <?php echo ($data['slow_query_count'] ?? 0) > 0 ? 'error' : 'success'; ?>">
-                        <h3>Slow Queries</h3>
-                        <div class="value"><?php echo (int)($data['slow_query_count'] ?? 0); ?></div>
-                        <div class="sub">>100ms threshold</div>
-                    </div>
-                    <div class="stat-card <?php echo ($data['n_plus_one_count'] ?? 0) > 0 ? 'warning' : 'success'; ?>">
-                        <h3>N+1 Patterns</h3>
-                        <div class="value"><?php echo (int)($data['n_plus_one_count'] ?? 0); ?></div>
-                        <div class="sub">Potential query optimization</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Memory Usage</h3>
-                        <div class="value"><?php echo htmlspecialchars($data['memory']['current_formatted'] ?? 'N/A'); ?></div>
-                        <div class="sub">Peak: <?php echo htmlspecialchars($data['memory']['peak_formatted'] ?? 'N/A'); ?></div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>PHP Version</h3>
-                        <div class="value" style="font-size:22px;"><?php echo htmlspecialchars($data['php']['version'] ?? 'N/A'); ?></div>
-                        <div class="sub"><?php echo htmlspecialchars($data['php']['sapi'] ?? ''); ?></div>
-                    </div>
-                </div>
-
-                <!-- OPCache Status -->
-                <?php if ($opcache): ?>
-                <div class="section">
-                    <div class="section-header">⚡ OPCache Status</div>
-                    <div class="section-body">
-                        <div class="two-col">
-                            <div>
-                                <table>
-                                    <tr><th>Cached Files</th><td><?php echo (int)$opcache['cached_files']; ?></td></tr>
-                                    <tr><th>Hit Rate</th><td><?php echo htmlspecialchars(number_format($opcache['hit_rate'], 1)); ?>%</td></tr>
-                                    <tr><th>Memory Used</th><td><?php echo htmlspecialchars($opcache['used_memory']); ?> / <?php echo htmlspecialchars($opcache['total_memory']); ?></td></tr>
-                                    <tr><th>Memory Usage</th><td><?php $memPct = is_finite($opcache['memory_percent'] ?? 0) ? $opcache['memory_percent'] : 0; echo htmlspecialchars(number_format($memPct, 1)); ?>%</td></tr>
-                                </table>
-                            </div>
-                            <div>
-                                <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Memory Usage</h4>
-                                <div class="progress-bar">
-                                    <?php $memPercent = is_finite($opcache['memory_percent'] ?? 0) ? min(100, max(0, $opcache['memory_percent'])) : 0; ?>
-                                    <div class="progress-bar-fill <?php echo $memPercent > 80 ? 'progress-red' : ($memPercent > 60 ? 'progress-yellow' : 'progress-green'); ?>" 
-                                         style="width: <?php echo $memPercent; ?>%"></div>
-                                </div>
-                                <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($memPercent, 1)); ?>% of <?php echo htmlspecialchars(ini_get('opcache.memory_consumption') ?: 'N/A'); ?>MB</p>
-                            </div>
+            <!-- Cache Stats -->
+            <?php if ($cache): ?>
+            <div class="section">
+                <div class="section-header">🗄️ Cache Statistics</div>
+                <div class="section-body">
+                    <div class="two-col">
+                        <div>
+                            <table>
+                                <tr><th>Driver</th><td><?php echo htmlspecialchars(ucfirst($cache['driver'])); ?></td></tr>
+                                <tr><th>Available</th><td><?php echo $cache['available'] ? '✅ Yes' : '❌ No'; ?></td></tr>
+                                <tr><th>Cache Hits</th><td><?php echo (int)$cache['hits']; ?></td></tr>
+                                <tr><th>Cache Misses</th><td><?php echo (int)$cache['misses']; ?></td></tr>
+                                <tr><th>Hit Ratio</th><td><?php echo htmlspecialchars(number_format($cache['hit_ratio'] * 100, 1)); ?>%</td></tr>
+                            </table>
                         </div>
-                        <form method="post" action="/admin/performance/opcache-reset" style="margin-top:12px;">
-                            <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                            <button type="submit" class="action-btn" onclick="return confirm('Reset OPCache? This may temporarily slow down requests.');">🔄 Reset OPCache</button>
-                        </form>
-                    </div>
-                </div>
-                <?php else: ?>
-                <div class="section">
-                    <div class="section-header">⚡ OPCache Status</div>
-                    <div class="section-body">
-                        <div class="empty-state">
-                            <p>🔴 OPCache is not enabled</p>
-                            <p style="font-size:12px;">Enable <span class="inline-code">opcache.enable=1</span> in php.ini for significant performance improvements.</p>
+                        <div>
+                            <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Cache Hit Ratio</h4>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill <?php echo ($cache['hit_ratio'] * 100) < 50 ? 'progress-red' : ($cache['hit_ratio'] * 100 < 80 ? 'progress-yellow' : 'progress-green'); ?>" 
+                                     style="width: <?php echo min(100, $cache['hit_ratio'] * 100); ?>%"></div>
+                            </div>
+                            <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($cache['hit_ratio'] * 100, 1)); ?>% hit rate</p>
+                            <form method="post" action="/admin/performance/cache-flush" style="margin-top:12px;">
+                                <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                <button type="submit" class="action-btn" onclick="return confirm('Flush all cache entries?');">🗑️ Flush Cache</button>
+                            </form>
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
+            </div>
+            <?php endif; ?>
 
-                <!-- Cache Stats -->
-                <?php if ($cache): ?>
-                <div class="section">
-                    <div class="section-header">🗄️ Cache Statistics</div>
-                    <div class="section-body">
-                        <div class="two-col">
-                            <div>
-                                <table>
-                                    <tr><th>Driver</th><td><?php echo htmlspecialchars(ucfirst($cache['driver'])); ?></td></tr>
-                                    <tr><th>Available</th><td><?php echo $cache['available'] ? '✅ Yes' : '❌ No'; ?></td></tr>
-                                    <tr><th>Cache Hits</th><td><?php echo (int)$cache['hits']; ?></td></tr>
-                                    <tr><th>Cache Misses</th><td><?php echo (int)$cache['misses']; ?></td></tr>
-                                    <tr><th>Hit Ratio</th><td><?php echo htmlspecialchars(number_format($cache['hit_ratio'] * 100, 1)); ?>%</td></tr>
-                                </table>
-                            </div>
-                            <div>
-                                <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Cache Hit Ratio</h4>
-                                <div class="progress-bar">
-                                    <div class="progress-bar-fill <?php echo ($cache['hit_ratio'] * 100) < 50 ? 'progress-red' : ($cache['hit_ratio'] * 100 < 80 ? 'progress-yellow' : 'progress-green'); ?>" 
-                                         style="width: <?php echo min(100, $cache['hit_ratio'] * 100); ?>%"></div>
-                                </div>
-                                <p style="font-size:12px;color:var(--xp-text-light);margin-top:4px;"><?php echo htmlspecialchars(number_format($cache['hit_ratio'] * 100, 1)); ?>% hit rate</p>
-                                <form method="post" action="/admin/performance/cache-flush" style="margin-top:12px;">
-                                    <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                    <button type="submit" class="action-btn" onclick="return confirm('Flush all cache entries?');">🗑️ Flush Cache</button>
-                                </form>
-                            </div>
+            <!-- Slow Queries -->
+            <?php if (!empty($data['slow_queries'])): ?>
+            <div class="section">
+                <div class="section-header">🐢 Slow Queries (<span style="color:var(--xp-error);"><?php echo count($data['slow_queries']); ?></span>)</div>
+                <div class="section-body">
+                    <table>
+                        <thead>
+                            <tr><th>#</th><th>Query</th><th>Time (ms)</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data['slow_queries'] as $q): ?>
+                            <tr>
+                                <td><?php echo (int)$q['index']; ?></td>
+                                <td class="query-sql"><?php echo htmlspecialchars($q['sql']); ?></td>
+                                <td style="color:var(--xp-error);font-weight:600;"><?php echo htmlspecialchars(number_format($q['time_ms'], 2)); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Duplicate Queries -->
+            <?php if (!empty($data['duplicate_queries'])): ?>
+            <div class="section">
+                <div class="section-header">🔁 Duplicate Queries (<span style="color:var(--xp-warning);"><?php echo count($data['duplicate_queries']); ?></span>)</div>
+                <div class="section-body">
+                    <table>
+                        <thead>
+                            <tr><th>#</th><th>Query</th><th>First Occurrence</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data['duplicate_queries'] as $q): ?>
+                            <tr>
+                                <td><?php echo (int)$q['index']; ?></td>
+                                <td class="query-sql"><?php echo htmlspecialchars($q['sql']); ?></td>
+                                <td>#<?php echo (int)$q['first_occurrence']; ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- N+1 Patterns -->
+            <?php if (!empty($data['n_plus_one'])): ?>
+            <div class="section">
+                <div class="section-header">🔍 N+1 Query Patterns (<span style="color:var(--xp-warning);"><?php echo count($data['n_plus_one']); ?></span>)</div>
+                <div class="section-body">
+                    <table>
+                        <thead>
+                            <tr><th>Pattern</th><th>Executions</th><th>Example</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data['n_plus_one'] as $n): ?>
+                            <tr>
+                                <td class="query-sql"><?php echo htmlspecialchars($n['normalized_sql']); ?></td>
+                                <td><span class="badge badge-warning"><?php echo (int)$n['count']; ?>×</span></td>
+                                <td class="query-sql"><?php echo htmlspecialchars($n['example_sql']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Performance Suggestions -->
+            <?php if (!empty($suggestions)): ?>
+            <div class="section">
+                <div class="section-header">💡 Performance Suggestions</div>
+                <div class="section-body">
+                    <?php foreach ($suggestions as $s): ?>
+                    <div class="suggestion-card <?php echo htmlspecialchars($s['severity'] ?? 'info'); ?>">
+                        <div class="msg">
+                            <span class="severity-dot severity-<?php echo htmlspecialchars($s['severity'] ?? 'info'); ?>"></span>
+                            <span class="badge badge-<?php echo $s['severity'] === 'critical' ? 'error' : ($s['severity'] === 'warning' ? 'warning' : 'info'); ?>">
+                                <?php echo htmlspecialchars(ucfirst($s['severity'] ?? 'Info')); ?>
+                            </span>
+                            <?php echo htmlspecialchars($s['message']); ?>
                         </div>
+                        <div class="action">→ <?php echo htmlspecialchars($s['action']); ?></div>
                     </div>
+                    <?php endforeach; ?>
                 </div>
-                <?php endif; ?>
+            </div>
+            <?php endif; ?>
 
-                <!-- Slow Queries -->
-                <?php if (!empty($data['slow_queries'])): ?>
-                <div class="section">
-                    <div class="section-header">🐢 Slow Queries (<span style="color:var(--xp-error);"><?php echo count($data['slow_queries']); ?></span>)</div>
-                    <div class="section-body">
-                        <table>
-                            <thead>
-                                <tr><th>#</th><th>Query</th><th>Time (ms)</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($data['slow_queries'] as $q): ?>
-                                <tr>
-                                    <td><?php echo (int)$q['index']; ?></td>
-                                    <td class="query-sql"><?php echo htmlspecialchars($q['sql']); ?></td>
-                                    <td style="color:var(--xp-error);font-weight:600;"><?php echo htmlspecialchars(number_format($q['time_ms'], 2)); ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <!-- Duplicate Queries -->
-                <?php if (!empty($data['duplicate_queries'])): ?>
-                <div class="section">
-                    <div class="section-header">🔁 Duplicate Queries (<span style="color:var(--xp-warning);"><?php echo count($data['duplicate_queries']); ?></span>)</div>
-                    <div class="section-body">
-                        <table>
-                            <thead>
-                                <tr><th>#</th><th>Query</th><th>First Occurrence</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($data['duplicate_queries'] as $q): ?>
-                                <tr>
-                                    <td><?php echo (int)$q['index']; ?></td>
-                                    <td class="query-sql"><?php echo htmlspecialchars($q['sql']); ?></td>
-                                    <td>#<?php echo (int)$q['first_occurrence']; ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <!-- N+1 Patterns -->
-                <?php if (!empty($data['n_plus_one'])): ?>
-                <div class="section">
-                    <div class="section-header">🔍 N+1 Query Patterns (<span style="color:var(--xp-warning);"><?php echo count($data['n_plus_one']); ?></span>)</div>
-                    <div class="section-body">
-                        <table>
-                            <thead>
-                                <tr><th>Pattern</th><th>Executions</th><th>Example</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($data['n_plus_one'] as $n): ?>
-                                <tr>
-                                    <td class="query-sql"><?php echo htmlspecialchars($n['normalized_sql']); ?></td>
-                                    <td><span class="badge badge-warning"><?php echo (int)$n['count']; ?>×</span></td>
-                                    <td class="query-sql"><?php echo htmlspecialchars($n['example_sql']); ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <!-- Performance Suggestions -->
-                <?php if (!empty($suggestions)): ?>
-                <div class="section">
-                    <div class="section-header">💡 Performance Suggestions</div>
-                    <div class="section-body">
-                        <?php foreach ($suggestions as $s): ?>
-                        <div class="suggestion-card <?php echo htmlspecialchars($s['severity'] ?? 'info'); ?>">
-                            <div class="msg">
-                                <span class="severity-dot severity-<?php echo htmlspecialchars($s['severity'] ?? 'info'); ?>"></span>
-                                <span class="badge badge-<?php echo $s['severity'] === 'critical' ? 'error' : ($s['severity'] === 'warning' ? 'warning' : 'info'); ?>">
-                                    <?php echo htmlspecialchars(ucfirst($s['severity'] ?? 'Info')); ?>
-                                </span>
-                                <?php echo htmlspecialchars($s['message']); ?>
-                            </div>
-                            <div class="action">→ <?php echo htmlspecialchars($s['action']); ?></div>
+            <!-- System Info -->
+            <div class="section">
+                <div class="section-header">ℹ️ System Information</div>
+                <div class="section-body">
+                    <div class="two-col">
+                        <div>
+                            <table>
+                                <tr><th>PHP Version</th><td><?php echo htmlspecialchars(PHP_VERSION); ?></td></tr>
+                                <tr><th>SAPI</th><td><?php echo htmlspecialchars(PHP_SAPI); ?></td></tr>
+                                <tr><th>OS</th><td><?php echo htmlspecialchars(PHP_OS); ?></td></tr>
+                                <tr><th>Memory Limit</th><td><?php echo htmlspecialchars(ini_get('memory_limit') ?: 'Unlimited'); ?></td></tr>
+                            </table>
                         </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <!-- System Info -->
-                <div class="section">
-                    <div class="section-header">ℹ️ System Information</div>
-                    <div class="section-body">
-                        <div class="two-col">
-                            <div>
-                                <table>
-                                    <tr><th>PHP Version</th><td><?php echo htmlspecialchars(PHP_VERSION); ?></td></tr>
-                                    <tr><th>SAPI</th><td><?php echo htmlspecialchars(PHP_SAPI); ?></td></tr>
-                                    <tr><th>OS</th><td><?php echo htmlspecialchars(PHP_OS); ?></td></tr>
-                                    <tr><th>Memory Limit</th><td><?php echo htmlspecialchars(ini_get('memory_limit') ?: 'Unlimited'); ?></td></tr>
-                                </table>
-                            </div>
-                            <div>
-                                <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Loaded Extensions</h4>
-                                <div style="font-size:12px;line-height:1.6;">
-                                    <?php 
-                                    $exts = get_loaded_extensions();
-                                    sort($exts);
-                                    echo htmlspecialchars(implode(', ', $exts)); 
-                                    ?>
-                                </div>
+                        <div>
+                            <h4 style="font-size:13px;color:var(--xp-text-light);margin-bottom:4px;">Loaded Extensions</h4>
+                            <div style="font-size:12px;line-height:1.6;">
+                                <?php 
+                                $exts = get_loaded_extensions();
+                                sort($exts);
+                                echo htmlspecialchars(implode(', ', $exts)); 
+                                ?>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 </body>
 </html>

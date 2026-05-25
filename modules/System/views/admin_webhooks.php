@@ -30,63 +30,86 @@
         .active-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
         .active-badge.yes { background: #ecf7ed; color: #46b450; }
         .active-badge.no { background: #fbeaea; color: #dc3232; }
-        .btn-primary { display: inline-block; padding: 6px 16px; background: #2271b1; color: #fff; border-radius: 3px; text-decoration: none; font-size: 13px; margin-bottom: 16px; }
+        .btn-primary { display: inline-block; padding: 6px 16px; background: #2271b1; color: #fff; border-radius: 3px; text-decoration: none; font-size: 13px; }
         .btn-primary:hover { opacity: 0.9; }
     </style>
 </head>
-<body>
-<div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h1>🔔 Webhooks</h1>
-        <a class="btn-primary" href="/admin/webhooks/new">+ Add New</a>
-    </div>
+<body class="admin-page">
+    <div class="admin-layout">
+        <nav class="admin-sidebar">
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
+            <ul class="admin-nav">
+                <?php if (!empty($adminMenu)): ?>
+                <?php foreach ($adminMenu as $menuItem): ?>
+                <?php
+                    $menuUrl = $menuItem['url'] ?? '';
+                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
+                ?>
+                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
+                <?php endforeach; ?>
+                <?php endif; ?>
+                <li><a href="/">View Site</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="admin-content">
+            <header class="admin-header">
+                <h1>🔔 Webhooks</h1>
+                <a class="btn-primary" href="/admin/webhooks/new">+ Add New</a>
+            </header>
 
-    <p style="font-size:13px;color:#646970;margin-bottom:16px;">
-        Available events:
-        <?php foreach ($events as $ev): ?>
-        <span class="event-badge"><?php echo htmlspecialchars($ev); ?></span>
-        <?php endforeach; ?>
-    </p>
+            <?php $message = $_SESSION['admin_notice'] ?? null; $messageType = $_SESSION['admin_notice_type'] ?? null; include __DIR__ . '/_notices.php'; ?>
 
-    <?php if (!empty($webhooks)): ?>
-    <table class="admin-table">
-        <thead>
-            <tr><th>Event</th><th>URL</th><th>Status</th><th>Timeout</th><th>Last Triggered</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-            <?php foreach ($webhooks as $wh): ?>
-            <tr>
-                <td><span class="event-badge active"><?php echo htmlspecialchars($wh['event']); ?></span></td>
-                <td class="url-cell" title="<?php echo htmlspecialchars($wh['url']); ?>"><?php echo htmlspecialchars($wh['url']); ?></td>
-                <td>
-                    <?php if (!empty($wh['is_active'])): ?>
-                    <span class="active-badge yes">Active</span>
-                    <?php else: ?>
-                    <span class="active-badge no">Inactive</span>
+            <p style="font-size:13px;color:#646970;margin-bottom:16px;">
+                Available events:
+                <?php foreach ($events as $ev): ?>
+                <span class="event-badge"><?php echo htmlspecialchars($ev); ?></span>
+                <?php endforeach; ?>
+            </p>
+
+            <?php if (!empty($webhooks)): ?>
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Event</th><th>URL</th><th>Status</th><th>Timeout</th><th>Last Triggered</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($webhooks as $wh): ?>
+                    <tr>
+                        <td><span class="event-badge active"><?php echo htmlspecialchars($wh['event']); ?></span></td>
+                        <td class="url-cell" title="<?php echo htmlspecialchars($wh['url']); ?>"><?php echo htmlspecialchars($wh['url']); ?></td>
+                        <td>
+                            <?php if (!empty($wh['is_active'])): ?>
+                            <span class="active-badge yes">Active</span>
+                            <?php else: ?>
+                            <span class="active-badge no">Inactive</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo (int)($wh['timeout'] ?? 5); ?>s</td>
+                        <td><?php echo htmlspecialchars($wh['last_triggered_at'] ?? '—'); ?></td>
+                        <td class="wh-actions">
+                            <a href="/admin/webhooks/edit/<?php echo (int)$wh['id']; ?>">Edit</a>
+                            <a href="/admin/webhooks/test/<?php echo (int)$wh['id']; ?>" onclick="return confirm('Send a test payload?');">Test</a>
+                            <a href="/admin/webhooks/delete/<?php echo (int)$wh['id']; ?>" onclick="return confirm('Delete this webhook?');" style="color:#dc3232;">Delete</a>
+                        </td>
+                    </tr>
+                    <?php if (!empty($wh['description'])): ?>
+                    <tr><td colspan="6" style="font-size:12px;color:#646970;padding-top:0;"><?php echo htmlspecialchars($wh['description']); ?></td></tr>
                     <?php endif; ?>
-                </td>
-                <td><?php echo (int)($wh['timeout'] ?? 5); ?>s</td>
-                <td><?php echo htmlspecialchars($wh['last_triggered_at'] ?? '—'); ?></td>
-                <td class="wh-actions">
-                    <a href="/admin/webhooks/edit/<?php echo (int)$wh['id']; ?>">Edit</a>
-                    <a href="/admin/webhooks/test/<?php echo (int)$wh['id']; ?>" onclick="return confirm('Send a test payload?');">Test</a>
-                    <a href="/admin/webhooks/delete/<?php echo (int)$wh['id']; ?>" onclick="return confirm('Delete this webhook?');" style="color:#dc3232;">Delete</a>
-                </td>
-            </tr>
-            <?php if (!empty($wh['description'])): ?>
-            <tr><td colspan="6" style="font-size:12px;color:#646970;padding-top:0;"><?php echo htmlspecialchars($wh['description']); ?></td></tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php else: ?>
+            <div style="text-align:center;padding:48px 20px;color:#646970;">
+                <div style="font-size:48px;margin-bottom:12px;">🔔</div>
+                <p>No webhooks configured yet.</p>
+                <p style="font-size:13px;">Webhooks send HTTP POST requests to external URLs when specific events occur.</p>
+                <a class="btn-primary" href="/admin/webhooks/new">Create Your First Webhook</a>
+            </div>
             <?php endif; ?>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <?php else: ?>
-    <div style="text-align:center;padding:48px 20px;color:#646970;">
-        <div style="font-size:48px;margin-bottom:12px;">🔔</div>
-        <p>No webhooks configured yet.</p>
-        <p style="font-size:13px;">Webhooks send HTTP POST requests to external URLs when specific events occur.</p>
-        <a class="btn-primary" href="/admin/webhooks/new">Create Your First Webhook</a>
+        </main>
     </div>
-    <?php endif; ?>
-</div>
 </body>
 </html>

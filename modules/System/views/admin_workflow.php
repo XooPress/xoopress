@@ -36,53 +36,79 @@
         .action-link:hover { opacity: 0.9; }
     </style>
 </head>
-<body>
-<div class="wrap">
-    <h1>📋 Content Workflow</h1>
-    <?php if (!empty($stats)): ?>
-    <div class="wf-stats">
-        <div class="wf-stat-card"><div class="count"><?php echo (int)($stats['draft'] ?? 0); ?></div><div class="label">Drafts</div></div>
-        <div class="wf-stat-card"><div class="count" style="color:var(--xp-warning);"><?php echo (int)($stats['pending_review'] ?? 0); ?></div><div class="label">Pending Review</div></div>
-        <div class="wf-stat-card"><div class="count" style="color:var(--xp-primary);"><?php echo (int)($stats['approved'] ?? 0); ?></div><div class="label">Approved</div></div>
-        <div class="wf-stat-card"><div class="count" style="color:var(--xp-success);"><?php echo (int)($stats['published'] ?? 0); ?></div><div class="label">Published</div></div>
-    </div>
-    <?php endif; ?>
+<body class="admin-page">
+    <div class="admin-layout">
+        <nav class="admin-sidebar">
+            <div class="admin-brand">
+                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
+                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
+            </div>
+            <ul class="admin-nav">
+                <?php if (!empty($adminMenu)): ?>
+                <?php foreach ($adminMenu as $menuItem): ?>
+                <?php
+                    $menuUrl = $menuItem['url'] ?? '';
+                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
+                ?>
+                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
+                <?php endforeach; ?>
+                <?php endif; ?>
+                <li><a href="/">View Site</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="admin-content">
+            <header class="admin-header">
+                <h1>📋 Content Workflow</h1>
+            </header>
 
-    <div class="tab-bar">
-        <a href="/admin/workflow?type=post" class="<?php echo $currentType === 'post' ? 'active' : ''; ?>">Posts</a>
-        <a href="/admin/workflow?type=page" class="<?php echo $currentType === 'page' ? 'active' : ''; ?>">Pages</a>
-    </div>
+            <?php $message = $_SESSION['admin_notice'] ?? null; $messageType = $_SESSION['admin_notice_type'] ?? null; include __DIR__ . '/_notices.php'; ?>
 
-    <?php if (!empty($pendingPosts['items'])): ?>
-    <table class="admin-table">
-        <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
-        <tbody>
-            <?php foreach ($pendingPosts['items'] as $item): ?>
-            <tr>
-                <td><a href="/admin/workflow/review/<?php echo (int)$item['id']; ?>"><?php echo htmlspecialchars($item['title'] ?? 'Untitled'); ?></a></td>
-                <td><?php echo htmlspecialchars($item['author_name'] ?? '—'); ?></td>
-                <td><span class="badge badge-warning"><?php echo \XooPress\Core\Workflow::getStatusLabels()[$item['status']] ?? $item['status']; ?></span></td>
-                <td><?php echo htmlspecialchars($item['created_at'] ?? ''); ?></td>
-                <td><a class="action-link" href="/admin/workflow/review/<?php echo (int)$item['id']; ?>">Review</a></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+            <?php if (!empty($stats)): ?>
+            <div class="wf-stats">
+                <div class="wf-stat-card"><div class="count"><?php echo (int)($stats['draft'] ?? 0); ?></div><div class="label">Drafts</div></div>
+                <div class="wf-stat-card"><div class="count" style="color:var(--xp-warning);"><?php echo (int)($stats['pending_review'] ?? 0); ?></div><div class="label">Pending Review</div></div>
+                <div class="wf-stat-card"><div class="count" style="color:var(--xp-primary);"><?php echo (int)($stats['approved'] ?? 0); ?></div><div class="label">Approved</div></div>
+                <div class="wf-stat-card"><div class="count" style="color:var(--xp-success);"><?php echo (int)($stats['published'] ?? 0); ?></div><div class="label">Published</div></div>
+            </div>
+            <?php endif; ?>
 
-    <?php if (!empty($pendingPosts['totalPages']) && $pendingPosts['totalPages'] > 1): ?>
-    <div class="pagination">
-        <?php for ($p = 1; $p <= $pendingPosts['totalPages']; $p++): ?>
-        <a href="/admin/workflow?type=<?php echo urlencode($currentType); ?>&page=<?php echo $p; ?>" class="<?php echo ($p === ($pendingPosts['page'] ?? 1)) ? 'active' : ''; ?>"><?php echo $p; ?></a>
-        <?php endfor; ?>
-    </div>
-    <?php endif; ?>
+            <div class="tab-bar">
+                <a href="/admin/workflow?type=post" class="<?php echo $currentType === 'post' ? 'active' : ''; ?>">Posts</a>
+                <a href="/admin/workflow?type=page" class="<?php echo $currentType === 'page' ? 'active' : ''; ?>">Pages</a>
+            </div>
 
-    <?php else: ?>
-    <div class="empty-state">
-        <div class="icon">✅</div>
-        <p>No items pending review.</p>
+            <?php if (!empty($pendingPosts['items'])): ?>
+            <table class="admin-table">
+                <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <?php foreach ($pendingPosts['items'] as $item): ?>
+                    <tr>
+                        <td><a href="/admin/workflow/review/<?php echo (int)$item['id']; ?>"><?php echo htmlspecialchars($item['title'] ?? 'Untitled'); ?></a></td>
+                        <td><?php echo htmlspecialchars($item['author_name'] ?? '—'); ?></td>
+                        <td><span class="badge badge-warning"><?php echo \XooPress\Core\Workflow::getStatusLabels()[$item['status']] ?? $item['status']; ?></span></td>
+                        <td><?php echo htmlspecialchars($item['created_at'] ?? ''); ?></td>
+                        <td><a class="action-link" href="/admin/workflow/review/<?php echo (int)$item['id']; ?>">Review</a></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <?php if (!empty($pendingPosts['totalPages']) && $pendingPosts['totalPages'] > 1): ?>
+            <div class="pagination">
+                <?php for ($p = 1; $p <= $pendingPosts['totalPages']; $p++): ?>
+                <a href="/admin/workflow?type=<?php echo urlencode($currentType); ?>&page=<?php echo $p; ?>" class="<?php echo ($p === ($pendingPosts['page'] ?? 1)) ? 'active' : ''; ?>"><?php echo $p; ?></a>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php else: ?>
+            <div class="empty-state">
+                <div class="icon">✅</div>
+                <p>No items pending review.</p>
+            </div>
+            <?php endif; ?>
+        </main>
     </div>
-    <?php endif; ?>
-</div>
 </body>
 </html>
