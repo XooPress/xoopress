@@ -36,6 +36,27 @@ class Database
     protected array $queryLog = [];
     
     /**
+     * Write log table name
+     *
+     * @var string
+     */
+    protected string $writeLogTable;
+    
+    /**
+     * Whether write logging is enabled
+     *
+     * @var bool
+     */
+    protected bool $writeLogEnabled = true;
+    
+    /**
+     * Path to the debug log file
+     *
+     * @var string|null
+     */
+    protected ?string $debugLogPath = null;
+
+    /**
      * Constructor
      * 
      * @param array $config Database configuration
@@ -43,6 +64,16 @@ class Database
     public function __construct(array $config)
     {
         $this->config = $config;
+        $prefix = $config['prefix'] ?? '';
+        $this->writeLogTable = $prefix . 'write_log';
+        
+        // Set up debug log path in the project's storage/logs directory
+        $logDir = defined('XOO_PRESS_STORAGE')
+            ? XOO_PRESS_STORAGE . '/logs'
+            : (defined('XOO_PRESS_ROOT')
+                ? XOO_PRESS_ROOT . '/storage/logs'
+                : dirname(__DIR__, 2) . '/storage/logs');
+        $this->debugLogPath = $logDir . '/database-debug.log';
     }
     
     /**
@@ -57,12 +88,43 @@ class Database
             $this->connect();
         }
         
+        // Health check: verify connection is still alive
+        // MySQL wait_timeout can kill idle connections
+        if (!$this->isConnected()) {
+            $this->connection = null;
+            $this->connect();
+        }
+        
         return $this->connection;
+    }
+    
+    /**
+     * Check if the current connection is alive
+     *
+     * @return bool
+     */
+    protected function isConnected(): bool
+    {
+        if ($this->connection === null) {
+            return false;
+        }
+        
+        try {
+            $this->connection->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
     
     /**
      * Establish database connection
      * 
+     * Forces PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION to prevent
+     * silent query failures regardless of config file settings.
+     *
      * @return void
      * @throws PDOException
      */
@@ -75,8 +137,18 @@ class Database
         $username = $this->config['username'] ?? '';
         $password = $this->config['password'] ?? '';
         $charset = $this->config['charset'] ?? 'utf8mb4';
-        $options = $this->config['options'] ?? [];
         $prefix = $this->config['prefix'] ?? '';
+        
+        // Start with user-provided options, then force critical overrides
+        $options = $this->config['options'] ?? [];
+        
+        // FORCE exception mode — this is non-negotiable.
+        // Silent PDO failures are the #1 cause of "disappearing data" bugs.
+        $options[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION;
+        
+        // Sensible defaults if not already set
+        $options[PDO::ATTR_DEFAULT_FETCH_MODE] = $options[PDO::ATTR_DEFAULT_FETCH_MODE] ?? PDO::FETCH_ASSOC;
+        $options[PDO::ATTR_EMULATE_PREPARES] = $options[PDO::ATTR_EMULATE_PREPARES] ?? false;
         
         // Build DSN list - try TCP on 127.0.0.1 first (avoids PDO socket override for localhost),
         // then the configured host/port, then socket fallbacks
@@ -216,7 +288,13 @@ class Database
         
         $this->query($sql, $values);
         
-        return (int) $this->getConnection()->lastInsertId();
+        $lastId = (int) $this->getConnection()->lastInsertId();
+        
+        $result = ['affected' => 1, 'insert_id' => $lastId];
+        $this->logWrite('INSERT', $table, $sql, $data);
+        $this->logToDebugFile('INSERT', $table, $sql, $data, $result);
+        
+        return $lastId;
     }
     
     /**
@@ -226,9 +304,17 @@ class Database
      * @param array $data Data to update
      * @param array $where WHERE conditions
      * @return int Number of affected rows
+     * @throws PDOException if WHERE is empty (safety guard)
      */
     public function update(string $table, array $data, array $where): int
     {
+        if (empty($where)) {
+            throw new PDOException(
+                "Refusing UPDATE on '{$table}' with empty WHERE clause. " .
+                "This would modify ALL rows. Use query() for intentional mass updates."
+            );
+        }
+        
         $setParts = [];
         $values = [];
         
@@ -247,7 +333,13 @@ class Database
                " WHERE " . implode(' AND ', $whereParts);
         
         $stmt = $this->query($sql, $values);
-        return $stmt->rowCount();
+        $affected = $stmt->rowCount();
+        
+        $result = ['affected' => $affected, 'insert_id' => null];
+        $this->logWrite('UPDATE', $table, $sql, ['set' => $data, 'where' => $where]);
+        $this->logToDebugFile('UPDATE', $table, $sql, ['set' => $data, 'where' => $where], $result);
+        
+        return $affected;
     }
     
     /**
@@ -256,9 +348,17 @@ class Database
      * @param string $table Table name
      * @param array $where WHERE conditions
      * @return int Number of affected rows
+     * @throws PDOException if WHERE is empty (safety guard)
      */
     public function delete(string $table, array $where): int
     {
+        if (empty($where)) {
+            throw new PDOException(
+                "Refusing DELETE from '{$table}' with empty WHERE clause. " .
+                "This would delete ALL rows. Use query() for intentional mass deletes."
+            );
+        }
+        
         $whereParts = [];
         $values = [];
         
@@ -270,7 +370,13 @@ class Database
         $sql = "DELETE FROM {$table} WHERE " . implode(' AND ', $whereParts);
         
         $stmt = $this->query($sql, $values);
-        return $stmt->rowCount();
+        $affected = $stmt->rowCount();
+        
+        $result = ['affected' => $affected, 'insert_id' => null];
+        $this->logWrite('DELETE', $table, $sql, ['where' => $where]);
+        $this->logToDebugFile('DELETE', $table, $sql, ['where' => $where], $result);
+        
+        return $affected;
     }
     
     /**
@@ -304,6 +410,50 @@ class Database
     }
     
     /**
+     * Execute a unit of work inside a transaction.
+     *
+     * Automatically begins a transaction, executes the callback,
+     * and commits on success or rolls back on any Throwable.
+     *
+     * Usage:
+     *   $db->transactional(function(Database $db) use ($postData) {
+     *       $id = $db->insert('posts', $postData);
+     *       $db->insert('post_meta', ['post_id' => $id, 'key' => 'foo', 'value' => 'bar']);
+     *   });
+     *
+     * @param callable $work Callback receiving this Database instance.
+     * @return mixed The return value of the callback.
+     * @throws \Throwable
+     */
+    public function transactional(callable $work): mixed
+    {
+        $this->beginTransaction();
+        try {
+            $result = $work($this);
+            $this->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            try {
+                $this->rollback();
+            } catch (\Throwable $rollbackError) {
+                // Log rollback failure but keep original exception
+                error_log("Database::transactional() rollback failed: " . $rollbackError->getMessage());
+            }
+            throw $e;
+        }
+    }
+    
+    /**
+     * Check if we are currently inside a transaction
+     *
+     * @return bool
+     */
+    public function inTransaction(): bool
+    {
+        return $this->connection !== null && $this->connection->inTransaction();
+    }
+    
+    /**
      * Check if a table exists
      * 
      * @param string $table Table name
@@ -326,6 +476,146 @@ class Database
         return $this->config['prefix'] ?? '';
     }
     
+    // ──────────────────────────────────────────────
+    //  Write Audit Logging
+    // ──────────────────────────────────────────────
+    
+    /**
+     * Ensure the write_log table exists (lazy-created on first write)
+     *
+     * @return void
+     */
+    protected function ensureWriteLogTable(): void
+    {
+        if (!$this->writeLogEnabled) {
+            return;
+        }
+        
+        static $tableChecked = false;
+        if ($tableChecked) {
+            return;
+        }
+        $tableChecked = true;
+        
+        try {
+            $this->query("CREATE TABLE IF NOT EXISTS {$this->writeLogTable} (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                operation VARCHAR(10) NOT NULL COMMENT 'INSERT|UPDATE|DELETE',
+                table_name VARCHAR(255) NOT NULL,
+                sql_text TEXT NOT NULL,
+                params_json TEXT DEFAULT NULL COMMENT 'JSON-encoded query parameters',
+                request_uri VARCHAR(512) DEFAULT NULL,
+                http_method VARCHAR(10) DEFAULT NULL,
+                user_id INT DEFAULT NULL,
+                caller_line INT DEFAULT NULL,
+                caller_file VARCHAR(255) DEFAULT NULL,
+                created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+                INDEX idx_table (table_name),
+                INDEX idx_operation (operation),
+                INDEX idx_created (created_at),
+                INDEX idx_created_table (created_at, table_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (\Throwable $e) {
+            // If write_log table creation fails, disable logging silently
+            $this->writeLogEnabled = false;
+            error_log("Write log table creation failed, disabling: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Log a write operation for audit trail
+     *
+     * @param string $operation INSERT|UPDATE|DELETE
+     * @param string $table Table name
+     * @param string $sql Raw SQL
+     * @param array $paramsBound The bound parameters (structured)
+     * @return void
+     */
+    protected function logWrite(string $operation, string $table, string $sql, array $paramsBound = []): void
+    {
+        if (!$this->writeLogEnabled) {
+            return;
+        }
+        
+        $this->ensureWriteLogTable();
+        
+        if (!$this->writeLogEnabled) {
+            return; // Table creation failed
+        }
+        
+        // Gather caller info from backtrace
+        $callerFile = '';
+        $callerLine = 0;
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5);
+        foreach ($trace as $frame) {
+            if (isset($frame['file']) && !str_contains($frame['file'], 'Database.php')) {
+                $callerFile = $frame['file'] ?? '';
+                $callerLine = $frame['line'] ?? 0;
+                break;
+            }
+        }
+        
+        // Try to get the current user ID from session
+        $userId = $_SESSION['user_id'] ?? $_SESSION['xp_user_id'] ?? null;
+        if ($userId !== null) {
+            $userId = (int)$userId;
+        }
+        
+        try {
+            $this->query(
+                "INSERT INTO {$this->writeLogTable} 
+                 (operation, table_name, sql_text, params_json, request_uri, http_method, user_id, caller_file, caller_line) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    $operation,
+                    $table,
+                    $sql,
+                    json_encode($paramsBound, JSON_UNESCAPED_SLASHES),
+                    $_SERVER['REQUEST_URI'] ?? php_sapi_name(),
+                    $_SERVER['REQUEST_METHOD'] ?? 'CLI',
+                    $userId,
+                    $callerFile,
+                    $callerLine,
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Don't let audit logging crash the main operation
+            error_log("Write log insert failed: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Enable or disable write audit logging
+     *
+     * @param bool $enabled
+     * @return void
+     */
+    public function setWriteLogEnabled(bool $enabled): void
+    {
+        $this->writeLogEnabled = $enabled;
+    }
+    
+    /**
+     * Get recent write log entries for forensic analysis
+     *
+     * @param int $limit Max entries to return
+     * @param string|null $tableName Optional table filter
+     * @return array
+     */
+    public function getWriteLog(int $limit = 50, ?string $tableName = null): array
+    {
+        if ($tableName) {
+            return $this->select(
+                "SELECT * FROM {$this->writeLogTable} WHERE table_name = ? ORDER BY id DESC LIMIT ?",
+                [$tableName, $limit]
+            );
+        }
+        return $this->select(
+            "SELECT * FROM {$this->writeLogTable} ORDER BY id DESC LIMIT ?",
+            [$limit]
+        );
+    }
+    
     /**
      * Log a query
      * 
@@ -341,6 +631,63 @@ class Database
             'params' => $params,
             'time' => $time,
         ];
+    }
+    
+    /**
+     * Write an entry to the file-based debug log.
+     *
+     * Every write operation (INSERT/UPDATE/DELETE) logs the SQL, parameters,
+     * caller info, timing, and result to a dedicated debug file for forensic analysis.
+     * This gives you the state of input variables *immediately before* the attempt
+     * and the outcome *immediately after* — exactly what you need for debugging
+     * "disappearing data" scenarios.
+     *
+     * Log file: storage/logs/database-debug.log
+     *
+     * @param string $operation INSERT|UPDATE|DELETE
+     * @param string $table Table name
+     * @param string $sql Raw SQL sent to the server
+     * @param array $params Bound parameters (the exact state before execution)
+     * @param array $result Result metadata: ['affected' => int, 'insert_id' => int|null]
+     * @return void
+     */
+    protected function logToDebugFile(string $operation, string $table, string $sql, array $params = [], array $result = []): void
+    {
+        if ($this->debugLogPath === null) {
+            return;
+        }
+        
+        try {
+            $logDir = dirname($this->debugLogPath);
+            if (!is_dir($logDir)) {
+                mkdir($logDir, 0755, true);
+            }
+            
+            $timestamp = date('Y-m-d H:i:s.v');
+            $uri = $_SERVER['REQUEST_URI'] ?? php_sapi_name();
+            $method = $_SERVER['REQUEST_METHOD'] ?? 'CLI';
+            $userId = $_SESSION['user_id'] ?? $_SESSION['xp_user_id'] ?? '-';
+            $paramsJson = json_encode($params, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $resultJson = json_encode($result, JSON_UNESCAPED_SLASHES);
+            
+            $line = sprintf(
+                "[%s] [%s] [%s] [user:%s] [%s] %s | SQL: %s | INPUT: %s | RESULT: %s\n",
+                $timestamp,
+                $method,
+                $uri,
+                $userId,
+                str_pad($operation, 6),
+                $table,
+                $sql,
+                $paramsJson,
+                $resultJson
+            );
+            
+            file_put_contents($this->debugLogPath, $line, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $e) {
+            // Don't let debug logging crash the application
+            error_log("Database debug log write failed: " . $e->getMessage());
+        }
     }
     
     /**

@@ -299,10 +299,10 @@ class Staging
                 'content_id' => $postId,
             ], ['id' => $stagedId]);
 
-            // Remove associated preview tokens
+            // Remove associated preview tokens (use the actual post ID, not the staged ID)
             $this->db->delete("{$prefix}preview_tokens", [
                 'content_type' => $contentType,
-                'content_id' => $stagedId,
+                'content_id' => $postId,
             ]);
 
             // Trigger search re-index via Post model if available
