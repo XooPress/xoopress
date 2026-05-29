@@ -29,13 +29,13 @@ The marketplace page displays:
 
 ### Prerequisites
 
-- Server must have outbound HTTPS access to `api.xoopress.org`
+- Server must have outbound HTTPS access to `xmp.xoopress.org`
 - Zip extension must be installed in PHP
 - `storage/` directory must be writable
 
 ## Marketplace Service
 
-The marketplace is powered by the `Marketplace` class (`app/Core/Marketplace.php`), which connects to the official XooPress API at `https://api.xoopress.org/v1`.
+The marketplace is powered by the `Marketplace` class (`app/Core/Marketplace.php`), which connects to the official XooPress API at `https://xmp.xoopress.org/v1`.
 
 ### Features
 

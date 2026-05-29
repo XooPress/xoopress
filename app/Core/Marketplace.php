@@ -16,7 +16,7 @@ class Marketplace
     /**
      * Marketplace API base URL
      */
-    protected string $apiBase = 'https://api.xoopress.org/v1';
+    protected string $apiBase = 'https://xmp.xoopress.org/v1';
 
     /**
      * Cache TTL in seconds (1 hour)
