@@ -159,6 +159,76 @@ class Workflow
     }
 
     /**
+     * Get posts pending review with pagination
+     *
+     * @param Database $db
+     * @param string $type Content type (e.g. 'post', 'page')
+     * @param int $page Page number
+     * @param int $perPage Results per page
+     * @return array ['items' => array, 'total' => int, 'page' => int, 'totalPages' => int]
+     */
+    public static function getPendingReview(Database $db, string $type = 'post', int $page = 1, int $perPage = 20): array
+    {
+        $prefix = $db->getPrefix();
+        $offset = ($page - 1) * $perPage;
+
+        try {
+            $countResult = $db->selectOne(
+                "SELECT COUNT(*) as total FROM {$prefix}posts WHERE status = ? AND type = ?",
+                [self::STATUS_PENDING_REVIEW, $type]
+            );
+            $total = (int)($countResult['total'] ?? 0);
+
+            $items = $db->select(
+                "SELECT * FROM {$prefix}posts WHERE status = ? AND type = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                [self::STATUS_PENDING_REVIEW, $type, $perPage, $offset]
+            );
+
+            return [
+                'items' => $items,
+                'total' => $total,
+                'page' => $page,
+                'totalPages' => max(1, (int)ceil($total / $perPage)),
+            ];
+        } catch (\Throwable $e) {
+            return ['items' => [], 'total' => 0, 'page' => $page, 'totalPages' => 0];
+        }
+    }
+
+    /**
+     * Get workflow statistics (counts per status)
+     *
+     * @param Database $db
+     * @return array
+     */
+    public static function getStats(Database $db): array
+    {
+        $prefix = $db->getPrefix();
+        $stats = [
+            self::STATUS_DRAFT => 0,
+            self::STATUS_PENDING_REVIEW => 0,
+            self::STATUS_APPROVED => 0,
+            self::STATUS_PUBLISHED => 0,
+            self::STATUS_REJECTED => 0,
+            self::STATUS_ARCHIVED => 0,
+        ];
+
+        try {
+            $rows = $db->select(
+                "SELECT status, COUNT(*) as count FROM {$prefix}posts GROUP BY status"
+            );
+            foreach ($rows as $row) {
+                $status = $row['status'] ?? '';
+                if (array_key_exists($status, $stats)) {
+                    $stats[$status] = (int)$row['count'];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return $stats;
+    }
+
+    /**
      * Create the workflow_log table
      *
      * @param Database|null $db
