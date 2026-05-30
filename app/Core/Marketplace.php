@@ -189,11 +189,21 @@ class Marketplace
             ]);
 
             $response = @file_get_contents($url, false, $context);
-            if ($response === false) return null;
+            if ($response === false) {
+                $error = error_get_last();
+                $msg = $error['message'] ?? 'Unknown error';
+                error_log("Marketplace::apiGet({$path}) failed: {$msg}");
+                return null;
+            }
 
             $data = json_decode($response, true);
-            return is_array($data) ? $data : null;
+            if (!is_array($data)) {
+                error_log("Marketplace::apiGet({$path}) response was not JSON: " . substr($response, 0, 500));
+                return null;
+            }
+            return $data;
         } catch (\Throwable $e) {
+            error_log("Marketplace::apiGet({$path}) exception: " . $e->getMessage());
             return null;
         }
     }
@@ -291,9 +301,22 @@ class Marketplace
             return ['items' => [], 'total' => 0, 'page' => 1, 'error' => 'Could not reach marketplace'];
         }
 
+        // The API may return items in 'data', 'items', or as a flat array directly
+        $items = $response['data'] ?? $response['items'] ?? null;
+        
+        // If neither 'data' nor 'items' exists, check if the response itself is a list of items
+        if ($items === null) {
+            // Check if response is a flat indexed array (list of items)
+            if (array_keys($response) === range(0, count($response) - 1)) {
+                $items = $response;
+            } else {
+                $items = [];
+            }
+        }
+
         return [
-            'items' => $response['data'] ?? $response['items'] ?? $response ?? [],
-            'total' => (int)($response['total'] ?? count($response['data'] ?? $response['items'] ?? $response ?? [])),
+            'items' => $items,
+            'total' => (int)($response['total'] ?? count($items)),
             'page' => (int)($response['page'] ?? 1),
             'per_page' => (int)($response['per_page'] ?? 20),
         ];
@@ -384,6 +407,11 @@ class Marketplace
     /**
      * Install a module from the marketplace by name
      * 
+     * 1. Fetches module details from the API
+     * 2. Downloads the package ZIP
+     * 3. Extracts it into the modules directory via ModuleManager::upload()
+     * 4. Installs the extracted module via ModuleManager::install()
+     * 
      * @param string $name Module name/slug
      * @return array ['success' => bool, 'message' => string]
      */
@@ -399,29 +427,71 @@ class Marketplace
             return ['success' => false, 'message' => "Module '{$name}' has no downloadable package."];
         }
 
+        // Step 1: Download the ZIP
         $zipPath = $this->downloadPackage($downloadUrl);
         if (!$zipPath) {
             return ['success' => false, 'message' => "Failed to download module '{$name}'."];
         }
 
-        if ($this->container === null || !$this->container->has('module_manager')) {
+        // Step 2: Get the module manager (registered as 'modules', NOT 'module_manager')
+        if ($this->container === null || !$this->container->has('modules')) {
             @unlink($zipPath);
             return ['success' => false, 'message' => 'Module manager not available.'];
         }
 
         try {
-            $moduleManager = $this->container->get('module_manager');
-            $result = $moduleManager->install($zipPath);
+            $moduleManager = $this->container->get('modules');
+
+            // Step 3: Extract the ZIP into the modules directory
+            $uploadResult = $moduleManager->upload($zipPath);
             @unlink($zipPath);
+
+            if (!$uploadResult['success']) {
+                return $uploadResult;
+            }
+
+            // Step 4: Determine the extracted module name from the upload result message
+            // The upload method returns: "Module 'ModuleName' uploaded. Install it from the admin panel."
+            // The actual module directory name is the first part of the ZIP structure.
+            // We need to extract the module name from the filesystem or from the upload response.
+            // Re-scan to pick up the new module
+            $moduleManager->scanFilesystem();
+            
+            // Find the newly added module by checking the module that matches our slug
+            $modules = $moduleManager->getModules();
+            $extractedName = null;
+            $nameLower = strtolower($name);
+            foreach ($modules as $modKey => $mod) {
+                if (strtolower($modKey) === $nameLower) {
+                    $extractedName = $modKey;
+                    break;
+                }
+            }
+            
+            // Fallback: try to extract name from message
+            if ($extractedName === null && preg_match("/'([^']+)'/", $uploadResult['message'], $m)) {
+                $extractedName = $m[1];
+            }
+            
+            if ($extractedName === null) {
+                return ['success' => false, 'message' => "Could not determine module name after upload."];
+            }
+
+            // Step 5: Install the extracted module by name
+            $result = $moduleManager->install($extractedName);
             return $result;
         } catch (\Throwable $e) {
-            @unlink($zipPath);
+            if (file_exists($zipPath)) @unlink($zipPath);
             return ['success' => false, 'message' => 'Installation error: ' . $e->getMessage()];
         }
     }
 
     /**
      * Install a theme from the marketplace by name
+     * 
+     * 1. Fetches theme details from the API
+     * 2. Downloads the package ZIP
+     * 3. Extracts it into the themes directory via ThemeManager::upload()
      * 
      * @param string $name Theme name/slug
      * @return array ['success' => bool, 'message' => string]
@@ -438,23 +508,28 @@ class Marketplace
             return ['success' => false, 'message' => "Theme '{$name}' has no downloadable package."];
         }
 
+        // Step 1: Download the ZIP
         $zipPath = $this->downloadPackage($downloadUrl);
         if (!$zipPath) {
             return ['success' => false, 'message' => "Failed to download theme '{$name}'."];
         }
 
-        if ($this->container === null || !$this->container->has('theme_manager')) {
+        // Step 2: Get the theme manager (registered as 'theme', NOT 'theme_manager')
+        if ($this->container === null || !$this->container->has('theme')) {
             @unlink($zipPath);
             return ['success' => false, 'message' => 'Theme manager not available.'];
         }
 
         try {
-            $themeManager = $this->container->get('theme_manager');
-            $result = $themeManager->install($zipPath);
+            $themeManager = $this->container->get('theme');
+
+            // Step 3: Extract the ZIP into the themes directory using upload()
+            // ThemeManager does NOT have a separate install() method; upload() extracts + registers.
+            $result = $themeManager->upload($zipPath);
             @unlink($zipPath);
             return $result;
         } catch (\Throwable $e) {
-            @unlink($zipPath);
+            if (file_exists($zipPath)) @unlink($zipPath);
             return ['success' => false, 'message' => 'Installation error: ' . $e->getMessage()];
         }
     }

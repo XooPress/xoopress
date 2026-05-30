@@ -2453,6 +2453,13 @@ class AdminController extends Controller
                 $mp = $this->container->get('marketplace');
                 $modules = $mp->listModules(['per_page' => 6]);
                 $themes = $mp->listThemes(['per_page' => 6]);
+
+                // Check if the API returned an error (e.g. could not reach marketplace)
+                if (!empty($modules['error'])) {
+                    $error = $modules['error'];
+                } elseif (!empty($themes['error'])) {
+                    $error = $themes['error'];
+                }
             } catch (\Throwable $e) {
                 $error = $e->getMessage();
             }
