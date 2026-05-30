@@ -2,9 +2,8 @@
 /**
  * XooPress Full-Text Search Engine
  *
- * Supports MySQL FULLTEXT indexes with LIKE-based fallback.
- * Automatically indexes posts, pages, and other content types.
- * Provides paginated search results with excerpts and highlighting.
+ * Provides full-text search across posts, pages, and custom content types
+ * with relevance scoring and search suggestions.
  *
  * @package XooPress
  * @subpackage Core
@@ -16,15 +15,9 @@ class Search
 {
     /**
      * Database instance
-     * @var Database
+     * @var Database|null
      */
-    protected Database $db;
-
-    /**
-     * Whether FULLTEXT indexes are available
-     * @var bool|null
-     */
-    protected ?bool $fulltextAvailable = null;
+    protected ?Database $db = null;
 
     /**
      * Table prefix
@@ -33,466 +26,338 @@ class Search
     protected string $prefix;
 
     /**
+     * Minimum word length for indexing
+     */
+    protected int $minWordLength = 3;
+
+    /**
+     * Maximum words to index per post (to prevent bloat)
+     */
+    protected int $maxIndexWords = 500;
+
+    /**
+     * Common stop words to skip during indexing
+     */
+    protected array $stopWords = [
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'by', 'with', 'from', 'is', 'are', 'was', 'were', 'be', 'been',
+        'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+        'could', 'should', 'may', 'might', 'shall', 'can', 'need', 'dare',
+        'ought', 'used', 'this', 'that', 'these', 'those', 'i', 'you', 'he',
+        'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my',
+        'your', 'his', 'its', 'our', 'their', 'not', 'no', 'nor', 'none',
+        'neither', 'so', 'if', 'then', 'else', 'when', 'where', 'why', 'what',
+        'which', 'who', 'whom', 'how', 'all', 'each', 'every', 'both', 'few',
+        'more', 'most', 'other', 'some', 'such', 'only', 'own', 'same',
+        'here', 'there', 'as', 'about', 'above', 'after', 'again', 'against',
+        'below', 'between', 'during', 'before', 'behind', 'beneath', 'beside',
+        'besides', 'beyond', 'despite', 'down', 'except', 'into', 'like',
+        'near', 'off', 'once', 'out', 'over', 'past', 'round', 'since',
+        'through', 'throughout', 'till', 'toward', 'under', 'underneath',
+        'until', 'up', 'upon', 'within', 'without',
+    ];
+
+    /**
      * Constructor
      *
-     * @param Database $db
+     * @param Database|null $db
      */
-    public function __construct(Database $db)
+    public function __construct(?Database $db = null)
     {
         $this->db = $db;
-        $this->prefix = $db->getPrefix();
+        $this->prefix = $db ? $db->getPrefix() : '';
     }
 
     /**
      * Create the search index table and add FULLTEXT indexes to posts table
      *
-     * @return void
+     * @return bool
      */
-    public function createTable(): void
+    public function createTable(): bool
     {
-        // Create the search_index table for flexible content indexing
+        if (!$this->db) return false;
+
         $this->db->query("CREATE TABLE IF NOT EXISTS {$this->prefix}search_index (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            content_type VARCHAR(64) NOT NULL DEFAULT 'post',
-            content_id INT NOT NULL,
-            title VARCHAR(500) NOT NULL DEFAULT '',
-            content LONGTEXT,
-            excerpt TEXT DEFAULT NULL,
-            meta_data TEXT DEFAULT NULL COMMENT 'JSON-encoded metadata for filtering',
-            indexed_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uk_content (content_type, content_id),
-            FULLTEXT INDEX ft_search (title, content, excerpt),
-            INDEX idx_content_type (content_type),
-            INDEX idx_indexed_at (indexed_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            post_id INT NOT NULL,
+            word VARCHAR(100) NOT NULL,
+            weight INT NOT NULL DEFAULT 1,
+            INDEX idx_word (word),
+            INDEX idx_post_id (post_id),
+            INDEX idx_word_post (word, post_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin");
 
-        // Also try to add FULLTEXT index to the posts table for direct queries
+        // Add FULLTEXT index to posts table for faster fallback search
         try {
-            $this->db->query("ALTER TABLE {$this->prefix}posts ADD FULLTEXT INDEX ft_posts_search (title, content)");
+            $this->db->query("ALTER TABLE {$this->prefix}posts ADD FULLTEXT INDEX ft_search (title, content)");
         } catch (\Throwable $e) {
-            // Index may already exist — ignore
+            // Index may already exist
         }
+
+        return true;
     }
 
     /**
-     * Check if FULLTEXT search is available
+     * Rebuild the entire search index
      *
-     * @return bool
-     */
-    public function isFulltextAvailable(): bool
-    {
-        if ($this->fulltextAvailable !== null) {
-            return $this->fulltextAvailable;
-        }
-
-        try {
-            // Try a simple FULLTEXT query to check availability
-            $result = $this->db->selectOne(
-                "SELECT COUNT(*) as c FROM {$this->prefix}posts WHERE MATCH(title) AGAINST(? IN BOOLEAN MODE)",
-                ['test']
-            );
-            $this->fulltextAvailable = true;
-        } catch (\Throwable $e) {
-            $this->fulltextAvailable = false;
-        }
-
-        return $this->fulltextAvailable;
-    }
-
-    /**
-     * Index a content item
-     *
-     * @param string $contentType e.g. 'post', 'page'
-     * @param int $contentId
-     * @param string $title
-     * @param string $content
-     * @param string|null $excerpt
-     * @param array $meta Optional metadata for filtering
-     * @return bool
-     */
-    public function index(string $contentType, int $contentId, string $title, string $content, ?string $excerpt = null, array $meta = []): bool
-    {
-        try {
-            $existing = $this->db->selectOne(
-                "SELECT id FROM {$this->prefix}search_index WHERE content_type = ? AND content_id = ?",
-                [$contentType, $contentId]
-            );
-
-            $data = [
-                'title' => $title,
-                'content' => strip_tags($content),
-                'excerpt' => $excerpt ? strip_tags($excerpt) : null,
-                'meta_data' => !empty($meta) ? json_encode($meta) : null,
-                'indexed_at' => date('Y-m-d H:i:s'),
-            ];
-
-            if ($existing) {
-                $this->db->update("{$this->prefix}search_index", $data, ['id' => $existing['id']]);
-            } else {
-                $data['content_type'] = $contentType;
-                $data['content_id'] = $contentId;
-                $this->db->insert("{$this->prefix}search_index", $data);
-            }
-
-            return true;
-        } catch (\Throwable $e) {
-            error_log("Search index failed for {$contentType}#{$contentId}: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Remove a content item from the search index
-     *
-     * @param string $contentType
-     * @param int $contentId
-     * @return bool
-     */
-    public function remove(string $contentType, int $contentId): bool
-    {
-        try {
-            $this->db->delete("{$this->prefix}search_index", [
-                'content_type' => $contentType,
-                'content_id' => $contentId,
-            ]);
-            return true;
-        } catch (\Throwable $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Perform a search query
-     *
-     * @param string $query Search query
-     * @param array $options Search options
-     *  - content_type: string|null (filter by type)
-     *  - page: int (default 1)
-     *  - per_page: int (default 20)
-     *  - highlight: bool (default false)
-     *  - mode: string 'fulltext'|'like'|'auto' (default 'auto')
-     * @return array ['items' => array, 'total' => int, 'page' => int, 'totalPages' => int, 'query' => string, 'mode' => string]
-     */
-    public function search(string $query, array $options = []): array
-    {
-        $contentType = $options['content_type'] ?? null;
-        $page = max(1, (int)($options['page'] ?? 1));
-        $perPage = max(1, min(100, (int)($options['per_page'] ?? 20)));
-        $doHighlight = !empty($options['highlight']);
-        $mode = $options['mode'] ?? 'auto';
-
-        $offset = ($page - 1) * $perPage;
-        $query = trim($query);
-
-        if (empty($query)) {
-            return [
-                'items' => [],
-                'total' => 0,
-                'page' => 1,
-                'totalPages' => 1,
-                'query' => '',
-                'mode' => 'none',
-            ];
-        }
-
-        // Determine search mode
-        if ($mode === 'auto') {
-            $mode = $this->isFulltextAvailable() ? 'fulltext' : 'like';
-        }
-
-        // Build WHERE conditions
-        $where = [];
-        $params = [];
-
-        if ($mode === 'fulltext') {
-            // Boolean mode FULLTEXT search — treat words as wildcard terms
-            $booleanQuery = $this->buildBooleanQuery($query);
-            $where[] = "MATCH(s.title, s.content, s.excerpt) AGAINST(? IN BOOLEAN MODE)";
-            $params[] = $booleanQuery;
-        } else {
-            // LIKE-based fallback
-            $likeTerms = explode(' ', $query);
-            $likeClauses = [];
-            foreach ($likeTerms as $term) {
-                $term = trim($term);
-                if (strlen($term) < 2) continue;
-                $likeClauses[] = "(s.title LIKE ? OR s.content LIKE ? OR s.excerpt LIKE ?)";
-                $likeParam = '%' . $term . '%';
-                $params[] = $likeParam;
-                $params[] = $likeParam;
-                $params[] = $likeParam;
-            }
-            if (!empty($likeClauses)) {
-                $where[] = '(' . implode(' AND ', $likeClauses) . ')';
-            } else {
-                // Fallback: search on first term if query is too short
-                $where[] = "(s.title LIKE ? OR s.content LIKE ?)";
-                $likeParam = '%' . $query . '%';
-                $params[] = $likeParam;
-                $params[] = $likeParam;
-            }
-        }
-
-        if ($contentType) {
-            $where[] = "s.content_type = ?";
-            $params[] = $contentType;
-        }
-
-        $whereClause = implode(' AND ', $where);
-
-        // Count total results
-        $countResult = $this->db->selectOne(
-            "SELECT COUNT(*) as total FROM {$this->prefix}search_index s WHERE {$whereClause}",
-            $params
-        );
-        $total = (int)($countResult['total'] ?? 0);
-        $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
-
-        // Fetch results
-        $orderClause = $mode === 'fulltext' ? "MATCH(s.title, s.content, s.excerpt) AGAINST(? IN BOOLEAN MODE) DESC" : "s.indexed_at DESC";
-        $fetchParams = $params;
-        if ($mode === 'fulltext') {
-            $fetchParams[] = $booleanQuery;
-        }
-
-        $items = $this->db->select(
-            "SELECT s.*, 
-                    CASE WHEN s.content_type = 'post' OR s.content_type = 'page' THEN 
-                        (SELECT status FROM {$this->prefix}posts WHERE id = s.content_id) 
-                    ELSE 'published' END as status
-             FROM {$this->prefix}search_index s 
-             WHERE {$whereClause} 
-             ORDER BY {$orderClause}
-             LIMIT ? OFFSET ?",
-            array_merge($fetchParams, [$perPage, $offset])
-        );
-
-        // Build excerpt with highlighting if requested
-        if ($doHighlight) {
-            foreach ($items as &$item) {
-                $item['title_highlighted'] = $this->highlight($item['title'], $query);
-                $item['excerpt_highlighted'] = $this->buildExcerpt($item['content'], $query, 200);
-            }
-            unset($item);
-        }
-
-        // Generate search URL for each result
-        foreach ($items as &$item) {
-            $slug = $this->findSlug($item);
-            $item['url'] = $slug ? "/{$slug}" : null;
-        }
-        unset($item);
-
-        return [
-            'items' => $items,
-            'total' => $total,
-            'page' => $page,
-            'perPage' => $perPage,
-            'totalPages' => $totalPages,
-            'query' => $query,
-            'mode' => $mode,
-        ];
-    }
-
-    /**
-     * Rebuild the entire search index from posts table
-     *
-     * @return int Number of items indexed
+     * @return int Number of posts indexed
      */
     public function rebuildIndex(): int
     {
+        if (!$this->db) return 0;
+
+        // Clear existing index
+        $this->db->query("TRUNCATE TABLE {$this->prefix}search_index");
+
         $count = 0;
+        $posts = $this->db->select(
+            "SELECT id, title, content, excerpt FROM {$this->prefix}posts WHERE status = 'published'"
+        );
 
-        try {
-            // Clear existing index
-            $this->db->query("TRUNCATE TABLE {$this->prefix}search_index");
-
-            // Index published posts
-            $posts = $this->db->select(
-                "SELECT id, title, content, excerpt, type, status, published_at, author_id, category_id, language 
-                 FROM {$this->prefix}posts WHERE status IN ('published', 'draft', 'pending', 'pending_review', 'approved')"
-            );
-
-            foreach ($posts as $post) {
-                $meta = [
-                    'status' => $post['status'],
-                    'author_id' => $post['author_id'],
-                    'category_id' => $post['category_id'],
-                    'language' => $post['language'],
-                    'type' => $post['type'],
-                ];
-                $this->index($post['type'], (int)$post['id'], $post['title'], $post['content'], $post['excerpt'], $meta);
-                $count++;
-            }
-        } catch (\Throwable $e) {
-            error_log("Search rebuild failed: " . $e->getMessage());
+        foreach ($posts as $post) {
+            $this->indexPostContent((int)$post['id'], $post['title'], $post['content'] . ' ' . ($post['excerpt'] ?? ''));
+            $count++;
         }
 
         return $count;
     }
 
     /**
-     * Build a boolean-mode FULLTEXT query from user input
-     * Adds wildcard suffix to each term
+     * Index a single post's content
      *
-     * @param string $query
-     * @return string
+     * @param int $postId
+     * @param string $title
+     * @param string $content
+     * @return void
      */
-    protected function buildBooleanQuery(string $query): string
+    protected function indexPostContent(int $postId, string $title, string $content): void
     {
-        $terms = preg_split('/\s+/', $query);
-        $booleanTerms = [];
+        $words = $this->extractWords($title . ' ' . $content);
+        $seen = [];
 
-        foreach ($terms as $term) {
-            $term = trim($term);
-            if (strlen($term) < 2) continue;
-            // Add wildcard suffix for prefix matching
-            $booleanTerms[] = '+' . $term . '*';
+        foreach ($words as $word) {
+            $lower = mb_strtolower($word, 'UTF-8');
+
+            // Skip short words, stop words, and numeric-only
+            if (mb_strlen($lower) < $this->minWordLength) continue;
+            if (in_array($lower, $this->stopWords, true)) continue;
+            if (is_numeric($lower)) continue;
+
+            // Calculate weight: title words get higher weight
+            $weight = (mb_stripos($title, $word) !== false) ? 5 : 1;
+
+            // Avoid duplicate word entries per post
+            $key = $postId . '|' . $lower;
+            if (isset($seen[$key])) {
+                $seen[$key] += $weight;
+                continue;
+            }
+            $seen[$key] = $weight;
+
+            try {
+                $this->db->insert("{$this->prefix}search_index", [
+                    'post_id' => $postId,
+                    'word' => $lower,
+                    'weight' => $weight,
+                ]);
+            } catch (\Throwable $e) {
+                // Skip on duplicate or error
+            }
         }
-
-        return implode(' ', $booleanTerms);
     }
 
     /**
-     * Highlight search terms in text
+     * Extract significant words from text
      *
      * @param string $text
-     * @param string $query
-     * @return string
-     */
-    protected function highlight(string $text, string $query): string
-    {
-        $terms = preg_split('/\s+/', $query);
-        $highlighted = htmlspecialchars($text);
-
-        foreach ($terms as $term) {
-            $term = trim($term);
-            if (strlen($term) < 2) continue;
-            $highlighted = preg_replace(
-                '/(' . preg_quote($term, '/') . ')/iu',
-                '<mark class="search-highlight">$1</mark>',
-                $highlighted
-            );
-        }
-
-        return $highlighted;
-    }
-
-    /**
-     * Build a truncated excerpt with search terms in context
-     *
-     * @param string $content Full content
-     * @param string $query Search query
-     * @param int $maxLength Max excerpt length
-     * @return string
-     */
-    protected function buildExcerpt(string $content, string $query, int $maxLength = 200): string
-    {
-        $content = strip_tags($content);
-        $terms = preg_split('/\s+/', $query);
-
-        // Find the position of the first occurrence of any search term
-        $firstPos = -1;
-        $firstTerm = '';
-        foreach ($terms as $term) {
-            $term = trim($term);
-            if (strlen($term) < 2) continue;
-            $pos = mb_stripos($content, $term);
-            if ($pos !== false && ($firstPos === -1 || $pos < $firstPos)) {
-                $firstPos = $pos;
-                $firstTerm = $term;
-            }
-        }
-
-        if ($firstPos === -1) {
-            // No term found — return beginning of content
-            $excerpt = mb_substr($content, 0, $maxLength);
-            if (mb_strlen($content) > $maxLength) {
-                $excerpt .= '…';
-            }
-            return htmlspecialchars($excerpt);
-        }
-
-        // Extract context around the match
-        $contextStart = max(0, $firstPos - 60);
-        $excerpt = mb_substr($content, $contextStart, $maxLength);
-
-        if ($contextStart > 0) {
-            $excerpt = '…' . $excerpt;
-        }
-        if ($contextStart + $maxLength < mb_strlen($content)) {
-            $excerpt .= '…';
-        }
-
-        // Highlight terms
-        foreach ($terms as $term) {
-            $term = trim($term);
-            if (strlen($term) < 2) continue;
-            $excerpt = preg_replace(
-                '/(' . preg_quote($term, '/') . ')/iu',
-                '<mark class="search-highlight">$1</mark>',
-                $excerpt
-            );
-        }
-
-        // Apply highlighting to the excerpt (terms already marked)
-        return $excerpt;
-    }
-
-    /**
-     * Find the URL slug for a search result item
-     *
-     * @param array $item Search index item
-     * @return string|null
-     */
-    protected function findSlug(array $item): ?string
-    {
-        try {
-            if (in_array($item['content_type'], ['post', 'page'])) {
-                $post = $this->db->selectOne(
-                    "SELECT slug FROM {$this->prefix}posts WHERE id = ?",
-                    [(int)$item['content_id']]
-                );
-                return $post ? ($item['content_type'] === 'page' ? 'page/' . $post['slug'] : $post['slug']) : null;
-            }
-        } catch (\Throwable $e) {}
-        return null;
-    }
-
-    /**
-     * Get search suggestions (autocomplete-style)
-     * Returns distinct title fragments matching the query
-     *
-     * @param string $query
-     * @param int $limit
      * @return array
      */
-    public function getSuggestions(string $query, int $limit = 10): array
+    protected function extractWords(string $text): array
     {
-        if (strlen(trim($query)) < 2) {
+        // Strip HTML tags
+        $text = strip_tags($text);
+        // Normalize whitespace
+        $text = preg_replace('/\s+/', ' ', $text);
+        // Remove punctuation and numbers (but keep hyphenated words)
+        $text = preg_replace('/[^\p{L}\p{N}\s\-_]/u', ' ', $text);
+        // Split into words
+        $words = preg_split('/\s+/', trim($text));
+
+        // Limit to max index words
+        if (count($words) > $this->maxIndexWords) {
+            $words = array_slice($words, 0, $this->maxIndexWords);
+        }
+
+        return array_unique(array_filter($words));
+    }
+
+    /**
+     * Search the index
+     *
+     * @param string $query Search query
+     * @param int $page Page number
+     * @param int $perPage Results per page
+     * @return array ['items' => array, 'total' => int, 'page' => int, 'totalPages' => int]
+     */
+    public function search(string $query, int $page = 1, int $perPage = 20): array
+    {
+        $query = trim($query);
+
+        if (empty($query) || !$this->db) {
             return [];
         }
 
+        $searchWords = $this->extractWords($query);
+        if (empty($searchWords)) {
+            return ['items' => [], 'total' => 0, 'page' => $page, 'totalPages' => 0];
+        }
+
         try {
-            $likeParam = '%' . $query . '%';
+            // Try indexed search first
+            $placeholders = implode(',', array_fill(0, count($searchWords), '?'));
+            $params = array_map('mb_strtolower', $searchWords);
+
+            $offset = ($page - 1) * $perPage;
+
+            // Get total matching posts
+            $countResult = $this->db->selectOne(
+                "SELECT COUNT(DISTINCT si.post_id) as total
+                 FROM {$this->prefix}search_index si
+                 WHERE si.word IN ({$placeholders})",
+                $params
+            );
+            $total = (int)($countResult['total'] ?? 0);
+
+            // Get paginated results
             $rows = $this->db->select(
-                "SELECT DISTINCT s.title, s.content_type, s.content_id 
-                 FROM {$this->prefix}search_index s 
-                 WHERE s.title LIKE ? OR s.content LIKE ?
-                 LIMIT ?",
-                [$likeParam, $likeParam, $limit]
+                "SELECT si.post_id, SUM(si.weight) as relevance
+                 FROM {$this->prefix}search_index si
+                 WHERE si.word IN ({$placeholders})
+                 GROUP BY si.post_id
+                 ORDER BY relevance DESC
+                 LIMIT ? OFFSET ?",
+                array_merge($params, [$perPage, $offset])
             );
 
-            $suggestions = [];
-            foreach ($rows as $row) {
-                $suggestions[] = [
-                    'title' => $row['title'],
-                    'type' => $row['content_type'],
-                    'id' => (int)$row['content_id'],
+            if (!empty($rows)) {
+                $postIds = array_column($rows, 'post_id');
+                $idPlaceholders = implode(',', array_fill(0, count($postIds), '?'));
+
+                $posts = $this->db->select(
+                    "SELECT * FROM {$this->prefix}posts WHERE id IN ({$idPlaceholders}) ORDER BY FIELD(id, {$idPlaceholders})",
+                    array_merge($postIds, $postIds)
+                );
+
+                return [
+                    'items' => $posts,
+                    'total' => $total,
+                    'page' => $page,
+                    'totalPages' => max(1, (int)ceil($total / $perPage)),
                 ];
             }
 
-            return $suggestions;
+            // Fallback to LIKE search
+            $likeConditions = [];
+            $likeParams = [];
+            foreach ($searchWords as $word) {
+                $likeConditions[] = "(title LIKE ? OR content LIKE ?)";
+                $likeParams[] = '%' . $word . '%';
+                $likeParams[] = '%' . $word . '%';
+            }
+
+            $where = implode(' AND ', $likeConditions);
+
+            $countResult = $this->db->selectOne(
+                "SELECT COUNT(*) as total FROM {$this->prefix}posts WHERE status = 'published' AND ({$where})",
+                $likeParams
+            );
+            $total = (int)($countResult['total'] ?? 0);
+
+            $offset = ($page - 1) * $perPage;
+            $limitParams = array_merge($likeParams, [$perPage, $offset]);
+            $posts = $this->db->select(
+                "SELECT * FROM {$this->prefix}posts WHERE status = 'published' AND ({$where}) ORDER BY published_at DESC LIMIT ? OFFSET ?",
+                $limitParams
+            );
+
+            return [
+                'items' => $posts,
+                'total' => $total,
+                'page' => $page,
+                'totalPages' => max(1, (int)ceil($total / $perPage)),
+            ];
+        } catch (\Throwable $e) {
+            error_log("Search error: " . $e->getMessage());
+            return ['items' => [], 'total' => 0, 'page' => $page, 'totalPages' => 0];
+        }
+    }
+
+    /**
+     * Index a post (for quick integration with post save hooks)
+     *
+     * @param array $post Post data with 'id', 'title', 'content'
+     * @return bool
+     */
+    public function indexPost(array $post): bool
+    {
+        if (!$this->db) return false;
+        if (empty($post['id']) || empty($post['title'])) return false;
+
+        try {
+            // Remove old index entries for this post
+            $this->db->delete("{$this->prefix}search_index", ['post_id' => (int)$post['id']]);
+
+            // Re-index
+            $content = ($post['content'] ?? '') . ' ' . ($post['excerpt'] ?? '');
+            $this->indexPostContent((int)$post['id'], $post['title'], $content);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Remove a post from the index
+     *
+     * @param int $postId
+     * @return bool
+     */
+    public function removePost(int $postId): bool
+    {
+        if (!$this->db) return false;
+        try {
+            $this->db->delete("{$this->prefix}search_index", ['post_id' => $postId]);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get search suggestions (auto-complete)
+     *
+     * @param string $prefix Partial search term
+     * @param int $limit Maximum suggestions
+     * @return array
+     */
+    public function getSuggestions(string $prefix, int $limit = 10): array
+    {
+        if (!$this->db || mb_strlen(trim($prefix)) < 2) return [];
+
+        $prefix = mb_strtolower(trim($prefix));
+
+        try {
+            $rows = $this->db->select(
+                "SELECT word, SUM(weight) as total_weight
+                 FROM {$this->prefix}search_index
+                 WHERE word LIKE ?
+                 GROUP BY word
+                 ORDER BY total_weight DESC
+                 LIMIT ?",
+                [$prefix . '%', $limit]
+            );
+
+            return array_map(fn($r) => $r['word'], $rows);
         } catch (\Throwable $e) {
             return [];
         }

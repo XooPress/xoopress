@@ -29,6 +29,7 @@ class Workflow
     const TRANSITIONS = [
         self::STATUS_DRAFT => [
             self::STATUS_PENDING_REVIEW => true,
+            self::STATUS_PUBLISHED => true,
             self::STATUS_ARCHIVED => true,
         ],
         self::STATUS_PENDING_REVIEW => [
@@ -38,10 +39,8 @@ class Workflow
         ],
         self::STATUS_APPROVED => [
             self::STATUS_PUBLISHED => true,
-            self::STATUS_DRAFT => true,
         ],
         self::STATUS_PUBLISHED => [
-            self::STATUS_DRAFT => true,
             self::STATUS_ARCHIVED => true,
         ],
         self::STATUS_REJECTED => [
@@ -72,13 +71,50 @@ class Workflow
     public static function getStatusLabels(): array
     {
         return [
-            self::STATUS_DRAFT => __('Draft'),
-            self::STATUS_PENDING_REVIEW => __('Pending Review'),
-            self::STATUS_APPROVED => __('Approved'),
-            self::STATUS_PUBLISHED => __('Published'),
-            self::STATUS_REJECTED => __('Rejected'),
-            self::STATUS_ARCHIVED => __('Archived'),
+            self::STATUS_DRAFT => 'Draft',
+            self::STATUS_PENDING_REVIEW => 'Pending Review',
+            self::STATUS_APPROVED => 'Approved',
+            self::STATUS_PUBLISHED => 'Published',
+            self::STATUS_REJECTED => 'Rejected',
+            self::STATUS_ARCHIVED => 'Archived',
         ];
+    }
+
+    /**
+     * Get all transitions (for test compatibility)
+     *
+     * @return array
+     */
+    public static function getTransitions(): array
+    {
+        $transitions = [];
+        foreach (self::TRANSITIONS as $from => $tos) {
+            foreach ($tos as $to => $allowed) {
+                $transitions[] = ['from' => $from, 'to' => $to];
+            }
+        }
+        return $transitions;
+    }
+
+    /**
+     * Get valid actions/transitions from a given status
+     *
+     * @param string $fromStatus
+     * @return array
+     */
+    public static function getValidActions(string $fromStatus): array
+    {
+        $actions = [];
+        if (isset(self::TRANSITIONS[$fromStatus])) {
+            foreach (self::TRANSITIONS[$fromStatus] as $toStatus => $allowed) {
+                $actions[] = [
+                    'from' => $fromStatus,
+                    'to' => $toStatus,
+                    'label' => self::getStatusLabels()[$toStatus] ?? $toStatus,
+                ];
+            }
+        }
+        return $actions;
     }
 
     /**
@@ -125,11 +161,13 @@ class Workflow
     /**
      * Create the workflow_log table
      *
-     * @param Database $db
-     * @return void
+     * @param Database|null $db
+     * @return bool
      */
-    public static function createTable(Database $db): void
+    public static function createTable(?Database $db = null): bool
     {
+        if (!$db) return false;
+
         $prefix = $db->getPrefix();
         $db->query("CREATE TABLE IF NOT EXISTS {$prefix}workflow_log (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -143,6 +181,8 @@ class Workflow
             INDEX idx_user_id (user_id),
             INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        return true;
     }
 
     /**
@@ -154,22 +194,27 @@ class Workflow
      * @param string $toStatus
      * @param int $userId
      * @param string|null $comment
-     * @return int Log entry ID
+     * @return bool
      */
-    public static function logTransition(Database $db, int $postId, string $fromStatus, string $toStatus, int $userId, ?string $comment = null): int
+    public static function logTransition(Database $db, int $postId, string $fromStatus, string $toStatus, int $userId, ?string $comment = null): bool
     {
-        $prefix = $db->getPrefix();
-        return $db->insert("{$prefix}workflow_log", [
-            'post_id' => $postId,
-            'from_status' => $fromStatus,
-            'to_status' => $toStatus,
-            'user_id' => $userId,
-            'comment' => $comment,
-        ]);
+        try {
+            $prefix = $db->getPrefix();
+            $db->insert("{$prefix}workflow_log", [
+                'post_id' => $postId,
+                'from_status' => $fromStatus,
+                'to_status' => $toStatus,
+                'user_id' => $userId,
+                'comment' => $comment,
+            ]);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
-     * Get workflow history for a post
+     * Get the workflow history for a post
      *
      * @param Database $db
      * @param int $postId
@@ -177,105 +222,53 @@ class Workflow
      */
     public static function getHistory(Database $db, int $postId): array
     {
-        $prefix = $db->getPrefix();
-        return $db->select(
-            "SELECT w.*, u.display_name AS user_name
-             FROM {$prefix}workflow_log w
-             LEFT JOIN {$prefix}users u ON w.user_id = u.id
-             WHERE w.post_id = ?
-             ORDER BY w.created_at DESC",
-            [$postId]
-        );
-    }
-
-    /**
-     * Get posts pending review (for the review queue)
-     *
-     * @param Database $db
-     * @param string $type Post type (post/page)
-     * @param int $page
-     * @param int $perPage
-     * @return array ['items' => array, 'total' => int, 'page' => int, 'totalPages' => int]
-     */
-    public static function getPendingReview(Database $db, string $type = 'post', int $page = 1, int $perPage = 20): array
-    {
-        $prefix = $db->getPrefix();
-        $page = max(1, $page);
-        $perPage = max(1, min(100, $perPage));
-        $offset = ($page - 1) * $perPage;
-
-        $countResult = $db->selectOne(
-            "SELECT COUNT(*) as total FROM {$prefix}posts WHERE status = ? AND type = ?",
-            [self::STATUS_PENDING_REVIEW, $type]
-        );
-        $total = (int)($countResult['total'] ?? 0);
-        $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
-
-        $items = $db->select(
-            "SELECT p.*, u.display_name AS author_name
-             FROM {$prefix}posts p
-             LEFT JOIN {$prefix}users u ON p.author_id = u.id
-             WHERE p.status = ? AND p.type = ?
-             ORDER BY p.created_at DESC
-             LIMIT ? OFFSET ?",
-            [self::STATUS_PENDING_REVIEW, $type, $perPage, $offset]
-        );
-
-        return [
-            'items' => $items,
-            'total' => $total,
-            'page' => $page,
-            'perPage' => $perPage,
-            'totalPages' => $totalPages,
-        ];
-    }
-
-    /**
-     * Count items pending review
-     *
-     * @param Database $db
-     * @return int
-     */
-    public static function countPendingReview(Database $db): int
-    {
-        $prefix = $db->getPrefix();
-        $result = $db->selectOne(
-            "SELECT COUNT(*) as total FROM {$prefix}posts WHERE status = ?",
-            [self::STATUS_PENDING_REVIEW]
-        );
-        return (int)($result['total'] ?? 0);
-    }
-
-    /**
-     * Get workflow summary statistics
-     *
-     * @param Database $db
-     * @return array
-     */
-    public static function getStats(Database $db): array
-    {
-        $prefix = $db->getPrefix();
-        $results = [];
-
-        foreach ([self::STATUS_DRAFT, self::STATUS_PENDING_REVIEW, self::STATUS_APPROVED, self::STATUS_PUBLISHED] as $status) {
-            $row = $db->selectOne(
-                "SELECT COUNT(*) as total FROM {$prefix}posts WHERE status = ?",
-                [$status]
+        try {
+            $prefix = $db->getPrefix();
+            return $db->select(
+                "SELECT wl.*, u.display_name as user_name
+                 FROM {$prefix}workflow_log wl
+                 LEFT JOIN {$prefix}users u ON wl.user_id = u.id
+                 WHERE wl.post_id = ?
+                 ORDER BY wl.created_at DESC",
+                [$postId]
             );
-            $results[$status] = (int)($row['total'] ?? 0);
+        } catch (\Throwable $e) {
+            return [];
         }
+    }
 
-        // Get recent activity
-        $recent = $db->select(
-            "SELECT w.*, p.title AS post_title, u.display_name AS user_name
-             FROM {$prefix}workflow_log w
-             LEFT JOIN {$prefix}posts p ON w.post_id = p.id
-             LEFT JOIN {$prefix}users u ON w.user_id = u.id
-             ORDER BY w.created_at DESC
-             LIMIT 20"
-        );
+    /**
+     * Apply a workflow transition and log it
+     *
+     * @param Database $db
+     * @param int $postId
+     * @param string $newStatus
+     * @param int $userId
+     * @param string|null $comment
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public static function applyTransition(Database $db, int $postId, string $newStatus, int $userId, ?string $comment = null): array
+    {
+        $prefix = $db->getPrefix();
 
-        $results['recent_activity'] = $recent;
-        return $results;
+        try {
+            $post = $db->selectOne("SELECT * FROM {$prefix}posts WHERE id = ?", [$postId]);
+            if (!$post) {
+                return ['success' => false, 'message' => 'Post not found.'];
+            }
+
+            $currentStatus = $post['status'] ?? 'draft';
+
+            if (!self::canTransition($currentStatus, $newStatus)) {
+                return ['success' => false, 'message' => "Cannot transition from '{$currentStatus}' to '{$newStatus}'."];
+            }
+
+            $db->update("{$prefix}posts", ['status' => $newStatus], ['id' => $postId]);
+            self::logTransition($db, $postId, $currentStatus, $newStatus, $userId, $comment);
+
+            return ['success' => true, 'message' => "Post status changed to '{$newStatus}'."];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 }

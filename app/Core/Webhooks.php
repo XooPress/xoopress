@@ -15,27 +15,88 @@ namespace XooPress\Core;
 class Webhooks
 {
     /**
-     * Available webhook events
+     * Core event constants
      */
     const EVENTS = [
-        'post_published',
+        'post_created',
         'post_updated',
         'post_deleted',
+        'post_published',
         'user_registered',
-        'user_updated',
+        'user_login',
         'module_installed',
-        'module_uninstalled',
-        'theme_activated',
+        'theme_switched',
     ];
+
+    /**
+     * Registered events with descriptions
+     */
+    protected static array $registeredEvents = [];
+
+    /**
+     * Whether the default events have been registered
+     */
+    protected static bool $eventsInitialized = false;
+
+    /**
+     * Initialize default events
+     *
+     * @return void
+     */
+    protected static function initEvents(): void
+    {
+        if (self::$eventsInitialized) return;
+        self::$eventsInitialized = true;
+
+        $descriptions = [
+            'post_created' => 'When a new post or page is created',
+            'post_updated' => 'When a post or page is updated',
+            'post_deleted' => 'When a post or page is deleted',
+            'post_published' => 'When a post or page is published',
+            'user_registered' => 'When a new user registers',
+            'user_login' => 'When a user logs in',
+            'module_installed' => 'When a module is installed',
+            'theme_switched' => 'When the active theme is switched',
+        ];
+
+        foreach (self::EVENTS as $event) {
+            self::$registeredEvents[$event] = $descriptions[$event] ?? $event;
+        }
+    }
+
+    /**
+     * Get all registered events
+     *
+     * @return array
+     */
+    public static function getRegisteredEvents(): array
+    {
+        self::initEvents();
+        return self::$registeredEvents;
+    }
+
+    /**
+     * Register a custom event
+     *
+     * @param string $eventName Event slug
+     * @param string $description Human-readable description
+     * @return void
+     */
+    public static function registerEvent(string $eventName, string $description = ''): void
+    {
+        self::$registeredEvents[$eventName] = $description ?: $eventName;
+    }
 
     /**
      * Create the webhooks table
      *
-     * @param Database $db
-     * @return void
+     * @param Database|null $db
+     * @return bool
      */
-    public static function createTable(Database $db): void
+    public static function createTable(?Database $db = null): bool
     {
+        if (!$db) return false;
+
         $prefix = $db->getPrefix();
         $db->query("CREATE TABLE IF NOT EXISTS {$prefix}webhooks (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,6 +113,8 @@ class Webhooks
             INDEX idx_event (event),
             INDEX idx_active (is_active)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        return true;
     }
 
     /**

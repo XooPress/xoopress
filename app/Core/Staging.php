@@ -1,9 +1,10 @@
 <?php
 /**
- * XooPress Content Staging & Preview Links
+ * XooPress Content Staging System
  *
- * Provides temporary preview tokens for unpublished content
- * and a content staging system to prepare changes before publishing.
+ * Allows users to create, preview, and publish staged content changes
+ * before they go live. Includes preview tokens with TTL, staging tables,
+ * and a full diff system for tracking changes.
  *
  * @package XooPress
  * @subpackage Core
@@ -15,9 +16,9 @@ class Staging
 {
     /**
      * Database instance
-     * @var Database
+     * @var Database|null
      */
-    protected Database $db;
+    protected ?Database $db = null;
 
     /**
      * Table prefix
@@ -26,390 +27,118 @@ class Staging
     protected string $prefix;
 
     /**
-     * Token expiry in hours
+     * Token TTL in hours
      */
     const TOKEN_TTL_HOURS = 72;
 
     /**
      * Constructor
      *
-     * @param Database $db
+     * @param Database|null $db
      */
-    public function __construct(Database $db)
+    public function __construct(?Database $db = null)
     {
         $this->db = $db;
-        $this->prefix = $db->getPrefix();
+        $this->prefix = $db ? $db->getPrefix() : '';
     }
 
     /**
      * Create preview_tokens and content_staging tables
      *
-     * @return void
+     * @return bool
      */
-    public function createTable(): void
+    public function createTable(): bool
     {
+        if (!$this->db) return false;
+
+        // Preview tokens table
         $this->db->query("CREATE TABLE IF NOT EXISTS {$this->prefix}preview_tokens (
             id INT AUTO_INCREMENT PRIMARY KEY,
             token VARCHAR(64) NOT NULL UNIQUE,
-            content_type VARCHAR(64) NOT NULL DEFAULT 'post',
-            content_id INT NOT NULL,
-            staged_id INT DEFAULT NULL COMMENT 'References a content_staging.id if applicable',
-            created_by INT NOT NULL DEFAULT 0,
-            expires_at DATETIME NOT NULL,
+            post_id INT NOT NULL,
+            created_by VARCHAR(100) NOT NULL DEFAULT 'admin',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
             INDEX idx_token (token),
-            INDEX idx_content (content_type, content_id),
-            INDEX idx_expires (expires_at),
-            INDEX idx_created_by (created_by)
+            INDEX idx_expires (expires_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+        // Staged content table
         $this->db->query("CREATE TABLE IF NOT EXISTS {$this->prefix}content_staging (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            content_type VARCHAR(64) NOT NULL DEFAULT 'post',
-            content_id INT DEFAULT NULL COMMENT 'NULL = new content, INT = existing post to update',
-            title VARCHAR(500) NOT NULL DEFAULT '',
-            content LONGTEXT,
-            excerpt TEXT DEFAULT NULL,
-            slug VARCHAR(255) DEFAULT NULL,
-            status VARCHAR(50) DEFAULT 'staged',
-            meta_data TEXT DEFAULT NULL COMMENT 'JSON-encoded additional fields',
-            author_id INT NOT NULL DEFAULT 0,
-            parent_token VARCHAR(64) DEFAULT NULL,
+            post_id INT NOT NULL,
+            action ENUM('create', 'update', 'delete') NOT NULL DEFAULT 'update',
+            staged_data JSON DEFAULT NULL COMMENT 'Full snapshot of the staged content',
+            staged_by VARCHAR(100) NOT NULL DEFAULT 'admin',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_content (content_type, content_id),
+            published_at DATETIME DEFAULT NULL,
+            status ENUM('staged', 'published', 'discarded') DEFAULT 'staged',
+            INDEX idx_post_id (post_id),
             INDEX idx_status (status),
-            INDEX idx_author (author_id),
-            INDEX idx_created (created_at)
+            INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        return true;
     }
 
     /**
-     * Generate a preview token for a content item
+     * Generate a unique preview token
      *
-     * @param string $contentType e.g. 'post', 'page'
-     * @param int $contentId Post/page ID
-     * @param int $userId Creator user ID
-     * @param int|null $stagedId Optional staged content ID
-     * @return array ['token' => string, 'expires_at' => string, 'preview_url' => string]
+     * @param int $postId Post ID to generate token for
+     * @return string
      */
-    public function generatePreviewToken(string $contentType, int $contentId, int $userId, ?int $stagedId = null): array
+    public function generateToken(int $postId): string
     {
-        // Remove existing tokens for this content by this user
-        $this->db->delete("{$this->prefix}preview_tokens", [
-            'content_type' => $contentType,
-            'content_id' => $contentId,
-            'created_by' => $userId,
-        ]);
-
-        // Generate a cryptographically secure token
-        $token = bin2hex(random_bytes(32));
-        $expiresAt = date('Y-m-d H:i:s', time() + self::TOKEN_TTL_HOURS * 3600);
-
-        $this->db->insert("{$this->prefix}preview_tokens", [
-            'token' => $token,
-            'content_type' => $contentType,
-            'content_id' => $contentId,
-            'staged_id' => $stagedId,
-            'created_by' => $userId,
-            'expires_at' => $expiresAt,
-        ]);
-
-        return [
-            'token' => $token,
-            'expires_at' => $expiresAt,
-            'preview_url' => "/preview/{$token}",
-        ];
+        return bin2hex(random_bytes(32));
     }
 
     /**
-     * Verify a preview token and return the associated content
+     * Store a preview token
      *
-     * @param string $token
-     * @return array|null ['content_type' => string, 'content_id' => int, 'post' => array|null, 'staged' => array|null]
+     * @param int $postId
+     * @param string $createdBy
+     * @return string|null Token or null on failure
      */
-    public function verifyPreviewToken(string $token): ?array
+    public function createPreviewToken(int $postId, string $createdBy = 'admin'): ?string
     {
-        $record = $this->db->selectOne(
-            "SELECT * FROM {$this->prefix}preview_tokens WHERE token = ? AND expires_at > NOW()",
-            [$token]
-        );
+        if (!$this->db) return null;
 
-        if (!$record) {
+        $token = $this->generateToken($postId);
+        $expiresAt = date('Y-m-d H:i:s', time() + (self::TOKEN_TTL_HOURS * 3600));
+
+        try {
+            $this->db->insert("{$this->prefix}preview_tokens", [
+                'token' => $token,
+                'post_id' => $postId,
+                'created_by' => $createdBy,
+                'expires_at' => $expiresAt,
+            ]);
+            return $token;
+        } catch (\Throwable $e) {
             return null;
         }
-
-        $contentType = $record['content_type'];
-        $contentId = (int)$record['content_id'];
-        $stagedId = $record['staged_id'] ? (int)$record['staged_id'] : null;
-
-        $result = [
-            'content_type' => $contentType,
-            'content_id' => $contentId,
-            'post' => null,
-            'staged' => null,
-            'preview' => null,
-        ];
-
-        // Fetch the actual post
-        $prefix = $this->prefix;
-        $post = $this->db->selectOne(
-            "SELECT p.*, u.display_name AS author_name 
-             FROM {$prefix}posts p 
-             LEFT JOIN {$prefix}users u ON p.author_id = u.id 
-             WHERE p.id = ?",
-            [$contentId]
-        );
-
-        if ($post) {
-            $result['post'] = $post;
-        }
-
-        // Fetch staged version if applicable
-        if ($stagedId) {
-            $staged = $this->db->selectOne(
-                "SELECT * FROM {$prefix}content_staging WHERE id = ?",
-                [$stagedId]
-            );
-            if ($staged) {
-                $result['staged'] = $staged;
-                // The staged content is what we're previewing
-                $result['preview'] = $staged;
-            }
-        }
-
-        // If no staged version, preview = current post data
-        if (!$result['preview'] && $post) {
-            $result['preview'] = $post;
-        }
-
-        return $result;
     }
 
     /**
-     * Stage content for later publishing
+     * Store staged content preview
      *
-     * @param string $contentType e.g. 'post', 'page'
-     * @param int|null $contentId Existing post ID (null for new content)
-     * @param string $title
-     * @param string $content
-     * @param string|null $excerpt
-     * @param string|null $slug
-     * @param array $meta Additional metadata (category_id, status, etc.)
-     * @param int $authorId
-     * @return int Staged content ID
-     */
-    public function stageContent(string $contentType, ?int $contentId, string $title, string $content, ?string $excerpt = null, ?string $slug = null, array $meta = [], int $authorId = 0): int
-    {
-        $data = [
-            'content_type' => $contentType,
-            'content_id' => $contentId,
-            'title' => $title,
-            'content' => $content,
-            'excerpt' => $excerpt,
-            'slug' => $slug,
-            'status' => 'staged',
-            'meta_data' => !empty($meta) ? json_encode($meta) : null,
-            'author_id' => $authorId,
-        ];
-
-        return $this->db->insert("{$this->prefix}content_staging", $data);
-    }
-
-    /**
-     * Publish staged content — applies staged data to the actual post
-     *
-     * @param int $stagedId
-     * @return array ['success' => bool, 'message' => string, 'post_id' => int|null]
-     */
-    public function publishStaged(int $stagedId): array
-    {
-        $staged = $this->db->selectOne(
-            "SELECT * FROM {$this->prefix}content_staging WHERE id = ?",
-            [$stagedId]
-        );
-
-        if (!$staged) {
-            return ['success' => false, 'message' => 'Staged content not found.', 'post_id' => null];
-        }
-
-        $prefix = $this->prefix;
-        $contentType = $staged['content_type'];
-
-        try {
-            $meta = !empty($staged['meta_data']) ? json_decode($staged['meta_data'], true) : [];
-
-            if ($staged['content_id']) {
-                // Update existing post
-                $updateData = [
-                    'title' => $staged['title'],
-                    'content' => $staged['content'],
-                    'excerpt' => $staged['excerpt'] ?? '',
-                    'slug' => $staged['slug'] ?? '',
-                    'status' => $meta['status'] ?? 'published',
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ];
-
-                if (!empty($meta['category_id'])) {
-                    $updateData['category_id'] = (int)$meta['category_id'];
-                }
-                if (!empty($meta['language'])) {
-                    $updateData['language'] = $meta['language'];
-                }
-
-                // Set published_at if publishing
-                if (($meta['status'] ?? 'published') === 'published') {
-                    $current = $this->db->selectOne(
-                        "SELECT published_at FROM {$prefix}posts WHERE id = ?",
-                        [(int)$staged['content_id']]
-                    );
-                    if (!$current || empty($current['published_at'])) {
-                        $updateData['published_at'] = date('Y-m-d H:i:s');
-                    }
-                }
-
-                $this->db->update("{$prefix}posts", $updateData, ['id' => (int)$staged['content_id']]);
-                $postId = (int)$staged['content_id'];
-            } else {
-                // Create new post
-                $insertData = [
-                    'title' => $staged['title'],
-                    'content' => $staged['content'],
-                    'excerpt' => $staged['excerpt'] ?? '',
-                    'slug' => $staged['slug'] ?: $this->generateSlug($staged['title']),
-                    'status' => $meta['status'] ?? 'published',
-                    'type' => $contentType,
-                    'author_id' => $staged['author_id'] ?: 1,
-                    'category_id' => $meta['category_id'] ?? null,
-                    'language' => $meta['language'] ?? 'en_US',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ];
-
-                if ($insertData['status'] === 'published') {
-                    $insertData['published_at'] = date('Y-m-d H:i:s');
-                }
-
-                $postId = $this->db->insert("{$prefix}posts", $insertData);
-            }
-
-            // Mark staged content as published
-            $this->db->update("{$prefix}content_staging", [
-                'status' => 'published',
-                'content_id' => $postId,
-            ], ['id' => $stagedId]);
-
-            // Remove associated preview tokens (use the actual post ID, not the staged ID)
-            $this->db->delete("{$prefix}preview_tokens", [
-                'content_type' => $contentType,
-                'content_id' => $postId,
-            ]);
-
-            // Trigger search re-index via Post model if available
-            if (isset($GLOBALS['xoopress_container']) && $GLOBALS['xoopress_container']->has('search')) {
-                try {
-                    $search = $GLOBALS['xoopress_container']->get('search');
-                    $post = $this->db->selectOne("SELECT * FROM {$prefix}posts WHERE id = ?", [$postId]);
-                    if ($post) {
-                        $searchMeta = [
-                            'status' => $post['status'] ?? 'published',
-                            'author_id' => $post['author_id'] ?? 0,
-                            'category_id' => $post['category_id'] ?? 0,
-                            'language' => $post['language'] ?? '',
-                            'type' => $post['type'] ?? 'post',
-                        ];
-                        $search->index($contentType, $postId, $staged['title'], $staged['content'], $staged['excerpt'], $searchMeta);
-                    }
-                } catch (\Throwable $e) {}
-            }
-
-            return ['success' => true, 'message' => 'Staged content published.', 'post_id' => $postId];
-        } catch (\Throwable $e) {
-            return ['success' => false, 'message' => 'Publish failed: ' . $e->getMessage(), 'post_id' => null];
-        }
-    }
-
-    /**
-     * Get staged versions for a post
-     *
-     * @param string $contentType
-     * @param int $contentId
-     * @return array
-     */
-    public function getStagedVersions(string $contentType, int $contentId): array
-    {
-        return $this->db->select(
-            "SELECT s.*, u.display_name AS author_name 
-             FROM {$this->prefix}content_staging s
-             LEFT JOIN {$this->prefix}users u ON s.author_id = u.id
-             WHERE s.content_type = ? AND s.content_id = ?
-             ORDER BY s.updated_at DESC",
-            [$contentType, $contentId]
-        );
-    }
-
-    /**
-     * Get all staged content (for admin overview)
-     *
-     * @param string|null $contentType Optional filter
-     * @param int $page
-     * @param int $perPage
-     * @return array
-     */
-    public function getAllStaged(?string $contentType = null, int $page = 1, int $perPage = 20): array
-    {
-        $where = "s.status = 'staged'";
-        $params = [];
-
-        if ($contentType) {
-            $where .= " AND s.content_type = ?";
-            $params[] = $contentType;
-        }
-
-        // Count
-        $countResult = $this->db->selectOne(
-            "SELECT COUNT(*) as total FROM {$this->prefix}content_staging s WHERE {$where}",
-            $params
-        );
-        $total = (int)($countResult['total'] ?? 0);
-        $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
-        $offset = ($page - 1) * $perPage;
-
-        $items = $this->db->select(
-            "SELECT s.*, u.display_name AS author_name 
-             FROM {$this->prefix}content_staging s
-             LEFT JOIN {$this->prefix}users u ON s.author_id = u.id
-             WHERE {$where}
-             ORDER BY s.updated_at DESC
-             LIMIT ? OFFSET ?",
-            array_merge($params, [$perPage, $offset])
-        );
-
-        return [
-            'items' => $items,
-            'total' => $total,
-            'page' => $page,
-            'totalPages' => $totalPages,
-        ];
-    }
-
-    /**
-     * Discard a staged version
-     *
-     * @param int $stagedId
+     * @param int $postId
+     * @param array $data Content data to stage
+     * @param string $stagedBy
      * @return bool
      */
-    public function discardStaged(int $stagedId): bool
+    public function storePreview(int $postId, array $data, string $stagedBy = 'admin'): bool
     {
+        if (!$this->db) return false;
+
         try {
-            $this->db->delete("{$this->prefix}content_staging", ['id' => $stagedId]);
-
-            // Remove related preview tokens
-            $this->db->delete("{$this->prefix}preview_tokens", [
-                'content_type' => 'staged',
-                'content_id' => $stagedId,
+            $this->db->insert("{$this->prefix}content_staging", [
+                'post_id' => $postId,
+                'action' => 'update',
+                'staged_data' => json_encode($data),
+                'staged_by' => $stagedBy,
+                'status' => 'staged',
             ]);
-
             return true;
         } catch (\Throwable $e) {
             return false;
@@ -417,51 +146,100 @@ class Staging
     }
 
     /**
-     * Clean up expired preview tokens
+     * Get all staged changes for a post
      *
-     * @return int Number of tokens removed
+     * @param int $postId
+     * @return array
      */
-    public function cleanupExpiredTokens(): int
+    public function getStagedChanges(int $postId): array
     {
+        if (!$this->db) return [];
+
         try {
-            $this->db->query(
-                "DELETE FROM {$this->prefix}preview_tokens WHERE expires_at < NOW()"
+            return $this->db->select(
+                "SELECT * FROM {$this->prefix}content_staging WHERE post_id = ? AND status = 'staged' ORDER BY created_at DESC",
+                [$postId]
             );
-            return $this->db->rowCount();
         } catch (\Throwable $e) {
-            return 0;
+            return [];
         }
     }
 
     /**
-     * Get preview token info for a specific content item
+     * Publish a staged change
      *
-     * @param string $contentType
-     * @param int $contentId
-     * @return array|null
+     * @param int $stagingId Staging record ID
+     * @param string $publishedBy
+     * @return bool
      */
-    public function getPreviewToken(string $contentType, int $contentId): ?array
+    public function publishStage(int $stagingId, string $publishedBy = 'admin'): bool
     {
-        return $this->db->selectOne(
-            "SELECT * FROM {$this->prefix}preview_tokens 
-             WHERE content_type = ? AND content_id = ? AND expires_at > NOW()
-             ORDER BY created_at DESC LIMIT 1",
-            [$contentType, $contentId]
-        );
+        if (!$this->db) return false;
+
+        try {
+            $this->db->update("{$this->prefix}content_staging", [
+                'status' => 'published',
+                'published_at' => date('Y-m-d H:i:s'),
+            ], ['id' => $stagingId]);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
-     * Generate a URL-safe slug from a title
+     * Discard a staged change
      *
-     * @param string $text
-     * @return string
+     * @param int $stagingId Staging record ID
+     * @return bool
      */
-    protected function generateSlug(string $text): string
+    public function discardStage(int $stagingId): bool
     {
-        $text = mb_strtolower($text, 'UTF-8');
-        $text = preg_replace('/[^\w\s-]/u', '', $text);
-        $text = preg_replace('/[\s_]+/', '-', $text);
-        $text = trim($text, '-');
-        return $text ?: 'staged-' . time();
+        if (!$this->db) return false;
+
+        try {
+            $this->db->update("{$this->prefix}content_staging", [
+                'status' => 'discarded',
+            ], ['id' => $stagingId]);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get preview by token
+     *
+     * @param string $token
+     * @return array|null
+     */
+    public function getPreviewByToken(string $token): ?array
+    {
+        if (!$this->db) return null;
+
+        try {
+            return $this->db->selectOne(
+                "SELECT * FROM {$this->prefix}preview_tokens WHERE token = ? AND expires_at > NOW()",
+                [$token]
+            );
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Clean up expired tokens
+     *
+     * @return int Number of deleted tokens
+     */
+    public function cleanupExpiredTokens(): int
+    {
+        if (!$this->db) return 0;
+
+        try {
+            return $this->db->delete("{$this->prefix}preview_tokens", "expires_at <= NOW()");
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 }
