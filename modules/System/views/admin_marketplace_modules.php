@@ -58,13 +58,20 @@
                     </thead>
                     <tbody>
                         <?php foreach ($items as $item): ?>
+                        <?php
+                            $itemDesc = $item['description'] ?? $item['summary'] ?? $item['excerpt'] ?? $item['tagline'] ?? '';
+                            $itemName = $item['name'] ?? $item['title'] ?? '';
+                            $itemSlug = $item['slug'] ?? $itemName;
+                            $itemVersion = $item['version'] ?? '1.0.0';
+                            $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '—';
+                        ?>
                         <tr>
-                            <td><strong><?= htmlspecialchars($item['name'] ?? $item['title'] ?? '') ?></strong></td>
-                            <td><?= htmlspecialchars($item['version'] ?? '1.0.0') ?></td>
-                            <td><?= htmlspecialchars($item['author'] ?? '—') ?></td>
-                            <td><?= htmlspecialchars(mb_substr($item['description'] ?? '', 0, 150)) ?></td>
+                            <td><strong><?= htmlspecialchars($itemName) ?></strong></td>
+                            <td><?= htmlspecialchars($itemVersion) ?></td>
+                            <td><?= htmlspecialchars($itemAuthor) ?></td>
+                            <td><?= htmlspecialchars(mb_substr($itemDesc, 0, 150)) ?></td>
                             <td>
-                                <a href="/admin/marketplace/install/module/<?= urlencode($item['slug'] ?? $item['name'] ?? '') ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                                <a href="/admin/marketplace/install/module/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
                                 <?php if (!empty($item['homepage'])): ?>
                                 <a href="<?= htmlspecialchars($item['homepage']) ?>" target="_blank" class="btn btn-sm btn-secondary"><?= __('Info') ?></a>
                                 <?php endif; ?>

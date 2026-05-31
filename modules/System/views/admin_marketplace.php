@@ -56,6 +56,13 @@
                         <p style="color:#888;text-align:center;padding:30px;"><?= __('No modules available or unable to reach marketplace.') ?></p>
                     <?php else: ?>
                         <?php foreach (array_slice($modules['items'], 0, 6) as $item): ?>
+                        <?php
+                            $itemDesc = $item['description'] ?? $item['summary'] ?? $item['excerpt'] ?? $item['tagline'] ?? '';
+                            $itemName = $item['name'] ?? $item['title'] ?? '';
+                            $itemSlug = $item['slug'] ?? $itemName;
+                            $itemVersion = $item['version'] ?? '1.0.0';
+                            $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '';
+                        ?>
                         <div style="padding:12px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:12px;">
                             <?php if (!empty($item['icon'])): ?>
                             <img src="<?= htmlspecialchars($item['icon']) ?>" alt="" style="width:48px;height:48px;border-radius:6px;object-fit:cover;">
@@ -63,12 +70,20 @@
                             <div style="width:48px;height:48px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📦</div>
                             <?php endif; ?>
                             <div style="flex:1;">
-                                <strong><?= htmlspecialchars($item['name'] ?? $item['title'] ?? '') ?></strong>
-                                <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($item['version'] ?? '1.0.0') ?></span>
-                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($item['description'] ?? '', 0, 100)) ?></p>
+                                <strong><?= htmlspecialchars($itemName) ?></strong>
+                                <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($itemVersion) ?></span>
+                                <?php if (!empty($itemAuthor)): ?>
+                                <span style="color:#aaa;font-size:0.75rem;"> &middot; <?= htmlspecialchars($itemAuthor) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($itemDesc)): ?>
+                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($itemDesc, 0, 200)) ?></p>
+                                <?php endif; ?>
                             </div>
-                            <div>
-                                <a href="/admin/marketplace/install/module/<?= urlencode($item['slug'] ?? $item['name'] ?? '') ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+                                <a href="/admin/marketplace/install/module/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                                <?php if (!empty($item['homepage'])): ?>
+                                <a href="<?= htmlspecialchars($item['homepage']) ?>" target="_blank" class="btn btn-sm btn-secondary"><?= __('Details') ?></a>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -85,6 +100,13 @@
                         <p style="color:#888;text-align:center;padding:30px;"><?= __('No themes available or unable to reach marketplace.') ?></p>
                     <?php else: ?>
                         <?php foreach (array_slice($themes['items'], 0, 6) as $item): ?>
+                        <?php
+                            $itemDesc = $item['description'] ?? $item['summary'] ?? $item['excerpt'] ?? $item['tagline'] ?? '';
+                            $itemName = $item['name'] ?? $item['title'] ?? '';
+                            $itemSlug = $item['slug'] ?? $itemName;
+                            $itemVersion = $item['version'] ?? '1.0.0';
+                            $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '';
+                        ?>
                         <div style="padding:12px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:12px;">
                             <?php if (!empty($item['screenshot'])): ?>
                             <img src="<?= htmlspecialchars($item['screenshot']) ?>" alt="" style="width:80px;height:48px;border-radius:6px;object-fit:cover;">
@@ -92,12 +114,20 @@
                             <div style="width:80px;height:48px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🎨</div>
                             <?php endif; ?>
                             <div style="flex:1;">
-                                <strong><?= htmlspecialchars($item['name'] ?? $item['title'] ?? '') ?></strong>
-                                <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($item['version'] ?? '1.0.0') ?></span>
-                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($item['description'] ?? '', 0, 100)) ?></p>
+                                <strong><?= htmlspecialchars($itemName) ?></strong>
+                                <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($itemVersion) ?></span>
+                                <?php if (!empty($itemAuthor)): ?>
+                                <span style="color:#aaa;font-size:0.75rem;"> &middot; <?= htmlspecialchars($itemAuthor) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($itemDesc)): ?>
+                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($itemDesc, 0, 200)) ?></p>
+                                <?php endif; ?>
                             </div>
-                            <div>
-                                <a href="/admin/marketplace/install/theme/<?= urlencode($item['slug'] ?? $item['name'] ?? '') ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+                                <a href="/admin/marketplace/install/theme/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                                <?php if (!empty($item['demo_url'])): ?>
+                                <a href="<?= htmlspecialchars($item['demo_url']) ?>" target="_blank" class="btn btn-sm btn-secondary"><?= __('Preview') ?></a>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -107,7 +137,7 @@
 
             <div style="margin-top:30px;padding:20px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;text-align:center;">
                 <p style="color:#888;"><?= __('Can\'t find what you\'re looking for?') ?></p>
-                <p><a href="https://xoopress.org/marketplace" target="_blank" class="btn btn-primary"><?= __('Visit XooPress Marketplace') ?></a></p>
+                <p><a href="https://marketplace.xoopress.org/" target="_blank" class="btn btn-primary"><?= __('Visit XooPress Marketplace') ?></a></p>
             </div>
         </main>
     </div>
