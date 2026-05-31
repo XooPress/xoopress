@@ -376,7 +376,9 @@ class Marketplace
     /**
      * Parse a paginated list response from the API
      * 
-     * @param array|null $response API response
+     * The API wraps list responses in: { "success": true, "data": { "items": [...], "total": int, "page": int, ... } }
+     * 
+     * @param array|null $response Full API response (with success/data envelope)
      * @return array Normalized result
      */
     protected function parseListResponse(?array $response): array
@@ -385,24 +387,39 @@ class Marketplace
             return ['items' => [], 'total' => 0, 'page' => 1, 'error' => 'Could not reach marketplace'];
         }
 
-        // The API may return items in 'data', 'items', or as a flat array directly
-        $items = $response['data'] ?? $response['items'] ?? null;
-        
-        // If neither 'data' nor 'items' exists, check if the response itself is a list of items
-        if ($items === null) {
-            // Check if response is a flat indexed array (list of items)
-            if (array_keys($response) === range(0, count($response) - 1)) {
-                $items = $response;
-            } else {
-                $items = [];
-            }
+        // Check for API-level error
+        if (empty($response['success']) && !empty($response['error'])) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'page' => 1,
+                'error' => $response['error'],
+            ];
         }
 
+        // Navigate into the 'data' envelope
+        $data = $response['data'] ?? null;
+
+        // If there's no data envelope, try the response as a flat list
+        if ($data === null) {
+            // Check if response is a flat indexed array (list of items)
+            if (array_keys($response) === range(0, count($response) - 1)) {
+                return [
+                    'items' => $response,
+                    'total' => count($response),
+                    'page' => 1,
+                    'per_page' => count($response),
+                ];
+            }
+            return ['items' => [], 'total' => 0, 'page' => 1, 'error' => 'Invalid response format'];
+        }
+
+        $items = $data['items'] ?? [];
         return [
             'items' => $items,
-            'total' => (int)($response['total'] ?? count($items)),
-            'page' => (int)($response['page'] ?? 1),
-            'per_page' => (int)($response['per_page'] ?? 20),
+            'total' => (int)($data['total'] ?? count($items)),
+            'page' => (int)($data['page'] ?? 1),
+            'per_page' => (int)($data['per_page'] ?? 20),
         ];
     }
 
