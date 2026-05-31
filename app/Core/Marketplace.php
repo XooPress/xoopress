@@ -16,7 +16,12 @@ class Marketplace
     /**
      * Marketplace API base URL
      */
-    protected string $apiBase = 'https://xmp.xoopress.org/v1';
+    protected string $apiBase = 'https://api.xoopress.org/v1';
+
+    /**
+     * Marketplace API key for authenticated requests (download tracking, etc.)
+     */
+    protected string $apiKey = '';
 
     /**
      * Cache TTL in seconds (1 hour)
@@ -42,7 +47,7 @@ class Marketplace
      * Constructor
      * 
      * @param Container|null $container Application container
-     * @param array $options Optional overrides ['api_base', 'cache_ttl', 'timeout']
+     * @param array $options Optional overrides ['api_base', 'api_key', 'cache_ttl', 'timeout']
      */
     public function __construct(?Container $container = null, array $options = [])
     {
@@ -50,6 +55,9 @@ class Marketplace
         
         if (!empty($options['api_base'])) {
             $this->apiBase = rtrim($options['api_base'], '/');
+        }
+        if (!empty($options['api_key'])) {
+            $this->apiKey = $options['api_key'];
         }
         if (isset($options['cache_ttl'])) {
             $this->cacheTtl = (int)$options['cache_ttl'];
@@ -162,6 +170,26 @@ class Marketplace
     }
 
     /**
+     * Build standard HTTP headers for API requests
+     * 
+     * @return array Header lines
+     */
+    protected function buildHeaders(): array
+    {
+        $headers = [
+            'User-Agent: XooPress-Marketplace/1.0',
+            'Accept: application/json',
+        ];
+
+        // Add API key for authenticated requests
+        if (!empty($this->apiKey)) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiKey;
+        }
+
+        return $headers;
+    }
+
+    /**
      * Make an HTTP GET request to the marketplace API
      * 
      * @param string $path API path (e.g., '/modules')
@@ -180,10 +208,7 @@ class Marketplace
                 'http' => [
                     'method' => 'GET',
                     'timeout' => $this->timeout,
-                    'header' => implode("\r\n", [
-                        'User-Agent: XooPress-Marketplace/1.0',
-                        'Accept: application/json',
-                    ]),
+                    'header' => implode("\r\n", $this->buildHeaders()),
                     'ignore_errors' => true,
                 ],
             ]);
@@ -209,6 +234,51 @@ class Marketplace
     }
 
     /**
+     * Make an HTTP POST request to the marketplace API
+     * 
+     * @param string $path API path (e.g., '/download')
+     * @param array $data POST data
+     * @return array|null Response data or null on failure
+     */
+    protected function apiPost(string $path, array $data = []): ?array
+    {
+        $url = $this->apiBase . '/' . ltrim($path, '/');
+
+        try {
+            $headers = $this->buildHeaders();
+            $headers[] = 'Content-Type: application/json';
+
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'timeout' => $this->timeout,
+                    'header' => implode("\r\n", $headers),
+                    'content' => json_encode($data),
+                    'ignore_errors' => true,
+                ],
+            ]);
+
+            $response = @file_get_contents($url, false, $context);
+            if ($response === false) {
+                $error = error_get_last();
+                $msg = $error['message'] ?? 'Unknown error';
+                error_log("Marketplace::apiPost({$path}) failed: {$msg}");
+                return null;
+            }
+
+            $parsed = json_decode($response, true);
+            if (!is_array($parsed)) {
+                error_log("Marketplace::apiPost({$path}) response was not JSON: " . substr($response, 0, 500));
+                return null;
+            }
+            return $parsed;
+        } catch (\Throwable $e) {
+            error_log("Marketplace::apiPost({$path}) exception: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Download a package (module or theme) from the marketplace
      * 
      * @param string $downloadUrl The download URL from the marketplace
@@ -220,11 +290,12 @@ class Marketplace
         $tmpFile = $tmpDir . '/xoopress_marketplace_' . uniqid() . '.zip';
 
         try {
+            $headers = $this->buildHeaders();
             $context = stream_context_create([
                 'http' => [
                     'method' => 'GET',
                     'timeout' => 30,
-                    'header' => "User-Agent: XooPress-Marketplace/1.0\r\n",
+                    'header' => implode("\r\n", $headers),
                     'ignore_errors' => true,
                 ],
             ]);
@@ -243,6 +314,19 @@ class Marketplace
             if (file_exists($tmpFile)) @unlink($tmpFile);
             return null;
         }
+    }
+
+    /**
+     * Record a download in the marketplace API (for tracking)
+     * 
+     * @param string $type 'module' or 'theme'
+     * @param string $slug Item slug
+     * @return bool Success
+     */
+    public function recordDownload(string $type, string $slug): bool
+    {
+        $result = $this->apiPost('/download/' . $type . '/' . rawurlencode($slug));
+        return $result !== null && !empty($result['success']);
     }
 
     /**

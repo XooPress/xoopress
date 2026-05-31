@@ -120,4 +120,16 @@ return [
         'path' => dirname(__DIR__) . '/modules',
         'enabled' => ['system', 'content'],
     ],
+
+    // Marketplace
+    // Configuration for the XooPress marketplace API integration.
+    // The CMS fetches module/theme listings from this API.
+    'marketplace' => [
+        'api_base' => 'https://api.xoopress.org/v1',
+        // API key for authenticated operations (download tracking, etc.)
+        // Generate a secure random key and set it on both the CMS and the API server.
+        'api_key' => '',
+        'cache_ttl' => 3600,    // Cache duration in seconds (1 hour)
+        'timeout' => 10,        // HTTP request timeout in seconds
+    ],
 ];

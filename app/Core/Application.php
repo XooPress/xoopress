@@ -173,9 +173,11 @@ class Application
             return new \XooPress\Core\DebugBar($container);
         });
 
-        // Phase 10a: Register marketplace service
+        // Phase 10a: Register marketplace service with config
         $this->container->singleton('marketplace', function ($container) {
-            return new \XooPress\Core\Marketplace($container);
+            $config = $container->get('config');
+            $marketplaceConfig = $config['marketplace'] ?? [];
+            return new \XooPress\Core\Marketplace($container, $marketplaceConfig);
         });
 
         // Phase 10c: Register translations service
