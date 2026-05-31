@@ -62,6 +62,8 @@
                             $itemSlug = $item['slug'] ?? $itemName;
                             $itemVersion = $item['version'] ?? '1.0.0';
                             $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '';
+                            $displayName = !empty($itemName) ? $itemName : $itemSlug;
+                            $displayDesc = !empty($itemDesc) ? $itemDesc : __('No description available.');
                         ?>
                         <div style="padding:12px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:12px;">
                             <?php if (!empty($item['icon'])): ?>
@@ -70,14 +72,12 @@
                             <div style="width:48px;height:48px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📦</div>
                             <?php endif; ?>
                             <div style="flex:1;">
-                                <strong><?= htmlspecialchars($itemName) ?></strong>
+                                <strong><?= htmlspecialchars($displayName) ?></strong>
                                 <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($itemVersion) ?></span>
                                 <?php if (!empty($itemAuthor)): ?>
                                 <span style="color:#aaa;font-size:0.75rem;"> &middot; <?= htmlspecialchars($itemAuthor) ?></span>
                                 <?php endif; ?>
-                                <?php if (!empty($itemDesc)): ?>
-                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($itemDesc, 0, 200)) ?></p>
-                                <?php endif; ?>
+                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($displayDesc, 0, 200)) ?></p>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
                                 <a href="/admin/marketplace/install/module/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
@@ -106,6 +106,8 @@
                             $itemSlug = $item['slug'] ?? $itemName;
                             $itemVersion = $item['version'] ?? '1.0.0';
                             $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '';
+                            $displayName = !empty($itemName) ? $itemName : $itemSlug;
+                            $displayDesc = !empty($itemDesc) ? $itemDesc : __('No description available.');
                         ?>
                         <div style="padding:12px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:12px;">
                             <?php if (!empty($item['screenshot'])): ?>
@@ -114,14 +116,12 @@
                             <div style="width:80px;height:48px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🎨</div>
                             <?php endif; ?>
                             <div style="flex:1;">
-                                <strong><?= htmlspecialchars($itemName) ?></strong>
+                                <strong><?= htmlspecialchars($displayName) ?></strong>
                                 <span style="color:#888;font-size:0.8rem;">v<?= htmlspecialchars($itemVersion) ?></span>
                                 <?php if (!empty($itemAuthor)): ?>
                                 <span style="color:#aaa;font-size:0.75rem;"> &middot; <?= htmlspecialchars($itemAuthor) ?></span>
                                 <?php endif; ?>
-                                <?php if (!empty($itemDesc)): ?>
-                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($itemDesc, 0, 200)) ?></p>
-                                <?php endif; ?>
+                                <p style="margin:2px 0 0;font-size:0.85rem;color:#666;"><?= htmlspecialchars(mb_substr($displayDesc, 0, 200)) ?></p>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
                                 <a href="/admin/marketplace/install/theme/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>

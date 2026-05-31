@@ -64,12 +64,14 @@
                             $itemSlug = $item['slug'] ?? $itemName;
                             $itemVersion = $item['version'] ?? '1.0.0';
                             $itemAuthor = $item['author'] ?? $item['author_name'] ?? $item['publisher'] ?? '—';
+                            $displayName = !empty($itemName) ? $itemName : $itemSlug;
+                            $displayDesc = !empty($itemDesc) ? $itemDesc : __('No description available.');
                         ?>
                         <tr>
-                            <td><strong><?= htmlspecialchars($itemName) ?></strong></td>
+                            <td><strong><?= htmlspecialchars($displayName) ?></strong></td>
                             <td><?= htmlspecialchars($itemVersion) ?></td>
                             <td><?= htmlspecialchars($itemAuthor) ?></td>
-                            <td><?= htmlspecialchars(mb_substr($itemDesc, 0, 150)) ?></td>
+                            <td><?= htmlspecialchars(mb_substr($displayDesc, 0, 150)) ?></td>
                             <td>
                                 <a href="/admin/marketplace/install/module/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
                                 <?php if (!empty($item['homepage'])): ?>
