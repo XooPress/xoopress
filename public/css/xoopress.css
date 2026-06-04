@@ -728,6 +728,64 @@ a:hover {
     box-shadow: 0 0 0 1px #0073aa;
 }
 
+/* Password Field Toggle */
+.password-field-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-field-wrapper input {
+    padding-right: 40px !important;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    transition: color 0.15s;
+    line-height: 0;
+}
+
+.password-toggle-btn:hover {
+    color: #333;
+}
+
+.password-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.password-toggle-btn .eye-open {
+    display: none;
+}
+
+.password-toggle-btn .eye-closed {
+    display: block;
+}
+
+.password-toggle-btn.password-visible .eye-open {
+    display: block;
+}
+
+.password-toggle-btn.password-visible .eye-closed {
+    display: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-layout {

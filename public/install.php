@@ -598,6 +598,7 @@ function getInstallSchema(string $prefix): array
         code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.85rem; word-break: break-all; }
         @media (max-width: 600px) { .installer-body,.installer-header,.installer-footer { padding: 20px; } .form-row { grid-template-columns: 1fr; } }
     </style>
+    <script src="/js/xoopress.js" defer></script>
 </head>
 <body>
     <div class="installer">
@@ -688,7 +689,20 @@ function getInstallSchema(string $prefix): array
                 </div>
                 <div class="form-group">
                     <label for="db_pass">Password</label>
-                    <input type="password" id="db_pass" name="db_pass" value="<?= htmlspecialchars($formData['db_pass'] ?? '') ?>">
+                    <div class="password-field-wrapper">
+                        <input type="password" id="db_pass" name="db_pass" value="<?= htmlspecialchars($formData['db_pass'] ?? '') ?>">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" aria-label="Show password">
+                            <svg class="eye-closed" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                            <svg class="eye-open" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="db_prefix">Table Prefix</label>
@@ -717,12 +731,38 @@ function getInstallSchema(string $prefix): array
                 <div class="form-row">
                     <div class="form-group">
                         <label for="admin_pass">Password</label>
-                        <input type="password" id="admin_pass" name="admin_pass" required minlength="8">
+                        <div class="password-field-wrapper">
+                            <input type="password" id="admin_pass" name="admin_pass" required minlength="8">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" aria-label="Show password">
+                                <svg class="eye-closed" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                                <svg class="eye-open" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
                         <div class="form-hint">At least 8 characters.</div>
                     </div>
                     <div class="form-group">
                         <label for="admin_pass_confirm">Confirm Password</label>
-                        <input type="password" id="admin_pass_confirm" name="admin_pass_confirm" required minlength="8">
+                        <div class="password-field-wrapper">
+                            <input type="password" id="admin_pass_confirm" name="admin_pass_confirm" required minlength="8">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" aria-label="Show password">
+                                <svg class="eye-closed" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                                <svg class="eye-open" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="installer-footer" style="padding:0;margin-top:25px;border:none;background:none;">
