@@ -16,17 +16,7 @@
 /** @var string $csrfToken */
 /** @var array $adminMenu */
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Staging - XooPress Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
-</head>
-<body>
-<?php include __DIR__ . '/_admin_header.php'; ?>
+<?php $pageTitle = 'Content Staging - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
 <div class="wrap">
     <h1>📦 Content Staging</h1>
     <p class="description">Stage content changes and generate preview links before publishing.</p>
@@ -143,7 +133,4 @@
     <?php endif; ?>
     <?php endif; ?>
 </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

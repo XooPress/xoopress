@@ -1,34 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Blocks - XooPress Admin</title>
-    <link rel="stylesheet" href="/css/xoopress.css">
-    <style>
-        .shortcode-copy { cursor: pointer; background:#f0f6fc; border:1px solid #c8def5; border-radius:3px; padding:3px 8px; font-family:monospace; font-size:0.85rem; color:#0073aa; }
-        .shortcode-copy:hover { background:#e0f0ff; }
-    </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php $menuUrl = $menuItem['url'] ?? ''; $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl); ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
+<?php $pageTitle = 'Blocks - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
+            <style>
+                .shortcode-copy { cursor: pointer; background:#f0f6fc; border:1px solid #c8def5; border-radius:3px; padding:3px 8px; font-family:monospace; font-size:0.85rem; color:#0073aa; }
+                .shortcode-copy:hover { background:#e0f0ff; }
+            </style>
             <header class="admin-header">
                 <h1>Content Blocks</h1>
                 <a href="/admin/blocks/new" class="btn btn-primary" style="font-size:0.85rem;padding:8px 16px;">+ New Block</a>
@@ -73,28 +47,24 @@
                     </tbody>
                 </table>
             </div>
-        </main>
-    </div>
-    <script>
-    function copyShortcode(el) {
-        const text = el.getAttribute('data-shortcode');
-        navigator.clipboard.writeText(text).then(() => {
-            const orig = el.textContent;
-            el.textContent = 'Copied!';
-            setTimeout(() => el.textContent = orig, 1500);
-        }).catch(() => {
-            // Fallback
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            const orig = el.textContent;
-            el.textContent = 'Copied!';
-            setTimeout(() => el.textContent = orig, 1500);
-        });
-    }
-    </script>
-</body>
-</html>
+            <script>
+            function copyShortcode(el) {
+                const text = el.getAttribute('data-shortcode');
+                navigator.clipboard.writeText(text).then(() => {
+                    const orig = el.textContent;
+                    el.textContent = 'Copied!';
+                    setTimeout(() => el.textContent = orig, 1500);
+                }).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    const orig = el.textContent;
+                    el.textContent = 'Copied!';
+                    setTimeout(() => el.textContent = orig, 1500);
+                });
+            }
+            </script>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

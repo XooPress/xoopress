@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Customizer - XooPress Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
+<?php $pageTitle = 'Theme Customizer - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
     <style>
         .customizer-layout { display:flex; gap:20px; align-items:flex-start; }
         .customizer-form { flex:1; max-width:700px; }
@@ -21,26 +14,6 @@
         .setting-row input[type="color"] { width:60px; height:40px; padding:2px; border:1px solid #ddd; border-radius:4px; cursor:pointer; }
         .setting-row input:focus { outline:none; border-color:#0073aa; }
     </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php $menuUrl = $menuItem['url'] ?? ''; $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl); ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
             <div class="admin-header">
                 <h1>Theme Customizer</h1>
                 <p style="color:#666;font-size:0.9rem;">Customize the appearance of your active theme: <?= htmlspecialchars($themeName ?? '') ?></p>
@@ -123,8 +96,6 @@
                     <p style="font-size:0.8rem;color:#888;margin-top:8px;">Save changes and refresh the preview to see updates.</p>
                 </div>
             </div>
-        </main>
-    </div>
     <script>
     // Auto-sync color picker with text input
     document.querySelectorAll('input[type="color"]').forEach(function(picker) {
@@ -137,5 +108,4 @@
         }
     });
     </script>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

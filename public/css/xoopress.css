@@ -422,6 +422,35 @@ a:hover {
     min-height: 100vh;
 }
 
+/* Hamburger toggle for mobile sidebar */
+.admin-sidebar-toggle {
+    display: none;
+    background: #23282d;
+    color: #fff;
+    border: none;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    line-height: 1;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    text-align: left;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-sidebar-toggle:hover {
+    background: #32373c;
+}
+
+.admin-sidebar-toggle .toggle-icon {
+    display: inline-block;
+    width: 22px;
+    text-align: center;
+}
+
 .admin-sidebar {
     width: 250px;
     background: #23282d;
@@ -462,10 +491,16 @@ a:hover {
     flex: 1;
     padding: 20px;
     background: #f1f1f1;
+    min-width: 0; /* prevent flex overflow */
 }
 
 .admin-header {
     margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .admin-header h1 {
@@ -786,34 +821,322 @@ a:hover {
     display: none;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ============================================
+   RESPONSIVE - Mobile-first responsive styles
+   ============================================ */
+
+/* Sidebar overlay (for mobile) */
+.admin-sidebar-overlay {
+    display: none;
+}
+
+/* Medium devices (tablets, 576px to 991px) — slide-in sidebar from left */
+@media (min-width: 576px) and (max-width: 991.98px) {
+    html {
+        font-size: 15.5px;
+    }
+
+    /* Hamburger toggle always visible on tablets */
+    .admin-sidebar-toggle {
+        display: flex;
+    }
+
+    /* Sidebar becomes a fixed overlay panel from the left */
+    .admin-layout {
+        flex-direction: row;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        display: block;
+        padding: 20px 0;
+        z-index: 99;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+
+    .admin-sidebar.open {
+        left: 0;
+    }
+
+    .admin-sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 98;
+    }
+
+    .admin-sidebar-overlay.open {
+        display: block;
+    }
+
+    .admin-content {
+        padding: 18px;
+        margin-left: 0;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-header {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .admin-search-bar input[type="search"] {
+        min-width: 150px;
+    }
+
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    [style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+/* Small devices (phones, less than 576px) — full-width stacked sidebar */
+@media (max-width: 575.98px) {
+    html {
+        font-size: 15px;
+    }
+
+    .admin-sidebar-toggle {
+        display: flex;
+    }
+
     .admin-layout {
         flex-direction: column;
+        position: relative;
     }
-    
+
     .admin-sidebar {
         width: 100%;
+        display: none;
+        padding: 10px 0;
     }
-    
-    .features {
+
+    .admin-sidebar.open {
+        display: block;
+    }
+
+    .admin-sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 98;
+    }
+
+    .admin-sidebar-overlay.open {
+        display: block;
+    }
+
+    .admin-content {
+        padding: 15px;
+    }
+
+    .admin-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .admin-stats {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
-    
-    .hero h2 {
-        font-size: 1.8rem;
+
+    .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    .admin-table th {
+        font-size: 0.78rem;
+    }
+
+    .admin-form-container {
+        padding: 15px;
+        max-width: 100%;
     }
 
     .admin-search-bar input[type="search"] {
         min-width: 100%;
     }
 
+    .admin-search-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-search-bar select {
+        width: 100%;
+    }
+
     .admin-pagination {
         flex-direction: column;
         align-items: center;
+        text-align: center;
     }
 
     .admin-bulk-actions {
         flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .admin-bulk-actions select {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+    }
+
+    .hero h2 {
+        font-size: 1.5rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .hero {
+        padding: 30px 15px;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-header a.btn,
+    .admin-header div {
+        width: 100%;
+    }
+
+    .admin-header a.btn {
+        text-align: center;
+    }
+
+    /* Card-based table on very small screens */
+    .admin-table {
+        font-size: 0.85rem;
+    }
+
+    .admin-nav a {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+
+    /* Theme cards */
+    .theme-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .theme-card-body {
+        padding: 12px;
+    }
+
+    .theme-screenshot {
+        height: 120px;
+    }
+
+    .theme-actions {
+        flex-direction: column;
+    }
+
+    .theme-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Settings form */
+    .admin-form-container form .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Post editor */
+    .editor-tabs {
+        flex-wrap: wrap;
+    }
+
+    .editor-tab {
+        flex: 1;
+        min-width: 60px;
+        text-align: center;
+        font-size: 0.8rem;
+        padding: 8px 10px;
+    }
+
+    .editor-toolbar {
+        padding: 6px 8px;
+    }
+
+    .editor-toolbar button {
+        padding: 4px 8px;
+        font-size: 0.78rem;
+    }
+
+    .editor-panel textarea,
+    .editor-panel .wysiwyg-editor {
+        min-height: 250px;
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    .preview-toggle button {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+    }
+
+    [style*="display:grid"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    [style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Table container on mobile doesn't need overflow if we do stacked */
+    .admin-table-container {
+        overflow-x: auto;
+    }
+}
+
+/* Large screens (992px+) — sidebar always visible on left */
+@media (min-width: 992px) {
+    .admin-sidebar-toggle {
+        display: none;
+    }
+
+    .admin-sidebar-overlay {
+        display: none !important;
     }
 }

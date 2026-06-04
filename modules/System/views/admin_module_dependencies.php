@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= __('Module Dependencies') ?> - <?= __('XooPress Admin') ?></title>
-    <link rel="stylesheet" href="/css/xoopress.css">
+<?php $pageTitle = 'Module Dependencies - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
     <style>
         .dep-tree { list-style:none; padding-left:0; margin:0; }
         .dep-tree ul { list-style:none; padding-left:24px; margin:8px 0; border-left:2px solid #e0e0e0; }
@@ -22,29 +16,6 @@
         .badge-orange { background:#fff3e0; color:#e65100; }
         .badge-gray { background:#f5f5f5; color:#757575; }
     </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php
-                    $menuUrl = $menuItem['url'] ?? '';
-                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
-                ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/"><?= __('View Site') ?></a></li>
-                <li><a href="/logout"><?= __('Logout') ?></a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
             <div class="admin-header">
                 <h2><?= __('Dependencies') ?>: <?= htmlspecialchars(is_array($module) ? (is_array($module['definition'] ?? null) ? ($module['definition']['name'] ?? $module['name']) : $module['name']) : (is_string($module) ? $module : 'Unknown')) ?></h2>
                 <a href="/admin/modules" class="btn btn-secondary btn-sm"><?= __('Back to Modules') ?></a>
@@ -128,7 +99,4 @@
                     <?php endif; ?>
                 </div>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

@@ -1,30 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $isNew ? 'New' : 'Edit' ?> Block - XooPress Admin</title>
-    <link rel="stylesheet" href="/css/xoopress.css">
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php $menuUrl = $menuItem['url'] ?? ''; $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl); ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
+<?php $pageTitle = 'Edit Block - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
             <header class="admin-header">
                 <h1><?= $isNew ? 'New Content Block' : 'Edit Content Block' ?></h1>
                 <a href="/admin/blocks" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px;">← All Blocks</a>
@@ -83,20 +57,16 @@
                 <div style="color:#888;font-size:0.85rem;margin-top:5px;">Copy this shortcode into any post's content to display this block.</div>
             </div>
             <?php endif; ?>
-        </main>
-    </div>
-
-    <script>
-        document.getElementById('title').addEventListener('blur', function() {
-            const slug = document.getElementById('slug');
-            if (!slug.value) {
-                slug.value = this.value
-                    .toLowerCase()
-                    .replace(/[^\w\s-]/g, '')
-                    .replace(/[\s_]+/g, '-')
-                    .replace(/^-+|-+$/g, '') || 'untitled';
-            }
-        });
-    </script>
-</body>
-</html>
+            <script>
+                document.getElementById('title').addEventListener('blur', function() {
+                    const slug = document.getElementById('slug');
+                    if (!slug.value) {
+                        slug.value = this.value
+                            .toLowerCase()
+                            .replace(/[^\w\s-]/g, '')
+                            .replace(/[\s_]+/g, '-')
+                            .replace(/^-+|-+$/g, '') || 'untitled';
+                    }
+                });
+            </script>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

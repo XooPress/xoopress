@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menus - XooPress Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
+<?php $pageTitle = 'Menus - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
     <style>
         .menus-layout { display:flex; gap:20px; align-items:flex-start; }
         .menus-list { width:280px; flex-shrink:0; }
@@ -22,26 +15,6 @@
         .add-item-form input, .add-item-form select { padding:6px 10px; border:1px solid #ddd; border-radius:3px; font-size:0.85rem; }
         .add-item-form input[type="text"] { flex:1; min-width:120px; }
     </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php $menuUrl = $menuItem['url'] ?? ''; $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl); ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
             <div class="admin-header"><h1>Menus</h1></div>
             <?php include __DIR__ . '/_notices.php'; ?>
             <div class="menus-layout">
@@ -135,7 +108,4 @@
                 </div>
                 <?php endif; ?>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

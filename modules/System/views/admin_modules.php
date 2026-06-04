@@ -1,37 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= __('Module Management') ?> - <?= __('XooPress Admin') ?></title>
-    <link rel="stylesheet" href="/css/xoopress.css">
-    <style>
-        .update-badge { display:inline-block; background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:10px; padding:1px 8px; font-size:0.75rem; font-weight:600; margin-left:4px; }
-        .v-divider { width:1px; height:16px; background:#ccc; display:inline-block; vertical-align:middle; margin:0 4px; }
-    </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php
-                    $menuUrl = $menuItem['url'] ?? '';
-                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
-                ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/"><?= __('View Site') ?></a></li>
-                <li><a href="/logout"><?= __('Logout') ?></a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
+<?php $pageTitle = 'Modules - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
+            <style>
+                .update-badge { display:inline-block; background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:10px; padding:1px 8px; font-size:0.75rem; font-weight:600; margin-left:4px; }
+                .v-divider { width:1px; height:16px; background:#ccc; display:inline-block; vertical-align:middle; margin:0 4px; }
+            </style>
             <div class="admin-header">
                 <h2><?= __('Module Management') ?></h2>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -73,7 +44,7 @@
                         $isInstalled = $module['installed'] ?? false;
                         $isActive = $module['active'] ?? false;
                         $name = $module['name'];
-                        
+
                         if ($isInstalled && $isActive):
                             $statusClass = 'status-active';
                             $statusText = __('Active');
@@ -84,16 +55,14 @@
                             $statusClass = 'status-not-installed';
                             $statusText = __('Not Installed');
                         endif;
-                        
-                        // Check for version upgrade
+
                         $hasUpgrade = false;
                         if ($isInstalled) {
                             $installedVer = $module['version_db'] ?? null;
                             $availableVer = $def['version'] ?? null;
                             $hasUpgrade = ($installedVer && $availableVer && version_compare($availableVer, $installedVer, '>'));
                         }
-                        
-                        // Count dependencies
+
                         $depCount = count($def['dependencies'] ?? []);
                     ?>
                     <tr>
@@ -125,15 +94,11 @@
                                     <a href="/admin/modules/activate/<?= urlencode($name) ?>" class="btn btn-sm btn-success"><?= __('Activate') ?></a>
                                     <a href="/admin/modules/uninstall/<?= urlencode($name) ?>" class="btn btn-sm btn-danger" onclick="return confirm('<?= __('Uninstall this module? This will drop its database tables.') ?>')"><?= __('Uninstall') ?></a>
                                 <?php endif; ?>
-                                <!-- Phase 4: Dependencies -->
                                 <a href="/admin/modules/dependencies/<?= urlencode($name) ?>" class="btn btn-sm btn-secondary"><?= __('Deps') ?></a>
-                                <!-- Phase 4: Config -->
                                 <a href="/admin/modules/config/<?= urlencode($name) ?>" class="btn btn-sm btn-secondary"><?= __('Config') ?></a>
-                                <!-- Phase 4: Upgrade -->
                                 <?php if ($hasUpgrade): ?>
                                     <a href="/admin/modules/upgrade/<?= urlencode($name) ?>" class="btn btn-sm btn-warning" onclick="return confirm('<?= __('Upgrade this module?') ?>')"><?= __('Upgrade') ?> <span class="update-badge"><?= $def['version'] ?></span></a>
                                 <?php endif; ?>
-                                <!-- Phase 4: Export -->
                                 <?php if ($isInstalled): ?>
                                 <a href="/admin/modules/export/<?= urlencode($name) ?>" class="btn btn-sm btn-secondary"><?= __('Export') ?></a>
                                 <?php endif; ?>
@@ -145,7 +110,6 @@
                 </tbody>
             </table>
 
-            <!-- Phase 4: Clone Module -->
             <div style="margin-top:30px;padding:20px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;">
                 <h3><?= __('Clone Module') ?></h3>
                 <form method="POST" action="/admin/modules/clone" class="admin-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
@@ -166,7 +130,4 @@
                     <button type="submit" class="btn btn-primary"><?= __('Clone Module') ?></button>
                 </form>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

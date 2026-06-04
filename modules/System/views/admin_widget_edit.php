@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Widget - XooPress Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
+<?php $pageTitle = 'Edit Widget - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
     <style>
         .widget-edit-form { max-width:600px; background:#fff; padding:25px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
         .widget-edit-form .form-group { margin-bottom:15px; }
@@ -14,26 +7,6 @@
         .widget-edit-form textarea { min-height:150px; font-family:monospace; }
         .widget-edit-form input:focus, .widget-edit-form textarea:focus { outline:none; border-color:#0073aa; }
     </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php $menuUrl = $menuItem['url'] ?? ''; $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl); ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
             <div class="admin-header">
                 <h1>Edit Widget</h1>
                 <a href="/admin/widgets" class="btn btn-secondary btn-sm">← Back to Widgets</a>
@@ -68,7 +41,4 @@
                     <button type="submit" class="btn btn-primary">Save Widget</button>
                 </form>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

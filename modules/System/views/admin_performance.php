@@ -12,98 +12,67 @@
 /** @var array $suggestions Performance suggestions */
 /** @var array $adminMenu Admin menu links */
 /** @var string $csrfToken CSRF token */
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance Dashboard - XooPress Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
-    <link rel="shortcut icon" href="/images/xp-favicon.ico">
-    <link rel="stylesheet" href="/css/xoopress.css">
-    <style>
-        :root {
-            --xp-primary: #2271b1;
-            --xp-success: #46b450;
-            --xp-warning: #ffb900;
-            --xp-error: #dc3232;
-            --xp-bg: #f0f0f1;
-            --xp-card-bg: #ffffff;
-            --xp-border: #c3c4c7;
-            --xp-text: #3c434a;
-            --xp-text-light: #646970;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--xp-bg); color: var(--xp-text); }
-        .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        h1 { font-size: 23px; font-weight: 400; margin: 0 0 20px; padding: 9px 0 4px; line-height: 1.3; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: var(--xp-card-bg); border: 1px solid var(--xp-border); border-radius: 4px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .stat-card h3 { font-size: 12px; text-transform: uppercase; color: var(--xp-text-light); margin-bottom: 8px; letter-spacing: 1px; }
-        .stat-card .value { font-size: 28px; font-weight: 600; color: var(--xp-primary); }
-        .stat-card .sub { font-size: 13px; color: var(--xp-text-light); margin-top: 4px; }
-        .stat-card.success .value { color: var(--xp-success); }
-        .stat-card.warning .value { color: var(--xp-warning); }
-        .stat-card.error .value { color: var(--xp-error); }
-        .section { background: var(--xp-card-bg); border: 1px solid var(--xp-border); border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .section-header { padding: 12px 16px; border-bottom: 1px solid var(--xp-border); font-size: 14px; font-weight: 600; }
-        .section-body { padding: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--xp-border); font-size: 13px; }
-        th { font-weight: 600; color: var(--xp-text-light); }
-        .query-sql { font-family: monospace; font-size: 12px; word-break: break-all; max-width: 500px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-        .badge-success { background: #ecf7ed; color: #38903c; }
-        .badge-warning { background: #fef8ee; color: #996b00; }
-        .badge-error { background: #fbeaea; color: #b32d2e; }
-        .badge-info { background: #e5f0fa; color: #1d6cb0; }
-        .suggestion-card { padding: 12px 16px; border-left: 4px solid var(--xp-primary); margin-bottom: 8px; background: #f6f7f7; }
-        .suggestion-card.critical { border-left-color: var(--xp-error); }
-        .suggestion-card.warning { border-left-color: var(--xp-warning); }
-        .suggestion-card.info { border-left-color: var(--xp-primary); }
-        .suggestion-card .msg { font-size: 13px; }
-        .suggestion-card .action { font-size: 12px; color: var(--xp-text-light); margin-top: 4px; font-family: monospace; }
-        .severity-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-        .severity-critical { background: var(--xp-error); }
-        .severity-warning { background: var(--xp-warning); }
-        .severity-info { background: var(--xp-primary); }
-        .inline-code { background: #f0f0f1; padding: 1px 4px; border-radius: 2px; font-family: monospace; font-size: 12px; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .progress-bar { height: 8px; background: #f0f0f1; border-radius: 4px; margin-top: 8px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
-        .progress-green { background: var(--xp-success); }
-        .progress-yellow { background: var(--xp-warning); }
-        .progress-red { background: var(--xp-error); }
-        .empty-state { text-align: center; padding: 40px; color: var(--xp-text-light); }
-        .empty-state p { font-size: 14px; margin-top: 8px; }
-        .action-btn { display: inline-block; padding: 6px 14px; background: var(--xp-primary); color: #fff; border-radius: 3px; text-decoration: none; font-size: 13px; border: none; cursor: pointer; }
-        .action-btn:hover { opacity: 0.9; }
-        .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-    </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php
-                    $menuUrl = $menuItem['url'] ?? '';
-                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
-                ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/">View Site</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
+
+$pageTitle = 'Performance - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
+            <style>
+                :root {
+                    --xp-primary: #2271b1;
+                    --xp-success: #46b450;
+                    --xp-warning: #ffb900;
+                    --xp-error: #dc3232;
+                    --xp-bg: #f0f0f1;
+                    --xp-card-bg: #ffffff;
+                    --xp-border: #c3c4c7;
+                    --xp-text: #3c434a;
+                    --xp-text-light: #646970;
+                }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--xp-bg); color: var(--xp-text); }
+                .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+                h1 { font-size: 23px; font-weight: 400; margin: 0 0 20px; padding: 9px 0 4px; line-height: 1.3; }
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+                .stat-card { background: var(--xp-card-bg); border: 1px solid var(--xp-border); border-radius: 4px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+                .stat-card h3 { font-size: 12px; text-transform: uppercase; color: var(--xp-text-light); margin-bottom: 8px; letter-spacing: 1px; }
+                .stat-card .value { font-size: 28px; font-weight: 600; color: var(--xp-primary); }
+                .stat-card .sub { font-size: 13px; color: var(--xp-text-light); margin-top: 4px; }
+                .stat-card.success .value { color: var(--xp-success); }
+                .stat-card.warning .value { color: var(--xp-warning); }
+                .stat-card.error .value { color: var(--xp-error); }
+                .section { background: var(--xp-card-bg); border: 1px solid var(--xp-border); border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+                .section-header { padding: 12px 16px; border-bottom: 1px solid var(--xp-border); font-size: 14px; font-weight: 600; }
+                .section-body { padding: 16px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--xp-border); font-size: 13px; }
+                th { font-weight: 600; color: var(--xp-text-light); }
+                .query-sql { font-family: monospace; font-size: 12px; word-break: break-all; max-width: 500px; }
+                .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+                .badge-success { background: #ecf7ed; color: #38903c; }
+                .badge-warning { background: #fef8ee; color: #996b00; }
+                .badge-error { background: #fbeaea; color: #b32d2e; }
+                .badge-info { background: #e5f0fa; color: #1d6cb0; }
+                .suggestion-card { padding: 12px 16px; border-left: 4px solid var(--xp-primary); margin-bottom: 8px; background: #f6f7f7; }
+                .suggestion-card.critical { border-left-color: var(--xp-error); }
+                .suggestion-card.warning { border-left-color: var(--xp-warning); }
+                .suggestion-card.info { border-left-color: var(--xp-primary); }
+                .suggestion-card .msg { font-size: 13px; }
+                .suggestion-card .action { font-size: 12px; color: var(--xp-text-light); margin-top: 4px; font-family: monospace; }
+                .severity-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+                .severity-critical { background: var(--xp-error); }
+                .severity-warning { background: var(--xp-warning); }
+                .severity-info { background: var(--xp-primary); }
+                .inline-code { background: #f0f0f1; padding: 1px 4px; border-radius: 2px; font-family: monospace; font-size: 12px; }
+                .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                .progress-bar { height: 8px; background: #f0f0f1; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+                .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+                .progress-green { background: var(--xp-success); }
+                .progress-yellow { background: var(--xp-warning); }
+                .progress-red { background: var(--xp-error); }
+                .empty-state { text-align: center; padding: 40px; color: var(--xp-text-light); }
+                .empty-state p { font-size: 14px; margin-top: 8px; }
+                .action-btn { display: inline-block; padding: 6px 14px; background: var(--xp-primary); color: #fff; border-radius: 3px; text-decoration: none; font-size: 13px; border: none; cursor: pointer; }
+                .action-btn:hover { opacity: 0.9; }
+                .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+            </style>
             <header class="admin-header">
                 <h1>⚡ Performance Dashboard</h1>
             </header>
@@ -334,7 +303,4 @@
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= __('Edit Translations') ?> - <?= __('XooPress Admin') ?></title>
-    <link rel="stylesheet" href="/css/xoopress.css">
+<?php $pageTitle = 'Edit Translation - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
     <style>
         .trans-row { display:flex; gap:15px; padding:10px 0; border-bottom:1px solid #f0f0f0; align-items:flex-start; }
         .trans-row .source { flex:1; font-size:0.9rem; color:#333; padding-top:6px; }
@@ -13,29 +7,6 @@
         .translation-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
         .locale-badge { display:inline-block; padding:4px 12px; background:#e8f0fe; border-radius:12px; font-size:0.85rem; font-weight:600; }
     </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php
-                    $menuUrl = $menuItem['url'] ?? '';
-                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
-                ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/"><?= __('View Site') ?></a></li>
-                <li><a href="/logout"><?= __('Logout') ?></a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
             <div class="admin-header">
                 <h2><?= __('Edit Translations') ?>: <span class="locale-badge"><?= htmlspecialchars($locale) ?></span></h2>
                 <a href="/admin/translations" class="btn btn-sm btn-secondary">← <?= __('Back to Translations') ?></a>
@@ -98,7 +69,4 @@
                     </div>
                 </form>
             <?php endif; ?>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>

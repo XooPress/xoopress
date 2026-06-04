@@ -1,110 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= __('Theme Management') ?> - <?= __('XooPress Admin') ?></title>
-    <link rel="stylesheet" href="/css/xoopress.css">
-    <style>
-        .theme-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            padding: 20px 0;
-        }
-        .theme-card {
-            background: #fff;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: border-color 0.2s;
-        }
-        .theme-card.active {
-            border-color: #0073aa;
-        }
-        .theme-card.active .theme-card-header {
-            background: #0073aa;
-            color: #fff;
-        }
-        .theme-card-header {
-            background: #f5f5f5;
-            padding: 12px 15px;
-            font-weight: bold;
-            font-size: 1rem;
-        }
-        .theme-card-body {
-            padding: 15px;
-        }
-        .theme-screenshot {
-            width: 100%;
-            height: 160px;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-            overflow: hidden;
-        }
-        .theme-screenshot img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .theme-meta {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 8px;
-        }
-        .theme-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-        .child-badge {
-            display: inline-block;
-            background: #ffc107;
-            color: #333;
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 3px;
-            margin-left: 6px;
-        }
-        .parent-badge {
-            display: inline-block;
-            background: #17a2b8;
-            color: #fff;
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 3px;
-            margin-left: 6px;
-        }
-    </style>
-</head>
-<body class="admin-page">
-    <div class="admin-layout">
-        <nav class="admin-sidebar">
-            <div class="admin-brand">
-                <img src="/images/xp-logo.svg" alt="XooPress" style="height:32px;vertical-align:middle;margin-right:8px;">
-                <span style="font-size:1.1rem;font-weight:700;">XooPress</span>
-            </div>
-            <ul class="admin-nav">
-                <?php if (!empty($adminMenu)): ?>
-                <?php foreach ($adminMenu as $menuItem): ?>
-                <?php
-                    $menuUrl = $menuItem['url'] ?? '';
-                    $isActive = (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === $menuUrl);
-                ?>
-                <li><a href="<?= htmlspecialchars($menuUrl) ?>"<?= $isActive ? ' class="active"' : '' ?>><?= htmlspecialchars($menuItem['label'] ?? '') ?></a></li>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <li><a href="/"><?= __('View Site') ?></a></li>
-                <li><a href="/logout"><?= __('Logout') ?></a></li>
-            </ul>
-        </nav>
-        <main class="admin-content">
+<?php $pageTitle = 'Themes - XooPress Admin'; include __DIR__ . '/_admin_header.php'; ?>
+            <style>
+                .theme-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 20px;
+                    padding: 20px 0;
+                }
+                .theme-card {
+                    background: #fff;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    transition: border-color 0.2s;
+                }
+                .theme-card.active {
+                    border-color: #0073aa;
+                }
+                .theme-card.active .theme-card-header {
+                    background: #0073aa;
+                    color: #fff;
+                }
+                .theme-card-header {
+                    background: #f5f5f5;
+                    padding: 12px 15px;
+                    font-weight: bold;
+                    font-size: 1rem;
+                }
+                .theme-card-body {
+                    padding: 15px;
+                }
+                .theme-screenshot {
+                    width: 100%;
+                    height: 160px;
+                    background: #f0f0f0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #aaa;
+                    font-size: 0.85rem;
+                    margin-bottom: 12px;
+                    overflow: hidden;
+                }
+                .theme-screenshot img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                .theme-meta {
+                    font-size: 0.85rem;
+                    color: #888;
+                    margin-bottom: 8px;
+                }
+                .theme-actions {
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    margin-top: 12px;
+                }
+                .child-badge {
+                    display: inline-block;
+                    background: #ffc107;
+                    color: #333;
+                    font-size: 0.75rem;
+                    padding: 2px 8px;
+                    border-radius: 3px;
+                    margin-left: 6px;
+                }
+                .parent-badge {
+                    display: inline-block;
+                    background: #17a2b8;
+                    color: #fff;
+                    font-size: 0.75rem;
+                    padding: 2px 8px;
+                    border-radius: 3px;
+                    margin-left: 6px;
+                }
+            </style>
             <div class="admin-header">
                 <h2><?= __('Theme Management') ?></h2>
                 <div style="display:flex;gap:10px;align-items:center;">
@@ -176,7 +147,4 @@
                 <?php endforeach; ?>
                 <?php endif; ?>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php include __DIR__ . '/_admin_footer.php'; ?>
