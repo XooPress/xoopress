@@ -596,6 +596,18 @@ function getInstallSchema(string $prefix): array
         .progress-bar { background: #e0e0e0; border-radius: 10px; height: 6px; margin-bottom: 25px; overflow: hidden; }
         .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #0073aa, #46b450); border-radius: 10px; transition: width 0.5s ease; }
         code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.85rem; word-break: break-all; }
+        .password-field-wrapper { position: relative; }
+        .password-toggle-btn {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; padding: 4px;
+            color: #999; display: flex; align-items: center;
+        }
+        .password-toggle-btn:hover { color: #333; }
+        .password-toggle-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .password-toggle-btn .eye-open { display: none; }
+        .password-toggle-btn .eye-closed { display: block; }
+        .password-toggle-btn.password-visible .eye-open { display: block; }
+        .password-toggle-btn.password-visible .eye-closed { display: none; }
         @media (max-width: 600px) { .installer-body,.installer-header,.installer-footer { padding: 20px; } .form-row { grid-template-columns: 1fr; } }
     </style>
     <script src="/js/xoopress.js" defer></script>
