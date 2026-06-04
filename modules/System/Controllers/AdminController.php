@@ -460,6 +460,7 @@ class AdminController extends Controller
 
     public function categoryDelete(int $id): void
     {
+        $this->requireAdmin();
         if ($this->categoryModel) {
             try { $this->categoryModel->delete($id); } catch (\Throwable $e) {}
         }
@@ -501,6 +502,7 @@ class AdminController extends Controller
 
     public function userSave(): void
     {
+        $this->requireAdmin();
         $this->requireCsrfToken('/admin/users');
         $data = $this->all();
         if (empty($data['username']) || empty($data['email'])) {
@@ -539,6 +541,7 @@ class AdminController extends Controller
 
     public function userDelete(int $id): void
     {
+        $this->requireAdmin();
         if ($this->userModel) {
             try { $this->userModel->delete($id); } catch (\Throwable $e) {}
         }
@@ -582,6 +585,7 @@ class AdminController extends Controller
 
     public function themeDelete(string $name): void
     {
+        $this->requireAdmin();
         $redirect = '/admin/themes';
         if ($this->container->has('theme')) {
             $themeManager = $this->container->get('theme');
@@ -916,6 +920,7 @@ class AdminController extends Controller
 
     public function widgetDelete(int $id): void
     {
+        $this->requireAdmin();
         if ($this->container->has('theme')) {
             $theme = $this->container->get('theme');
             $theme->deleteWidget($id);
@@ -974,6 +979,7 @@ class AdminController extends Controller
 
     public function menuDelete(int $id): void
     {
+        $this->requireAdmin();
         if ($this->container->has('theme')) {
             $theme = $this->container->get('theme');
             $theme->deleteNavMenu($id);
@@ -1006,6 +1012,7 @@ class AdminController extends Controller
 
     public function menuDeleteItem(int $id): void
     {
+        $this->requireAdmin();
         if ($this->container->has('theme')) {
             $theme = $this->container->get('theme');
             $theme->deleteNavMenuItem($id);
@@ -1075,6 +1082,7 @@ class AdminController extends Controller
 
     public function themeCustomizeReset(): void
     {
+        $this->requireAdmin();
         if ($this->container->has('theme')) {
             $theme = $this->container->get('theme');
             $active = $theme->getActiveTheme();
@@ -2300,6 +2308,10 @@ class AdminController extends Controller
     {
         $this->requireAuthorOrEditor();
         
+        if (!$this->requireCsrfToken()) {
+            return;
+        }
+        
         if ($this->container->has('content.revision')) {
             try {
                 $this->container->get('content.revision')->delete($revisionId);
@@ -2418,6 +2430,10 @@ class AdminController extends Controller
     public function blockDelete(int $id): void
     {
         $this->requireAdmin();
+        
+        if (!$this->requireCsrfToken()) {
+            return;
+        }
         
         if ($this->container->has('content.block')) {
             try {
