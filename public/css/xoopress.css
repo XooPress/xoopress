@@ -905,7 +905,7 @@ a:hover {
     }
 }
 
-/* Small devices (phones, less than 576px) — full-width stacked sidebar */
+/* Small devices (phones, less than 576px) — slide-in sidebar from left */
 @media (max-width: 575.98px) {
     html {
         font-size: 15px;
@@ -921,13 +921,20 @@ a:hover {
     }
 
     .admin-sidebar {
-        width: 100%;
-        display: none;
-        padding: 10px 0;
+        width: 260px;
+        display: block;
+        padding: 20px 0;
+        position: fixed;
+        top: 0;
+        left: -280px;
+        height: 100vh;
+        z-index: 99;
+        transition: left 0.3s ease;
+        overflow-y: auto;
     }
 
     .admin-sidebar.open {
-        display: block;
+        left: 0;
     }
 
     .admin-sidebar-overlay {
