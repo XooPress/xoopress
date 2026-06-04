@@ -532,6 +532,7 @@ class AdminController extends Controller
                     if (!empty($data['password'])) {
                         $this->userModel->updatePassword((int)$data['id'], $data['password']);
                     }
+                    unset($userData['password']);
                     $this->userModel->update((int)$data['id'], $userData);
                 }
             } catch (\Throwable $e) {}
