@@ -34,16 +34,8 @@ function closeAdminSidebar() {
     if (overlay) overlay.classList.remove('open');
 }
 
-// Close sidebar when clicking a nav link on mobile
+// Close sidebar when clicking overlay
 document.addEventListener('DOMContentLoaded', function() {
-    var sidebarLinks = document.querySelectorAll('.admin-nav a');
-    sidebarLinks.forEach(function(link) {
-        link.addEventListener('click', function() {
-            closeAdminSidebar();
-        });
-    });
-
-    // Close sidebar when clicking overlay
     var overlay = document.querySelector('.admin-sidebar-overlay');
     if (overlay) {
         overlay.addEventListener('click', function() {
