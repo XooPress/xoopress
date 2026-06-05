@@ -40,7 +40,7 @@
                 <div class="form-group">
                     <label for="password"><?= __('Password') ?></label>
                     <div class="password-field-wrapper">
-                        <input type="password" id="password" name="password" required minlength="8">
+                        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" aria-label="Show password">
                             <svg class="eye-closed" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
@@ -53,6 +53,19 @@
                             </svg>
                         </button>
                     </div>
+                    <!-- Password Strength Bar -->
+                    <div class="password-strength-container">
+                        <div class="password-strength-track">
+                            <div id="password-strength-bar" class="password-strength-bar"></div>
+                        </div>
+                        <span id="password-strength-text" class="password-strength-label"></span>
+                    </div>
+                    <!-- Requirements Checklist -->
+                    <ul class="password-requirements">
+                        <li><span id="req-length" class="req-unmet">&#10007;</span> <?= __('At least 8 characters') ?></li>
+                        <li><span id="req-upper" class="req-unmet">&#10007;</span> <?= __('At least 1 uppercase letter') ?></li>
+                        <li><span id="req-special" class="req-unmet">&#10007;</span> <?= __('At least 1 special character') ?></li>
+                    </ul>
                 </div>
                 <div class="form-group">
                     <label for="password_confirm"><?= __('Confirm Password') ?></label>

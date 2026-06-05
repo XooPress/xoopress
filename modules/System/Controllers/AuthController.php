@@ -275,6 +275,12 @@ class AuthController extends Controller
         if (empty($password) || strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
         }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = 'Password must contain at least one uppercase letter.';
+        }
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            $errors[] = 'Password must contain at least one special character.';
+        }
         if ($password !== $passwordConfirm) {
             $errors[] = 'Passwords do not match.';
         }
