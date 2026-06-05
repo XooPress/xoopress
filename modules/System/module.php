@@ -77,9 +77,14 @@ return [
             'order' => 12,
         ],
         [
+            'label' => 'Security',
+            'url' => '/admin/twofa/setup',
+            'order' => 13,
+        ],
+        [
             'label' => 'Webhooks',
             'url' => '/admin/webhooks',
-            'order' => 13,
+            'order' => 14,
         ],
         [
             'label' => 'Workflow',

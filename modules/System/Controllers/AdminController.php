@@ -1109,7 +1109,7 @@ class AdminController extends Controller
             try {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();
-                $rows = $db->select("SELECT `key`, `value` FROM {$prefix}settings WHERE `key` IN ('site_name', 'site_description', 'site_url')");
+                $rows = $db->select("SELECT `key`, `value` FROM {$prefix}settings WHERE `key` IN ('site_name', 'site_description', 'site_url', 'enforce_twofa', 'enforce_twofa_editors', 'twofa_issuer')");
                 foreach ($rows as $row) { $settings[$row['key']] = $row['value']; }
             } catch (\Throwable $e) { error_log("Failed to load settings: " . $e->getMessage()); }
         }
@@ -1130,7 +1130,7 @@ class AdminController extends Controller
             try {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();
-                $keys = ['site_name', 'site_description', 'site_url'];
+                $keys = ['site_name', 'site_description', 'site_url', 'enforce_twofa', 'enforce_twofa_editors', 'twofa_issuer'];
                 foreach ($keys as $key) {
                     if (isset($data[$key])) {
                         $existing = $db->selectOne("SELECT id FROM {$prefix}settings WHERE `key` = ?", [$key]);
@@ -1165,6 +1165,19 @@ class AdminController extends Controller
         
         $isEnabled = !empty($user['twofa_enabled']) && !empty($user['twofa_secret']);
         
+        // Load configured issuer from settings
+        $issuer = 'XooPress';
+        if ($this->container->has('database')) {
+            try {
+                $db = $this->container->get('database');
+                $prefix = $db->getPrefix();
+                $setting = $db->selectOne("SELECT `value` FROM {$prefix}settings WHERE `key` = ?", ['twofa_issuer']);
+                if ($setting && !empty($setting['value'])) {
+                    $issuer = $setting['value'];
+                }
+            } catch (\Throwable $e) {}
+        }
+        
         $qrCodeUrl = '';
         $secret = '';
         $recoveryCodes = [];
@@ -1177,7 +1190,7 @@ class AdminController extends Controller
             if ($twoFactor) {
                 // Generate new secret
                 $secret = $twoFactor->generateSecret();
-                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret);
+                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret, $issuer);
                 
                 // Generate recovery codes
                 $recoveryCodes = $twoFactor->generateRecoveryCodes(10);
@@ -1197,7 +1210,7 @@ class AdminController extends Controller
             $secret = $_SESSION['twofa_pending_secret'];
             $twoFactor = $this->container->has('twofactor') ? $this->container->get('twofactor') : null;
             if ($twoFactor) {
-                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret);
+                $qrCodeUrl = $twoFactor->getQRCodeUrl($user['username'] ?? $user['email'] ?? 'user', $secret, $issuer);
             }
         }
         

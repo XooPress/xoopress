@@ -11,6 +11,7 @@
                             <th>Username</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>2FA</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -18,7 +19,7 @@
                     <tbody>
                         <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="6" class="text-center">No users found.</td>
+                            <td colspan="7" class="text-center">No users found.</td>
                         </tr>
                         <?php else: ?>
                         <?php foreach ($users as $user): ?>
@@ -27,6 +28,13 @@
                             <td><?= htmlspecialchars($user['username']) ?></td>
                             <td><?= htmlspecialchars($user['email']) ?></td>
                             <td><?= htmlspecialchars($user['role']) ?></td>
+                            <td>
+                                <?php if (!empty($user['twofa_enabled']) && !empty($user['twofa_secret'])): ?>
+                                    <span style="color:var(--xp-success);font-weight:600;">✅ Enabled</span>
+                                <?php else: ?>
+                                    <span style="color:var(--xp-text-light);">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($user['status']) ?></td>
                             <td>
                                 <a href="/admin/users/edit/<?= $user['id'] ?>" class="btn btn-sm">Edit</a>
