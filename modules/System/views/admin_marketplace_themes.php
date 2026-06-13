@@ -3,9 +3,42 @@
                 <h2><?= __('Marketplace Themes') ?></h2>
                 <div style="display:flex;gap:10px;align-items:center;">
                     <a href="/admin/marketplace" class="btn btn-sm btn-secondary">← <?= __('Back') ?></a>
-                    <form method="GET" action="/admin/marketplace/themes" style="display:flex;gap:8px;align-items:center;">
+                    <form method="GET" action="/admin/marketplace/themes" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         <input type="text" name="search" placeholder="<?= __('Search themes...') ?>" value="<?= htmlspecialchars($search ?? '') ?>" class="form-control" style="width:250px;">
-                        <button type="submit" class="btn btn-primary btn-sm"><?= __('Search') ?></button>
+                        <select name="category" class="form-control" style="width:auto;">
+                            <option value=""><?= __('All Categories') ?></option>
+                            <option value="blog" <?= ($category ?? '') === 'blog' ? 'selected' : '' ?>><?= __('Blog') ?></option>
+                            <option value="business" <?= ($category ?? '') === 'business' ? 'selected' : '' ?>><?= __('Business') ?></option>
+                            <option value="portfolio" <?= ($category ?? '') === 'portfolio' ? 'selected' : '' ?>><?= __('Portfolio') ?></option>
+                            <option value="ecommerce" <?= ($category ?? '') === 'ecommerce' ? 'selected' : '' ?>><?= __('E-Commerce') ?></option>
+                            <option value="magazine" <?= ($category ?? '') === 'magazine' ? 'selected' : '' ?>><?= __('Magazine') ?></option>
+                            <option value="news" <?= ($category ?? '') === 'news' ? 'selected' : '' ?>><?= __('News') ?></option>
+                            <option value="landing-page" <?= ($category ?? '') === 'landing-page' ? 'selected' : '' ?>><?= __('Landing Page') ?></option>
+                            <option value="personal" <?= ($category ?? '') === 'personal' ? 'selected' : '' ?>><?= __('Personal') ?></option>
+                            <option value="photography" <?= ($category ?? '') === 'photography' ? 'selected' : '' ?>><?= __('Photography') ?></option>
+                            <option value="education" <?= ($category ?? '') === 'education' ? 'selected' : '' ?>><?= __('Education') ?></option>
+                            <option value="nonprofit" <?= ($category ?? '') === 'nonprofit' ? 'selected' : '' ?>><?= __('Nonprofit') ?></option>
+                            <option value="wiki" <?= ($category ?? '') === 'wiki' ? 'selected' : '' ?>><?= __('Wiki / Knowledge Base') ?></option>
+                            <option value="dark" <?= ($category ?? '') === 'dark' ? 'selected' : '' ?>><?= __('Dark Theme') ?></option>
+                            <option value="minimal" <?= ($category ?? '') === 'minimal' ? 'selected' : '' ?>><?= __('Minimal') ?></option>
+                        </select>
+                        <select name="status" class="form-control" style="width:auto;">
+                            <option value=""><?= __('Any Status') ?></option>
+                            <option value="active" <?= ($status ?? '') === 'active' ? 'selected' : '' ?>><?= __('Active') ?></option>
+                            <option value="inactive" <?= ($status ?? '') === 'inactive' ? 'selected' : '' ?>><?= __('Inactive') ?></option>
+                            <option value="beta" <?= ($status ?? '') === 'beta' ? 'selected' : '' ?>><?= __('Beta') ?></option>
+                        </select>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
+                            <input type="checkbox" name="featured" value="1" <?= !empty($featured) ? 'checked' : '' ?>>
+                            <?= __('Featured only') ?>
+                        </label>
+                        <button type="submit" class="btn btn-primary btn-sm"><?= __('Filter') ?></button>
+                        <?php
+                            $hasActiveFilters = !empty($search) || !empty($category) || !empty($status) || !empty($featured);
+                            if ($hasActiveFilters):
+                        ?>
+                        <a href="/admin/marketplace/themes" class="btn btn-sm btn-secondary"><?= __('Clear') ?></a>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>
@@ -55,13 +88,21 @@
                 </div>
 
                 <?php if ($totalPages > 1): ?>
+                <?php
+                    $queryParams = [];
+                    if (!empty($search)) $queryParams['search'] = $search;
+                    if (!empty($category)) $queryParams['category'] = $category;
+                    if (!empty($status)) $queryParams['status'] = $status;
+                    if (!empty($featured)) $queryParams['featured'] = $featured;
+                    $queryString = http_build_query($queryParams);
+                ?>
                 <div style="margin-top:20px;display:flex;justify-content:center;gap:8px;">
                     <?php if ($page > 1): ?>
-                    <a href="?page=<?= $page - 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="btn btn-sm btn-secondary">← <?= __('Previous') ?></a>
+                    <a href="?page=<?= $page - 1 ?><?= !empty($queryString) ? '&' . htmlspecialchars($queryString) : '' ?>" class="btn btn-sm btn-secondary">← <?= __('Previous') ?></a>
                     <?php endif; ?>
                     <span style="padding:6px 12px;"><?= __('Page') ?> <?= $page ?> <?= __('of') ?> <?= $totalPages ?></span>
                     <?php if ($page < $totalPages): ?>
-                    <a href="?page=<?= $page + 1 ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="btn btn-sm btn-secondary"><?= __('Next') ?> →</a>
+                    <a href="?page=<?= $page + 1 ?><?= !empty($queryString) ? '&' . htmlspecialchars($queryString) : '' ?>" class="btn btn-sm btn-secondary"><?= __('Next') ?> →</a>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>

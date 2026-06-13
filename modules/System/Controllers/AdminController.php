@@ -2576,6 +2576,9 @@ class AdminController extends Controller
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $search = trim($_GET['search'] ?? '');
+        $category = trim($_GET['category'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $featured = trim($_GET['featured'] ?? '');
 
         $items = [];
         $total = 0;
@@ -2587,6 +2590,15 @@ class AdminController extends Controller
                 $filters = ['page' => $page, 'per_page' => 20];
                 if (!empty($search)) {
                     $filters['search'] = $search;
+                }
+                if (!empty($category)) {
+                    $filters['category'] = $category;
+                }
+                if (!empty($status)) {
+                    $filters['status'] = $status;
+                }
+                if (!empty($featured)) {
+                    $filters['featured'] = 1;
                 }
                 $result = $mp->listModules($filters);
                 $items = $result['items'];
@@ -2604,6 +2616,9 @@ class AdminController extends Controller
             'totalPages' => $totalPages,
             'total' => $total,
             'search' => $search,
+            'category' => $category,
+            'status' => $status,
+            'featured' => $featured,
             'error' => $error,
             'adminMenu' => $this->getAdminMenu(),
         ]);
@@ -2618,6 +2633,9 @@ class AdminController extends Controller
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $search = trim($_GET['search'] ?? '');
+        $category = trim($_GET['category'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $featured = trim($_GET['featured'] ?? '');
 
         $items = [];
         $total = 0;
@@ -2629,6 +2647,15 @@ class AdminController extends Controller
                 $filters = ['page' => $page, 'per_page' => 20];
                 if (!empty($search)) {
                     $filters['search'] = $search;
+                }
+                if (!empty($category)) {
+                    $filters['category'] = $category;
+                }
+                if (!empty($status)) {
+                    $filters['status'] = $status;
+                }
+                if (!empty($featured)) {
+                    $filters['featured'] = 1;
                 }
                 $result = $mp->listThemes($filters);
                 $items = $result['items'];
@@ -2646,6 +2673,9 @@ class AdminController extends Controller
             'totalPages' => $totalPages,
             'total' => $total,
             'search' => $search,
+            'category' => $category,
+            'status' => $status,
+            'featured' => $featured,
             'error' => $error,
             'adminMenu' => $this->getAdminMenu(),
         ]);
