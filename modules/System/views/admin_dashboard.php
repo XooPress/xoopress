@@ -23,18 +23,26 @@
                     <tr>
                         <th>Module</th>
                         <th>Version</th>
+                        <th>Updates</th>
                         <th>Description</th>
                         <th>Author</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (!is_array($modules) || empty($modules)): ?>
-                    <tr><td colspan="4" style="text-align:center;color:#999;">No modules installed.</td></tr>
+                    <tr><td colspan="5" style="text-align:center;color:#999;">No modules installed.</td></tr>
                     <?php else: ?>
                     <?php foreach ($modules as $mod): ?>
                     <tr>
                         <td><strong><?= htmlspecialchars($mod['name'] ?? '') ?></strong></td>
                         <td><?= htmlspecialchars($mod['version'] ?? '') ?></td>
+                        <td>
+                            <?php if (!empty($mod['has_remote_update'])): ?>
+                                <span class="update-badge">v<?= htmlspecialchars($mod['latest_version']) ?> available</span>
+                            <?php else: ?>
+                                <span style="color:#888;font-size:0.85rem;">Up to date</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?= htmlspecialchars($mod['description'] ?? '') ?></td>
                         <td><?= htmlspecialchars($mod['author'] ?? '') ?></td>
                     </tr>

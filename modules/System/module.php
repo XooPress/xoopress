@@ -291,6 +291,11 @@ return [
             'pattern' => '/admin/themes/upload',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeUpload'],
         ],
+        [
+            'method' => 'GET',
+            'pattern' => '/admin/themes/check-updates',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'themeCheckUpdates'],
+        ],
         // Modules
         [
             'method' => 'GET',

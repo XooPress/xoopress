@@ -1218,11 +1218,10 @@ class ModuleManager
         // Check if module has an update_url defined
         $updateUrl = $def['update_url'] ?? '';
         if (empty($updateUrl)) {
-            // Try the XooPress update endpoint
+            // Try the XooPress marketplace API endpoint
             $moduleName = rawurlencode($name);
-            $currentVersionEncoded = rawurlencode($currentVersion);
-            // Use a well-known XooPress update server or GitHub
-            $updateUrl = "https://api.xoopress.org/updates/module/{$moduleName}?current={$currentVersionEncoded}";
+            // Use the marketplace API which returns version info
+            $updateUrl = "https://api.xoopress.org/v1/modules/{$moduleName}";
         }
         
         $result = $this->fetchUpdateInfo($name, $updateUrl, $currentVersion);
@@ -1317,10 +1316,15 @@ class ModuleManager
             $response = @file_get_contents($url, false, $context);
             if ($response !== false) {
                 $data = json_decode($response, true);
-                if ($data && isset($data['version'])) {
-                    $latestVersion = $data['version'];
+                // Handle XPApi response format: { "success": true, "data": { "version": "...", ... } }
+                $moduleData = $data;
+                if ($data && isset($data['success']) && isset($data['data'])) {
+                    $moduleData = $data['data'];
+                }
+                if ($moduleData && isset($moduleData['version'])) {
+                    $latestVersion = $moduleData['version'];
                     $result['latest_version'] = $latestVersion;
-                    $result['changelog'] = $data['changelog'] ?? '';
+                    $result['changelog'] = $moduleData['changelog'] ?? '';
                     $result['has_update'] = version_compare($latestVersion, $currentVersion, '>');
                 }
             }

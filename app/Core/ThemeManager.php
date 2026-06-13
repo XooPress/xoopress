@@ -211,6 +211,17 @@ class ThemeManager
                 INDEX idx_active (is_active)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             
+            // Create theme updates cache table
+            $db->query("CREATE TABLE IF NOT EXISTS {$prefix}theme_updates (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                theme_name VARCHAR(100) NOT NULL UNIQUE,
+                latest_version VARCHAR(20) DEFAULT '',
+                update_url VARCHAR(500) DEFAULT '',
+                changelog TEXT,
+                checked_at DATETIME,
+                INDEX idx_theme_name (theme_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            
             // Insert default widget areas if not exist
             $defaultSidebars = [
                 ['sidebar-main', 'Main Sidebar', 'Primary widget area displayed in the sidebar.'],
@@ -1417,64 +1428,98 @@ class ThemeManager
         return ob_get_clean();
     }
     
-    // ── Theme Auto-Update ──────────────────────────────────
+    // ── Theme Auto-Update (Marketplace API) ─────────────────
     
     /**
-     * Check for theme updates against a remote repository
+     * Get the theme updates cache table name
      * 
-     * @param array $theme Theme data
-     * @param string $repoUrl GitHub repo URL or custom endpoint
-     * @return array|null ['update_available' => bool, 'latest_version' => string, 'download_url' => string, 'changelog' => string]
+     * @return string
      */
-    public function checkThemeUpdate(array $theme, string $repoUrl = ''): ?array
+    protected function getThemeUpdateTable(): string
     {
-        $version = $theme['version'] ?? '1.0.0';
-        $themeName = $theme['dir_name'] ?? '';
-        
-        if (empty($themeName)) return null;
-        
-        // Default: try to get version from GitHub releases
-        if (empty($repoUrl) && !empty($theme['uri'])) {
-            $repoUrl = $theme['uri'];
-        }
-        
-        // Convert GitHub URL to API endpoint
-        $apiUrl = '';
-        if (preg_match('#github\.com/([^/]+)/([^/]+)#i', $repoUrl, $m)) {
-            $apiUrl = "https://api.github.com/repos/{$m[1]}/{$m[2]}/releases/latest";
-        }
-        
-        if (empty($apiUrl)) {
-            // Try well-known endpoint for XooPress themes
-            $apiUrl = "https://xoopress.org/api/theme-updates/{$themeName}.json";
-        }
-        
         try {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => 5,
-                    'header' => "User-Agent: XooPress/1.0\r\n",
-                ],
-            ]);
+            $db = $this->container->get('database');
+            return $db->getPrefix() . 'theme_updates';
+        } catch (\Throwable $e) {
+            return 'theme_updates';
+        }
+    }
+    
+    /**
+     * Check for a theme update via the XooPress Marketplace API
+     * 
+     * @param string $themeName Theme directory name
+     * @return array ['has_update' => bool, 'latest_version' => string, 'current_version' => string, 'changelog' => string, 'checked_at' => string]
+     */
+    public function checkThemeUpdate(string $themeName): array
+    {
+        $theme = $this->themes[$themeName] ?? null;
+        if (!$theme) {
+            return [
+                'has_update' => false,
+                'latest_version' => '',
+                'current_version' => '',
+                'changelog' => '',
+                'checked_at' => '',
+                'error' => "Theme '{$themeName}' not found.",
+            ];
+        }
+        
+        $currentVersion = $theme['version'] ?? '1.0.0';
+        $slug = rawurlencode($themeName);
+        $updateUrl = "https://api.xoopress.org/v1/themes/{$slug}";
+        
+        $result = $this->fetchThemeUpdateInfo($themeName, $updateUrl, $currentVersion);
+        
+        // Cache the result
+        $this->cacheThemeUpdateInfo($themeName, $result);
+        
+        return $result;
+    }
+    
+    /**
+     * Check for updates for all available themes
+     * 
+     * @return array Array of update results keyed by theme name
+     */
+    public function checkAllThemeUpdates(): array
+    {
+        $this->scanThemes();
+        $results = [];
+        
+        foreach ($this->themes as $name => $theme) {
+            $results[$name] = $this->checkThemeUpdate($name);
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Get cached update info for a theme (without making a network request)
+     * 
+     * @param string $themeName Theme directory name
+     * @return array|null Cached info or null if not cached
+     */
+    public function getCachedThemeUpdateInfo(string $themeName): ?array
+    {
+        try {
+            $db = $this->container->get('database');
+            $table = $this->getThemeUpdateTable();
+            $row = $db->selectOne(
+                "SELECT latest_version, update_url, changelog, checked_at FROM {$table} WHERE theme_name = ?",
+                [$themeName]
+            );
+            if (!$row) return null;
             
-            $response = @file_get_contents($apiUrl, false, $context);
-            if ($response === false) return null;
-            
-            $data = json_decode($response, true);
-            if (!$data) return null;
-            
-            $latestVersion = $data['tag_name'] ?? $data['version'] ?? '';
-            $downloadUrl = $data['zipball_url'] ?? $data['download_url'] ?? '';
-            $changelog = $data['body'] ?? $data['changelog'] ?? '';
-            
-            $updateAvailable = version_compare($latestVersion, $version, '>');
+            $theme = $this->themes[$themeName] ?? null;
+            $currentVersion = $theme['version'] ?? '1.0.0';
             
             return [
-                'update_available' => $updateAvailable,
-                'latest_version' => $latestVersion,
-                'current_version' => $version,
-                'download_url' => $downloadUrl,
-                'changelog' => $changelog,
+                'has_update' => version_compare($row['latest_version'], $currentVersion, '>'),
+                'latest_version' => $row['latest_version'],
+                'current_version' => $currentVersion,
+                'changelog' => $row['changelog'] ?? '',
+                'checked_at' => $row['checked_at'] ?? '',
             ];
         } catch (\Throwable $e) {
             return null;
@@ -1482,20 +1527,89 @@ class ThemeManager
     }
     
     /**
-     * Check for updates on all themes
+     * Fetch theme update information from the marketplace API
      * 
-     * @return array Array of update info keyed by theme name
+     * @param string $name Theme name
+     * @param string $url Update URL
+     * @param string $currentVersion Current installed version
+     * @return array
      */
-    public function checkAllThemeUpdates(): array
+    protected function fetchThemeUpdateInfo(string $name, string $url, string $currentVersion): array
     {
-        $updates = [];
-        foreach ($this->themes as $name => $theme) {
-            $result = $this->checkThemeUpdate($theme);
-            if ($result !== null && $result['update_available']) {
-                $updates[$name] = $result;
+        $result = [
+            'has_update' => false,
+            'latest_version' => $currentVersion,
+            'current_version' => $currentVersion,
+            'changelog' => '',
+            'checked_at' => date('Y-m-d H:i:s'),
+        ];
+        
+        try {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'timeout' => 5,
+                    'header' => "User-Agent: XooPress-ThemeManager/1.0\r\n",
+                    'ignore_errors' => true,
+                ],
+            ]);
+            
+            $response = @file_get_contents($url, false, $context);
+            if ($response !== false) {
+                $data = json_decode($response, true);
+                // Handle XPApi response format: { "success": true, "data": { "version": "...", ... } }
+                $themeData = $data;
+                if ($data && isset($data['success']) && isset($data['data'])) {
+                    $themeData = $data['data'];
+                }
+                if ($themeData && isset($themeData['version'])) {
+                    $latestVersion = $themeData['version'];
+                    $result['latest_version'] = $latestVersion;
+                    $result['changelog'] = $themeData['changelog'] ?? '';
+                    $result['has_update'] = version_compare($latestVersion, $currentVersion, '>');
+                }
             }
+        } catch (\Throwable $e) {
+            // Network failure - silently return current version
         }
-        return $updates;
+        
+        return $result;
+    }
+    
+    /**
+     * Cache theme update info in the database
+     * 
+     * @param string $name Theme name
+     * @param array $info Update info
+     * @return void
+     */
+    protected function cacheThemeUpdateInfo(string $name, array $info): void
+    {
+        try {
+            $db = $this->container->get('database');
+            $table = $this->getThemeUpdateTable();
+            
+            $existing = $db->selectOne(
+                "SELECT id FROM {$table} WHERE theme_name = ?",
+                [$name]
+            );
+            
+            if ($existing) {
+                $db->update($table, [
+                    'latest_version' => $info['latest_version'],
+                    'changelog' => $info['changelog'] ?? '',
+                    'checked_at' => $info['checked_at'],
+                ], ['id' => $existing['id']]);
+            } else {
+                $db->insert($table, [
+                    'theme_name' => $name,
+                    'latest_version' => $info['latest_version'],
+                    'changelog' => $info['changelog'] ?? '',
+                    'checked_at' => $info['checked_at'],
+                ]);
+            }
+        } catch (\Throwable $e) {
+        }
     }
     
     // ── Existing Methods ───────────────────────────────────

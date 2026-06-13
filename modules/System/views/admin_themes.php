@@ -75,10 +75,12 @@
                     border-radius: 3px;
                     margin-left: 6px;
                 }
+                .update-badge { display:inline-block; background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:10px; padding:1px 8px; font-size:0.75rem; font-weight:600; margin-left:4px; }
             </style>
             <div class="admin-header">
                 <h2><?= __('Theme Management') ?></h2>
-                <div style="display:flex;gap:10px;align-items:center;">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <a href="/admin/themes/check-updates" class="btn btn-secondary btn-sm"><?= __('Check for Updates') ?></a>
                     <form method="POST" action="/admin/themes/upload" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;">
                         <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                         <input type="file" name="theme_zip" accept=".zip" required style="font-size:0.85rem;">
@@ -126,6 +128,9 @@
                             <?= __('Version') ?> <?= htmlspecialchars($theme['version']) ?>
                             <?php if (!empty($theme['author'])): ?>
                                 | <?= htmlspecialchars($theme['author']) ?>
+                            <?php endif; ?>
+                            <?php if (!empty($theme['remote_has_update'])): ?>
+                            <br><span class="update-badge">v<?= htmlspecialchars($theme['remote_latest_version']) ?> available</span>
                             <?php endif; ?>
                         </div>
                         <p style="font-size:0.9rem;color:#555;"><?= htmlspecialchars($theme['description']) ?></p>

@@ -82,16 +82,32 @@ class AdminController extends Controller
     public function dashboard(): string
     {
         $this->requireAdmin();
-        $modules = $this->container->has('modules') ? $this->container->get('modules')->getModules() : [];
+        $moduleManager = $this->container->has('modules') ? $this->container->get('modules') : null;
+        $modules = $moduleManager ? $moduleManager->getModules() : [];
         $moduleList = [];
         foreach ($modules as $name => $module) {
             $def = $module['definition'] ?? [];
-            $moduleList[] = [
+            $modInfo = [
                 'name' => $def['name'] ?? $name,
                 'version' => $def['version'] ?? '1.0.0',
                 'description' => $def['description'] ?? '',
                 'author' => $def['author'] ?? '',
             ];
+            // Enrich with cached remote update info
+            if ($moduleManager && $module['installed']) {
+                $cached = $moduleManager->getCachedUpdateInfo($name);
+                if ($cached && $cached['has_update']) {
+                    $modInfo['has_remote_update'] = true;
+                    $modInfo['latest_version'] = $cached['latest_version'];
+                } else {
+                    $modInfo['has_remote_update'] = false;
+                    $modInfo['latest_version'] = null;
+                }
+            } else {
+                $modInfo['has_remote_update'] = false;
+                $modInfo['latest_version'] = null;
+            }
+            $moduleList[] = $modInfo;
         }
         $userCount = 0;
         if ($this->userModel) {
@@ -561,6 +577,21 @@ class AdminController extends Controller
         $messageType = $_SESSION['themes_message_type'] ?? null;
         unset($_SESSION['themes_message'], $_SESSION['themes_message_type']);
         
+        // Enrich themes with cached remote update info
+        if ($themeManager) {
+            foreach ($themes as $name => &$theme) {
+                $cached = $themeManager->getCachedThemeUpdateInfo($name);
+                if ($cached && $cached['has_update']) {
+                    $theme['remote_has_update'] = true;
+                    $theme['remote_latest_version'] = $cached['latest_version'];
+                } else {
+                    $theme['remote_has_update'] = false;
+                    $theme['remote_latest_version'] = null;
+                }
+            }
+            unset($theme);
+        }
+        
         return $this->view('system::admin_themes', [
             'themes' => $themes,
             'activeTheme' => $active['dir_name'] ?? '',
@@ -570,6 +601,21 @@ class AdminController extends Controller
             'messageType' => $messageType,
             'adminMenu' => $this->getAdminMenu(),
         ]);
+    }
+    
+    public function themeCheckUpdates(): void
+    {
+        $this->requireAdmin();
+        $themeManager = $this->container->has('theme') ? $this->container->get('theme') : null;
+        if ($themeManager) {
+            $themeManager->checkAllThemeUpdates();
+            $_SESSION['themes_message'] = 'All themes checked for updates.';
+            $_SESSION['themes_message_type'] = 'info';
+        } else {
+            $_SESSION['themes_message'] = 'Theme manager not available.';
+            $_SESSION['themes_message_type'] = 'error';
+        }
+        $this->redirect('/admin/themes');
     }
 
     public function themeActivate(string $name): void
@@ -629,6 +675,7 @@ class AdminController extends Controller
         $this->requireAdmin();
         
         $modules = [];
+        $moduleManager = null;
         
         if ($this->container->has('modules')) {
             $moduleManager = $this->container->get('modules');
@@ -642,6 +689,21 @@ class AdminController extends Controller
         
         if (empty($modules)) {
             $modules = $this->fallbackModuleLoading();
+        }
+        
+        // Enrich modules with cached remote update info
+        if ($moduleManager) {
+            foreach ($modules as $name => &$mod) {
+                $cached = $moduleManager->getCachedUpdateInfo($name);
+                if ($cached && $cached['has_update']) {
+                    $mod['remote_has_update'] = true;
+                    $mod['remote_latest_version'] = $cached['latest_version'];
+                } else {
+                    $mod['remote_has_update'] = false;
+                    $mod['remote_latest_version'] = null;
+                }
+            }
+            unset($mod);
         }
         
         $message = $_SESSION['modules_message'] ?? null;

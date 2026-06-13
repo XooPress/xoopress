@@ -72,6 +72,9 @@
                             <?php if ($isInstalled && $module['version_db'] && $module['version_db'] !== ($def['version'] ?? null)): ?>
                             <br><small style="color:#888;">(DB: <?= htmlspecialchars($module['version_db']) ?>)</small>
                             <?php endif; ?>
+                            <?php if (!empty($module['remote_has_update'])): ?>
+                            <br><span class="update-badge">v<?= htmlspecialchars($module['remote_latest_version']) ?> available</span>
+                            <?php endif; ?>
                         </td>
                         <td><?= htmlspecialchars($def['author'] ?? '—') ?></td>
                         <td>
