@@ -78,6 +78,7 @@
                             <p style="font-size:0.85rem;color:#666;margin:0 0 12px;"><?= htmlspecialchars(mb_substr($displayDesc, 0, 200)) ?></p>
                             <div style="display:flex;gap:6px;">
                                 <a href="/admin/marketplace/install/theme/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
+                                <a href="#" onclick="event.preventDefault();openMarketplaceDetail('theme','<?= htmlspecialchars($itemSlug) ?>')" class="btn btn-sm btn-secondary"><?= __('Details') ?></a>
                                 <?php if (!empty($item['demo_url'])): ?>
                                 <a href="<?= htmlspecialchars($item['demo_url']) ?>" target="_blank" class="btn btn-sm btn-secondary"><?= __('Preview') ?></a>
                                 <?php endif; ?>

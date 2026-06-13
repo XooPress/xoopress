@@ -723,6 +723,11 @@ return [
         ],
         [
             'method' => 'GET',
+            'pattern' => '/admin/marketplace/details/:alpha/:all',
+            'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceDetail'],
+        ],
+        [
+            'method' => 'GET',
             'pattern' => '/admin/marketplace/clear-cache',
             'handler' => ['XooPress\Modules\System\Controllers\AdminController', 'marketplaceClearCache'],
         ],

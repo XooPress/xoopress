@@ -77,9 +77,7 @@
                             <td><?= htmlspecialchars(mb_substr($displayDesc, 0, 150)) ?></td>
                             <td>
                                 <a href="/admin/marketplace/install/module/<?= urlencode($itemSlug) ?>" class="btn btn-sm btn-success"><?= __('Install') ?></a>
-                                <?php if (!empty($item['homepage'])): ?>
-                                <a href="<?= htmlspecialchars($item['homepage']) ?>" target="_blank" class="btn btn-sm btn-secondary"><?= __('Info') ?></a>
-                                <?php endif; ?>
+                                <a href="#" onclick="event.preventDefault();openMarketplaceDetail('module','<?= htmlspecialchars($itemSlug) ?>')" class="btn btn-sm btn-secondary"><?= __('Details') ?></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

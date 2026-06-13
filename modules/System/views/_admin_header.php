@@ -19,6 +19,7 @@
     <link rel="icon" type="image/x-icon" href="/images/xp-favicon.ico">
     <link rel="shortcut icon" href="/images/xp-favicon.ico">
     <link rel="stylesheet" href="/css/xoopress.css">
+    <script src="/js/admin-marketplace-details.js" defer></script>
 </head>
 <body class="admin-page">
     <button class="admin-sidebar-toggle" onclick="toggleAdminSidebar()">

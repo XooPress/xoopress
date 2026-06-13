@@ -2726,6 +2726,51 @@ class AdminController extends Controller
     }
 
     /**
+     * Get marketplace item details (JSON endpoint for AJAX modal)
+     */
+    public function marketplaceDetail(string $type, string $slug): void
+    {
+        $this->requireAdmin();
+
+        if (!in_array($type, ['module', 'theme'])) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Invalid type. Must be "module" or "theme".']);
+            exit;
+        }
+
+        if ($this->container->has('marketplace')) {
+            try {
+                $mp = $this->container->get('marketplace');
+                $details = $type === 'module'
+                    ? $mp->getModuleDetails($slug)
+                    : $mp->getThemeDetails($slug);
+
+                if ($details === null) {
+                    http_response_code(404);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => ucfirst($type) . " '{$slug}' not found."]);
+                    exit;
+                }
+
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'data' => $details]);
+                exit;
+            } catch (\Throwable $e) {
+                http_response_code(500);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                exit;
+            }
+        }
+
+        http_response_code(503);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Marketplace service not available.']);
+        exit;
+    }
+
+    /**
      * Clear marketplace cache
      */
     public function marketplaceClearCache(): void
