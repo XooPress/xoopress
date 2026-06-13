@@ -50,6 +50,14 @@ A modular CMS combining the best of XOOPS and WordPress concepts — built from 
 - **Categories** — Hierarchical category management for organizing content
 - **Post Pagination** — Previous/next post navigation across all themes
 
+### 🖥 Admin Interface
+- **Admin Dashboard** — Centralized admin panel with dashboard overview, system health, and quick actions
+- **Admin Menu System** — Registerable admin sidebar menu via `register_admin_menu` hook
+- **Bulk Actions** — Perform bulk operations (delete, publish, unpublish) on list tables
+- **Admin Pagination & Search** — Paginated listings with search/filter capabilities across all admin pages
+- **Responsive Admin Layout** — Mobile-friendly admin interface with adaptive design
+- **Admin Notices** — Success/error/warning notification banners with auto-dismiss support
+
 ### 👥 User Management
 - **User Roles & Capabilities** — WP-style role system: Admin, Editor, Author, Subscriber with granular capabilities
 - **Registration & Login** — Account creation, login/logout, password management
@@ -78,9 +86,6 @@ A modular CMS combining the best of XOOPS and WordPress concepts — built from 
 - **Opcode Cache Support** — Opcode caching integration for PHP file optimization
 - **Database Query Profiler** — SQL query logging, slow-query highlighting, performance monitoring dashboard
 - **Debug Bar** — In-page development toolbar showing execution time, peak memory, SQL queries, route info, request/session data
-- **Content Security Policy** — Configurable CSP headers
-- **Two-Factor Authentication** — TOTP-based 2FA for enhanced account security
-- **Rate Limiting** — Throttle API and auth endpoints
 
 ### 🏢 Enterprise Features
 - **Multisite/Network Mode** — Multi-site support with `xp_sites` and `xp_site_meta` tables, domain-based site detection, sub-site theme/language overrides
