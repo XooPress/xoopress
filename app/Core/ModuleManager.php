@@ -1193,6 +1193,27 @@ class ModuleManager
     // ═══════════════════════════════════════════════════════════
     
     /**
+     * Get the API base URL for module update checks
+     * 
+     * Checks in order: config array, XOO_PRESS_API constant, then default
+     * 
+     * @return string
+     */
+    protected function getApiBaseUrl(): string
+    {
+        // Check if configured (e.g. for local dev)
+        if (!empty($this->config['api_url'])) {
+            return rtrim($this->config['api_url'], '/');
+        }
+        // Check for defined constant (set in config/app.php)
+        if (defined('XOO_PRESS_API_URL') && XOO_PRESS_API_URL) {
+            return rtrim(XOO_PRESS_API_URL, '/');
+        }
+        // Default to production API
+        return 'https://api.xoopress.org';
+    }
+
+    /**
      * Check for updates for a single module
      * 
      * @param string $name Module name
@@ -1218,10 +1239,10 @@ class ModuleManager
         // Check if module has an update_url defined
         $updateUrl = $def['update_url'] ?? '';
         if (empty($updateUrl)) {
-            // Try the XooPress marketplace API endpoint
+            // Try the configured API endpoint
             $moduleName = rawurlencode($name);
-            // Use the marketplace API which returns version info
-            $updateUrl = "https://api.xoopress.org/v1/modules/{$moduleName}";
+            $apiBase = $this->getApiBaseUrl();
+            $updateUrl = "{$apiBase}/v1/modules/{$moduleName}";
         }
         
         $result = $this->fetchUpdateInfo($name, $updateUrl, $currentVersion);
@@ -1314,22 +1335,38 @@ class ModuleManager
             ]);
             
             $response = @file_get_contents($url, false, $context);
-            if ($response !== false) {
-                $data = json_decode($response, true);
-                // Handle XPApi response format: { "success": true, "data": { "version": "...", ... } }
-                $moduleData = $data;
-                if ($data && isset($data['success']) && isset($data['data'])) {
-                    $moduleData = $data['data'];
-                }
-                if ($moduleData && isset($moduleData['version'])) {
-                    $latestVersion = $moduleData['version'];
-                    $result['latest_version'] = $latestVersion;
-                    $result['changelog'] = $moduleData['changelog'] ?? '';
-                    $result['has_update'] = version_compare($latestVersion, $currentVersion, '>');
-                }
+            if ($response === false) {
+                $error = error_get_last();
+                $errorMsg = $error['message'] ?? 'Unknown error';
+                error_log("XooPress ModuleManager: Failed to fetch update info for '{$name}' from {$url}: {$errorMsg}");
+                $result['error'] = "Network error: {$errorMsg}";
+                return $result;
+            }
+            
+            $data = json_decode($response, true);
+            if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+                error_log("XooPress ModuleManager: Invalid JSON response for '{$name}' from {$url}: " . json_last_error_msg());
+                $result['error'] = "Invalid JSON response";
+                return $result;
+            }
+            
+            // Handle XPApi response format: { "success": true, "data": { "version": "...", ... } }
+            $moduleData = $data;
+            if ($data && isset($data['success']) && isset($data['data'])) {
+                $moduleData = $data['data'];
+            }
+            if ($moduleData && isset($moduleData['version'])) {
+                $latestVersion = $moduleData['version'];
+                $result['latest_version'] = $latestVersion;
+                $result['changelog'] = $moduleData['changelog'] ?? '';
+                $result['has_update'] = version_compare($latestVersion, $currentVersion, '>');
+            } else {
+                error_log("XooPress ModuleManager: Response from {$url} for '{$name}' missing version field: " . substr($response, 0, 500));
+                $result['error'] = "Response missing version field";
             }
         } catch (\Throwable $e) {
-            // Network failure - silently return current version
+            error_log("XooPress ModuleManager: Exception fetching update for '{$name}' from {$url}: " . $e->getMessage());
+            $result['error'] = "Exception: " . $e->getMessage();
         }
         
         return $result;

@@ -2121,8 +2121,29 @@ class AdminController extends Controller
         $manager = $this->container->has('modules') ? $this->container->get('modules') : null;
         $results = $manager ? $manager->checkAllModuleUpdates() : [];
         
-        $_SESSION['modules_message'] = count($results) . ' module(s) checked for updates.';
-        $_SESSION['modules_message_type'] = 'info';
+        $updateCount = 0;
+        $errorCount = 0;
+        $total = count($results);
+        
+        foreach ($results as $name => $result) {
+            if (!empty($result['error'])) {
+                $errorCount++;
+                error_log("XooPress admin: Module update check error for '{$name}': {$result['error']}");
+            } elseif ($result['has_update']) {
+                $updateCount++;
+            }
+        }
+        
+        if ($errorCount > 0) {
+            $_SESSION['modules_message'] = "{$total} module(s) checked. {$updateCount} update(s) available. {$errorCount} error(s) (check error log).";
+            $_SESSION['modules_message_type'] = ($updateCount > 0) ? 'warning' : 'error';
+        } elseif ($updateCount > 0) {
+            $_SESSION['modules_message'] = "{$updateCount} module update(s) available out of {$total} checked.";
+            $_SESSION['modules_message_type'] = 'info';
+        } else {
+            $_SESSION['modules_message'] = "All {$total} module(s) up to date.";
+            $_SESSION['modules_message_type'] = 'success';
+        }
         
         $this->redirect('/admin/modules');
         return '';

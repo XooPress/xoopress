@@ -497,7 +497,7 @@ HEADER;
 
         foreach ($localesToSync as $code) {
             try {
-                $url = "https://translate.xoopress.org/api/export/{$code}/messages.po";
+                $url = "https://translate.xoopress.org/v1/export/{$code}/core";
                 $context = stream_context_create([
                     'http' => [
                         'method' => 'GET',
