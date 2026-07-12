@@ -95,9 +95,28 @@ class DebugBar
         $getData = $_GET;
         $postData = $_POST;
 
-        // Session data (without password fields)
+        // Session data (without sensitive fields)
         $sessionData = $_SESSION ?? [];
+        // Remove all sensitive/security-critical fields
         unset($sessionData['user_password']);
+        unset($sessionData['csrf_token']);
+        unset($sessionData['install_db_host']);
+        unset($sessionData['install_db_port']);
+        unset($sessionData['install_db_name']);
+        unset($sessionData['install_db_user']);
+        unset($sessionData['install_db_pass']);
+        unset($sessionData['install_db_prefix']);
+        unset($sessionData['install_admin_pass']);
+        // Keep user session fields visible for debugging, but mask sensitive values
+        if (isset($sessionData['user']) && is_array($sessionData['user'])) {
+            unset($sessionData['user']['password']);
+        }
+        // Only show user_id, role - skip raw password data
+        foreach (['user_id', 'username', 'user_role', 'xp_user_id', 'xp_locale', 'redirect_after_login', 'admin_notice', 'admin_notice_type'] as $safeKey) {
+            if (isset($sessionData[$safeKey])) {
+                // Keep these - they're safe for debugging
+            }
+        }
 
         // Collect cache stats
         $cacheStats = [];

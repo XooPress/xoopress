@@ -45,8 +45,9 @@ return [
         'lifetime' => 7200, // 2 hours
         'path' => '/',
         'domain' => '',
-        'secure' => false,
-        'httponly' => true,
+        'secure' => true,       // SECURITY: Cookie sent over HTTPS only
+        'httponly' => true,      // SECURITY: Cookie not accessible via JavaScript
+        'samesite' => 'Lax',     // SECURITY: Prevent CSRF via cross-site requests
         'options' => [],
     ],
     

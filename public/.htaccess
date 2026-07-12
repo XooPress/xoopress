@@ -7,3 +7,18 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php [QSA,L]
 </IfModule>
+
+# Deny access to sensitive file types
+<FilesMatch "\.(env|log|lock|md|yml|yaml|json|xml|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to config files
+<FilesMatch "^(composer\.json|composer\.lock|package\.json|package-lock\.json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to PHP files in config, storage, app directories
+RedirectMatch 403 ^/(config/|storage/|app/|vendor/|tests/|stubs/|locales/)

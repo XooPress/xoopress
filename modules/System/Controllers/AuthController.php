@@ -259,6 +259,20 @@ class AuthController extends Controller
             return '';
         }
         
+        // Rate limiting on registration
+        $ip = \XooPress\Core\RateLimiter::getClientIp();
+        $rateLimitKey = 'register:' . $ip;
+        
+        if ($this->container->has('rate_limiter')) {
+            $rateLimiter = $this->container->get('rate_limiter');
+            if ($rateLimiter->tooManyAttempts($rateLimitKey, 3, 10)) {
+                return $this->view('system::register', [
+                    'errors' => ['Too many registration attempts. Please try again later.'],
+                    'csrfToken' => $this->csrfToken(),
+                ]);
+            }
+        }
+        
         $username = $this->input('username');
         $email = $this->input('email');
         $password = $this->input('password');

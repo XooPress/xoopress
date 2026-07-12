@@ -227,35 +227,96 @@ class RateLimiter
     }
 
     /**
+     * Trusted proxy IP addresses / CIDR ranges.
+     * Override via config: security.rate_limiting.trusted_proxies
+     * Only requests from these proxies will have their X-Forwarded-For headers trusted.
+     * Empty array means no proxies are trusted — only REMOTE_ADDR is used.
+     *
+     * @var array
+     */
+    protected static array $trustedProxies = [];
+
+    /**
+     * Set trusted proxy IPs/CIDRs (called during boot from config)
+     *
+     * @param array $proxies
+     * @return void
+     */
+    public static function setTrustedProxies(array $proxies): void
+    {
+        self::$trustedProxies = $proxies;
+    }
+
+    /**
+     * Check if a given IP is a trusted proxy
+     *
+     * @param string $ip
+     * @return bool
+     */
+    protected static function isTrustedProxy(string $ip): bool
+    {
+        if (empty(self::$trustedProxies)) {
+            return false;
+        }
+
+        foreach (self::$trustedProxies as $trusted) {
+            // Exact match
+            if ($trusted === $ip) {
+                return true;
+            }
+            // CIDR notation (simple /32, /24, /16, /8 support)
+            if (str_contains($trusted, '/')) {
+                [$range, $prefix] = explode('/', $trusted, 2);
+                $prefix = (int)$prefix;
+                $ipLong = ip2long($ip);
+                $rangeLong = ip2long($range);
+                if ($ipLong === false || $rangeLong === false) continue;
+                $mask = -1 << (32 - $prefix);
+                $ipLong &= $mask;
+                $rangeLong &= $mask;
+                if ($ipLong === $rangeLong) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Get client IP address
+     *
+     * SECURITY: Only trusts X-Forwarded-For headers from explicitly configured
+     * proxy IPs. If no trusted proxies are configured, the raw REMOTE_ADDR is
+     * always used, preventing IP spoofing.
      *
      * @return string
      */
     public static function getClientIp(): string
     {
-        // Check for proxy headers
-        $headers = [
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_REAL_IP',
-            'HTTP_CLIENT_IP',
-            'REMOTE_ADDR',
-        ];
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ip = $_SERVER[$header];
-                // X-Forwarded-For may contain comma-separated list
-                if (str_contains($ip, ',')) {
-                    $ips = explode(',', $ip);
-                    $ip = trim($ips[0]);
+        // Only trust proxy headers if the connecting IP is a known proxy
+        if (self::isTrustedProxy($remoteAddr)) {
+            // Check X-Forwarded-For (takes the leftmost IP, which is the original client)
+            if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+                $clientIp = trim($ips[0]);
+                if (filter_var($clientIp, FILTER_VALIDATE_IP)) {
+                    return $clientIp;
                 }
+            }
+
+            // Fallback to X-Real-IP
+            if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+                $ip = trim($_SERVER['HTTP_X_REAL_IP']);
                 if (filter_var($ip, FILTER_VALIDATE_IP)) {
                     return $ip;
                 }
             }
         }
 
-        return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        // Default: use the direct connection IP
+        return $remoteAddr;
     }
 
     /**

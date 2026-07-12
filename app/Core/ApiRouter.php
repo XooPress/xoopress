@@ -228,8 +228,12 @@ class ApiRouter
             exit;
         });
 
-        // GET /api/posts — list published posts
+        // GET /api/posts — list published posts (requires authentication)
         $this->get('/posts', function () {
+            if (!$this->authenticated) {
+                http_response_code(401);
+                return ['error' => 'Authentication required'];
+            }
             try {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();
@@ -263,8 +267,12 @@ class ApiRouter
             }
         });
 
-        // GET /api/posts/:num — single post
+        // GET /api/posts/:num — single post (requires authentication)
         $this->get('/posts/:num', function (string $id) {
+            if (!$this->authenticated) {
+                http_response_code(401);
+                return ['error' => 'Authentication required'];
+            }
             try {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();
@@ -284,8 +292,12 @@ class ApiRouter
             }
         });
 
-        // GET /api/categories — list categories
+        // GET /api/categories — list categories (requires authentication)
         $this->get('/categories', function () {
+            if (!$this->authenticated) {
+                http_response_code(401);
+                return ['error' => 'Authentication required'];
+            }
             try {
                 $db = $this->container->get('database');
                 $prefix = $db->getPrefix();

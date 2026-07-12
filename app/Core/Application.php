@@ -323,6 +323,17 @@ class Application
             error_log("Multisite table creation: " . $e->getMessage());
         }
         
+        // Initialize trusted proxies for rate limiting
+        try {
+            $rateLimitingConfig = $this->config['security']['rate_limiting'] ?? [];
+            $trustedProxies = $rateLimitingConfig['trusted_proxies'] ?? [];
+            if (!empty($trustedProxies)) {
+                \XooPress\Core\RateLimiter::setTrustedProxies($trustedProxies);
+            }
+        } catch (\Throwable $e) {
+            // Non-critical
+        }
+
         // Register built-in shortcodes for Phase 6 (content blocks)
         $hooks->doAction('init_content_types', $this);
         

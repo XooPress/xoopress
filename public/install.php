@@ -788,13 +788,8 @@ function getInstallSchema(string $prefix): array
             <p style="color:#666;margin-bottom:20px;">Please wait while XooPress is being installed...</p>
             <form method="POST" id="installForm">
                 <input type="hidden" name="step" value="4">
-                <!-- Pass fresh DB credentials along with the form submission -->
-                <input type="hidden" name="db_host" value="<?= htmlspecialchars($_SESSION['install_db_host'] ?? 'localhost') ?>">
-                <input type="hidden" name="db_port" value="<?= $_SESSION['install_db_port'] ?? 3306 ?>">
-                <input type="hidden" name="db_name" value="<?= htmlspecialchars($_SESSION['install_db_name'] ?? 'xoopress') ?>">
-                <input type="hidden" name="db_user" value="<?= htmlspecialchars($_SESSION['install_db_user'] ?? 'root') ?>">
-                <input type="hidden" name="db_pass" value="<?= htmlspecialchars($_SESSION['install_db_pass'] ?? '') ?>">
-                <input type="hidden" name="db_prefix" value="<?= htmlspecialchars($_SESSION['install_db_prefix'] ?? 'xp_') ?>">
+                <!-- Pass DB credentials via session (not exposed in HTML) -->
+                <!-- The runInstallation() function reads from $_SESSION as fallback -->
                 <div style="text-align:center;padding:20px;">
                     <div style="font-size:3rem;margin-bottom:15px;">⏳</div>
                     <p style="color:#999;">Creating database tables, setting up admin account, and writing configuration...</p>

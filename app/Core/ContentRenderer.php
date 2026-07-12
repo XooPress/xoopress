@@ -101,13 +101,51 @@ class ContentRenderer
     /**
      * Render PHP content by evaluating it
      * 
+     * SECURITY: eval() is a massive security risk. PHP content type has been
+     * disabled by default. Only super-admin users with explicit permission
+     * can use it, and only when 'allow_php_content' is enabled in config.
+     * 
      * @param string $content PHP code
-     * @return string Evaluated output
+     * @return string Evaluated output or error message
      */
     protected function renderPhp(string $content): string
     {
-        // Remove PHP open/close tags if present, so users can write either
-        // a full PHP block or just raw PHP statements
+        // Check if PHP content is explicitly allowed in config
+        $config = [];
+        if ($this->container && $this->container->has('config')) {
+            $config = $this->container->get('config');
+        }
+        
+        $phpContentAllowed = $config['security']['allow_php_content'] ?? false;
+        
+        if (!$phpContentAllowed) {
+            return '<div class="php-error" style="padding:15px;background:#fdd;border:1px solid #f99;border-radius:4px;margin:10px 0;">'
+                 . '<strong>PHP content type is disabled.</strong> To enable, set security.allow_php_content = true in config '
+                 . '(requires super-admin privileges). This content type is a security risk and should only be used in '
+                 . 'trusted environments with access restricted to super-administrators only.'
+                 . '</div>';
+        }
+        
+        // Only allow execution if current user is super-admin
+        $user = null;
+        if (isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+            $user = $_SESSION['user'];
+        } elseif (!empty($_SESSION['user_id'])) {
+            $user = [
+                'id' => (int)$_SESSION['user_id'],
+                'role' => $_SESSION['user_role'] ?? 'subscriber',
+            ];
+        }
+        
+        $isAdmin = $user && ($user['role'] ?? '') === 'administrator';
+        
+        if (!$isAdmin) {
+            return '<div class="php-error" style="padding:15px;background:#fdd;border:1px solid #f99;border-radius:4px;margin:10px 0;">'
+                 . '<strong>Access denied:</strong> Only administrators can view PHP content.'
+                 . '</div>';
+        }
+        
+        // Remove PHP open/close tags if present
         $content = preg_replace('/^<\?php\s*/i', '', $content);
         $content = preg_replace('/\s*\?>\s*$/', '', $content);
         
